@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="elec.shop.mapper.SysRolePermissionMapper">
+
+    <resultMap id="BaseResultMap" type="elec.shop.pojo.SysRolePermission">
+            <id property="roleId" column="role_id" />
+            <id property="permissionId" column="permission_id" />
+            <result property="createdAt" column="created_at" />
+            <result property="createdBy" column="created_by" />
+            <result property="tenantId" column="tenant_id" />
+            <result property="isDeleted" column="is_deleted" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        role_id,permission_id,created_at,created_by,tenant_id,is_deleted
+    </sql>
+</mapper>

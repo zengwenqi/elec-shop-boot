@@ -1,0 +1,89 @@
+package elec.shop.controller;
+
+import elec.shop.dto.LoginRequest;
+import elec.shop.dto.LoginResponse;
+import elec.shop.dto.MenuVO;
+import elec.shop.dto.RegisterRequest;
+import elec.shop.pojo.SysUser;
+import elec.shop.security.JwtUtils;
+import elec.shop.service.SysPermissionService;
+import elec.shop.service.SysUserService;
+import elec.shop.utils.IpUtils;
+import elec.shop.utils.Result;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Map;
+
+@Api(tags = "认证管理")
+@RestController
+@RequestMapping("/api/auth")
+@RequiredArgsConstructor
+public class AuthController {
+
+    private final AuthenticationManager authenticationManager;
+    private final JwtUtils jwtUtils;
+    private final SysUserService userService;
+    private final SysPermissionService permissionService;
+
+    @ApiOperation("用户注册")
+    @PostMapping("/register")
+    public Result register(@RequestBody RegisterRequest request) {
+        Boolean result = userService.registerUser(request);
+        if (result){
+            return Result.ok();
+        }
+        return Result.fail().message("注册失败");
+    }
+
+    @ApiOperation("用户登录")
+    @PostMapping("/login")
+    public Result<LoginResponse> login(@RequestBody LoginRequest request, HttpServletRequest servletRequest) {
+        Authentication authentication = authenticationManager.authenticate(
+            new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
+        );
+
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+
+        String token = jwtUtils.generateToken(userDetails);
+        SysUser user = userService.getUserByUsername(request.getUsername());
+
+        String ipAddress = IpUtils.getClientIp(servletRequest);
+        userService.updateLoginInfo(user.getUserId(), ipAddress);
+
+        LoginResponse response = LoginResponse.builder()
+                .token(token)
+                .username(user.getUsername())
+                .userId(user.getUserId())
+                .build();
+
+        return Result.ok(response);
+    }
+
+    @ApiOperation("退出登录")
+    @PostMapping("/logout")
+    public Result<Void> logout() {
+        SecurityContextHolder.clearContext();
+        return Result.ok();
+    }
+
+    @ApiOperation("获取用户菜单和权限信息")
+    @GetMapping("/menu")
+    public Result<Map<String, Object>> getUserMenu() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+        SysUser user = userService.getUserByUsername(username);
+        Map<String, Object> result = permissionService.getUserMenusAndPermissions(user.getUserId());
+        return Result.ok(result);
+    }
+}

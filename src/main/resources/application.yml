@@ -1,0 +1,79 @@
+# server配置
+server:
+  port: 9090
+  servlet:
+    context-path: /
+
+ip:
+  config: localhost
+
+# 连接池配置
+spring:
+  # 文件上传
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB
+      max-request-size: 10MB
+  web:
+    resources:
+      static-locations: classpath:/
+  datasource:
+    type: com.alibaba.druid.pool.DruidDataSource
+    url: jdbc:mysql://localhost:3306/elec-shop?serverTimezone=GMT%2B8&useSSL=false&characterEncoding=utf-8&&allowPublicKeyRetrieval=true&useUnicode=true&autoReconnect=true
+    username: root
+    password: 123456
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jackson:
+    date-format: "yyyy-MM-dd HH:mm:ss"
+    time-zone: "GMT+8"
+#  data:
+#    redis:
+#      host: ${ip.config}
+#      port: 6379
+#      database: 0
+#      timeout: 10000
+
+# 自动化单表查询语句，这样我就不需要写太多语句了
+mybatis-plus:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: elec.shop.pojo
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      id-type: auto #主键策略自增长
+      logic-delete-field: is_deleted # 全局逻辑删除的实体字段名(since 3.3.0,配置后可以忽略不配置步骤2)
+      logic-delete-value: 1 # 逻辑已删除值(默认为 1)
+      logic-not-delete-value: 0 # 逻辑未删除值(默认为 0)
+
+# /api-docs endpoint custom path 默认 /v3/api-docs
+# swagger 相关配置在  springdoc.swagger-ui
+# swagger-ui custom path
+springdoc:
+  show-actuator: true
+  api-docs:
+    path: /api-docs/doc
+  swagger-ui:
+    path: /api-docs/swagger-ui.html
+
+# 文件上传
+# 配置minio
+#minio:
+#  server: http://${ip.config}
+#  port: 9005
+#  endpoint: ${minio.server}:${minio.port}
+#  access-key: zengwenqi  # minio账号
+#  secret-key: zengwenqi  # minio密码
+#  bucket: job-service   # 指定桶名
+
+
+elec:
+  shop:
+    minio:
+      avatar-name: avatar/
+
+
+
+
