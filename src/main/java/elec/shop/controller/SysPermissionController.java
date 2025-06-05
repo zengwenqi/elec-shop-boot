@@ -1,7 +1,7 @@
 package elec.shop.controller;
 
-import elec.shop.pojo.SysPermission;
-import elec.shop.service.SysPermissionService;
+import elec.shop.pojo.sys.SysPermission;
+import elec.shop.service.sys.SysPermissionService;
 import elec.shop.utils.Result;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -49,4 +49,4 @@ public class SysPermissionController {
         // TODO: 从SecurityContext中获取当前用户ID
         return Result.ok(new String[0]);
     }
-} 
+}

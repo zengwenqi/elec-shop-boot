@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="elec.shop.mapper.purchase.AccountBalanceMapper">
+
+    <resultMap id="BaseResultMap" type="elec.shop.pojo.purchase.AccountBalance">
+            <id property="balanceId" column="balance_id" />
+            <result property="accountId" column="account_id" />
+            <result property="currency" column="currency" />
+            <result property="symbol" column="symbol" />
+            <result property="currencyName" column="currency_name" />
+            <result property="balance" column="balance" />
+            <result property="frozenAmount" column="frozen_amount" />
+            <result property="availableAmount" column="available_amount" />
+            <result property="exchangeRate" column="exchange_rate" />
+            <result property="lastUpdated" column="last_updated" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        balance_id,account_id,currency,symbol,currency_name,balance,
+        frozen_amount,available_amount,exchange_rate,last_updated
+    </sql>
+</mapper>

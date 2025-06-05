@@ -36,7 +36,7 @@ spring:
 
 # 自动化单表查询语句，这样我就不需要写太多语句了
 mybatis-plus:
-  mapper-locations: classpath:mapper/*.xml
+  mapper-locations: classpath:mapper/**/*.xml
   type-aliases-package: elec.shop.pojo
   configuration:
     map-underscore-to-camel-case: true

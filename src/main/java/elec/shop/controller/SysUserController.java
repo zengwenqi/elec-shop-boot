@@ -1,7 +1,7 @@
 package elec.shop.controller;
 
-import elec.shop.dto.UserDetailVO;
-import elec.shop.service.SysUserService;
+import elec.shop.pojo.sys.dto.UserDetailVO;
+import elec.shop.service.sys.SysUserService;
 import elec.shop.utils.Result;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;

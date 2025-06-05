@@ -69,36 +69,32 @@
             <option name="tableUIInfoList">
               <list>
                 <TableUIInfo>
-                  <option name="className" value="SysDict" />
-                  <option name="tableName" value="sys_dict" />
+                  <option name="className" value="FinanceAccount" />
+                  <option name="tableName" value="finance_account" />
                 </TableUIInfo>
                 <TableUIInfo>
-                  <option name="className" value="SysLoginLog" />
-                  <option name="tableName" value="sys_login_log" />
+                  <option name="className" value="AccountBalance" />
+                  <option name="tableName" value="account_balance" />
                 </TableUIInfo>
                 <TableUIInfo>
-                  <option name="className" value="SysOperationLog" />
-                  <option name="tableName" value="sys_operation_log" />
+                  <option name="className" value="PurchaserInfo" />
+                  <option name="tableName" value="purchaser_info" />
                 </TableUIInfo>
                 <TableUIInfo>
-                  <option name="className" value="SysPermission" />
-                  <option name="tableName" value="sys_permission" />
+                  <option name="className" value="PurchaseOrder" />
+                  <option name="tableName" value="purchase_order" />
                 </TableUIInfo>
                 <TableUIInfo>
-                  <option name="className" value="SysRole" />
-                  <option name="tableName" value="sys_role" />
+                  <option name="className" value="PurchaseTask" />
+                  <option name="tableName" value="purchase_task" />
                 </TableUIInfo>
                 <TableUIInfo>
-                  <option name="className" value="SysRolePermission" />
-                  <option name="tableName" value="sys_role_permission" />
+                  <option name="className" value="ShopInfo" />
+                  <option name="tableName" value="shop_info" />
                 </TableUIInfo>
                 <TableUIInfo>
-                  <option name="className" value="SysUser" />
-                  <option name="tableName" value="sys_user" />
-                </TableUIInfo>
-                <TableUIInfo>
-                  <option name="className" value="SysUserRole" />
-                  <option name="tableName" value="sys_user_role" />
+                  <option name="className" value="PurchaseOrderLog" />
+                  <option name="tableName" value="purchase_order_log" />
                 </TableUIInfo>
               </list>
             </option>

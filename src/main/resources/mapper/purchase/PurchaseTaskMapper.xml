@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="elec.shop.mapper.purchase.PurchaseTaskMapper">
+
+    <resultMap id="BaseResultMap" type="elec.shop.pojo.purchase.PurchaseTask">
+            <id property="taskId" column="task_id" />
+            <result property="taskCode" column="task_code" />
+            <result property="purchaserId" column="purchaser_id" />
+            <result property="taskType" column="task_type" />
+            <result property="taskStatus" column="task_status" />
+            <result property="priority" column="priority" />
+            <result property="title" column="title" />
+            <result property="content" column="content" />
+            <result property="startTime" column="start_time" />
+            <result property="endTime" column="end_time" />
+            <result property="completeTime" column="complete_time" />
+            <result property="createdAt" column="created_at" />
+            <result property="updatedAt" column="updated_at" />
+            <result property="deletedAt" column="deleted_at" />
+            <result property="createdBy" column="created_by" />
+            <result property="updatedBy" column="updated_by" />
+            <result property="version" column="version" />
+            <result property="tenantId" column="tenant_id" />
+            <result property="isDeleted" column="is_deleted" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        task_id,task_code,purchaser_id,task_type,task_status,priority,
+        title,content,start_time,end_time,complete_time,
+        created_at,updated_at,deleted_at,created_by,updated_by,
+        version,tenant_id,is_deleted
+    </sql>
+</mapper>

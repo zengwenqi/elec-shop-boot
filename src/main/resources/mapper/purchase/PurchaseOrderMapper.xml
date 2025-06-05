@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="elec.shop.mapper.purchase.PurchaseOrderMapper">
+
+    <resultMap id="BaseResultMap" type="elec.shop.pojo.purchase.PurchaseOrder">
+            <id property="orderId" column="order_id" />
+            <result property="orderNo" column="order_no" />
+            <result property="userId" column="user_id" />
+            <result property="shopId" column="shop_id" />
+            <result property="purchaserId" column="purchaser_id" />
+            <result property="orderType" column="order_type" />
+            <result property="orderStatus" column="order_status" />
+            <result property="paymentStatus" column="payment_status" />
+            <result property="totalAmount" column="total_amount" />
+            <result property="discountAmount" column="discount_amount" />
+            <result property="actualAmount" column="actual_amount" />
+            <result property="currency" column="currency" />
+            <result property="exchangeRate" column="exchange_rate" />
+            <result property="remarkOrderNo" column="remark_order_no" />
+            <result property="remark" column="remark" />
+            <result property="cancelReason" column="cancel_reason" />
+            <result property="cancelTime" column="cancel_time" />
+            <result property="confirmTime" column="confirm_time" />
+            <result property="completeTime" column="complete_time" />
+            <result property="createdAt" column="created_at" />
+            <result property="updatedAt" column="updated_at" />
+            <result property="deletedAt" column="deleted_at" />
+            <result property="createdBy" column="created_by" />
+            <result property="updatedBy" column="updated_by" />
+            <result property="version" column="version" />
+            <result property="tenantId" column="tenant_id" />
+            <result property="isDeleted" column="is_deleted" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        order_id,order_no,user_id,shop_id,purchaser_id,order_type,
+        order_status,payment_status,total_amount,discount_amount,actual_amount,
+        currency,exchange_rate,remark_order_no,remark,cancel_reason,
+        cancel_time,confirm_time,complete_time,created_at,updated_at,
+        deleted_at,created_by,updated_by,version,tenant_id,
+        is_deleted
+    </sql>
+</mapper>

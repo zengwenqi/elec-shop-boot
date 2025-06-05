@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="elec.shop.mapper.purchase.PurchaserInfoMapper">
+
+    <resultMap id="BaseResultMap" type="elec.shop.pojo.purchase.PurchaserInfo">
+            <id property="purchaserId" column="purchaser_id" />
+            <result property="userId" column="user_id" />
+            <result property="purchaserCode" column="purchaser_code" />
+            <result property="createdAt" column="created_at" />
+            <result property="updatedAt" column="updated_at" />
+            <result property="deletedAt" column="deleted_at" />
+            <result property="createdBy" column="created_by" />
+            <result property="updatedBy" column="updated_by" />
+            <result property="version" column="version" />
+            <result property="tenantId" column="tenant_id" />
+            <result property="isDeleted" column="is_deleted" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        purchaser_id,user_id,purchaser_code,created_at,updated_at,deleted_at,
+        created_by,updated_by,version,tenant_id,is_deleted
+    </sql>
+</mapper>

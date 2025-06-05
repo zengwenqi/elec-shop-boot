@@ -165,6 +165,12 @@
             <artifactId>easyexcel</artifactId>
             <version>3.3.2</version>
         </dependency>
+
+        <dependency>
+            <groupId>eu.bitwalker</groupId>
+            <artifactId>UserAgentUtils</artifactId>
+            <version>1.21</version>
+        </dependency>
     </dependencies>
 
     <build>

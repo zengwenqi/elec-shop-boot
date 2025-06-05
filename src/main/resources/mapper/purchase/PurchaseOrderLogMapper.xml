@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="elec.shop.mapper.purchase.PurchaseOrderLogMapper">
+
+    <resultMap id="BaseResultMap" type="elec.shop.pojo.purchase.PurchaseOrderLog">
+            <id property="logId" column="log_id" />
+            <result property="orderId" column="order_id" />
+            <result property="orderStatus" column="order_status" />
+            <result property="operationType" column="operation_type" />
+            <result property="operationDesc" column="operation_desc" />
+            <result property="operatorId" column="operator_id" />
+            <result property="operatorName" column="operator_name" />
+            <result property="createdAt" column="created_at" />
+            <result property="tenantId" column="tenant_id" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        log_id,order_id,order_status,operation_type,operation_desc,operator_id,
+        operator_name,created_at,tenant_id
+    </sql>
+</mapper>

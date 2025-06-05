@@ -1,15 +1,15 @@
 package elec.shop.controller;
 
-import elec.shop.dto.LoginRequest;
-import elec.shop.dto.LoginResponse;
-import elec.shop.dto.MenuVO;
-import elec.shop.dto.RegisterRequest;
-import elec.shop.pojo.SysUser;
+import elec.shop.pojo.sys.dto.LoginRequest;
+import elec.shop.pojo.sys.dto.LoginResponse;
+import elec.shop.pojo.sys.dto.RegisterRequest;
+import elec.shop.pojo.sys.SysUser;
 import elec.shop.security.JwtUtils;
-import elec.shop.service.SysPermissionService;
-import elec.shop.service.SysUserService;
+import elec.shop.service.sys.SysPermissionService;
+import elec.shop.service.sys.SysUserService;
 import elec.shop.utils.IpUtils;
 import elec.shop.utils.Result;
+import elec.shop.annotation.OperationLog;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import jakarta.servlet.http.HttpServletRequest;
@@ -21,7 +21,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.Map;
 
 @Api(tags = "认证管理")
@@ -37,6 +36,7 @@ public class AuthController {
 
     @ApiOperation("用户注册")
     @PostMapping("/register")
+    @OperationLog(module = "认证管理", operationType = "注册", description = "用户注册")
     public Result register(@RequestBody RegisterRequest request) {
         Boolean result = userService.registerUser(request);
         if (result){
@@ -47,6 +47,7 @@ public class AuthController {
 
     @ApiOperation("用户登录")
     @PostMapping("/login")
+    @OperationLog(module = "认证管理", operationType = "登录", description = "用户登录", isLogin = true)
     public Result<LoginResponse> login(@RequestBody LoginRequest request, HttpServletRequest servletRequest) {
         Authentication authentication = authenticationManager.authenticate(
             new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
@@ -72,6 +73,7 @@ public class AuthController {
 
     @ApiOperation("退出登录")
     @PostMapping("/logout")
+    @OperationLog(module = "认证管理", operationType = "退出", description = "退出登录")
     public Result<Void> logout() {
         SecurityContextHolder.clearContext();
         return Result.ok();
@@ -79,6 +81,7 @@ public class AuthController {
 
     @ApiOperation("获取用户菜单和权限信息")
     @GetMapping("/menu")
+    @OperationLog(module = "认证管理", operationType = "动态菜单", description = "获取动态菜单数据", saveResponseData = false)
     public Result<Map<String, Object>> getUserMenu() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();

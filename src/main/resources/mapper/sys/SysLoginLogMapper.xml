@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="elec.shop.mapper.sys.SysLoginLogMapper">
+
+    <resultMap id="BaseResultMap" type="elec.shop.pojo.sys.SysLoginLog">
+            <id property="logId" column="log_id" />
+            <result property="userId" column="user_id" />
+            <result property="username" column="username" />
+            <result property="ip" column="ip" />
+            <result property="location" column="location" />
+            <result property="browser" column="browser" />
+            <result property="os" column="os" />
+            <result property="status" column="status" />
+            <result property="msg" column="msg" />
+            <result property="loginTime" column="login_time" />
+            <result property="tenantId" column="tenant_id" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        log_id,user_id,username,ip,location,browser,
+        os,status,msg,login_time,tenant_id
+    </sql>
+</mapper>
