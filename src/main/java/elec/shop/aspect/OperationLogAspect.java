@@ -4,9 +4,11 @@ import com.alibaba.fastjson.JSON;
 import elec.shop.annotation.OperationLog;
 import elec.shop.pojo.sys.SysLoginLog;
 import elec.shop.pojo.sys.SysOperationLog;
+import elec.shop.pojo.sys.SysUser;
 import elec.shop.security.CustomUserDetails;
 import elec.shop.service.sys.SysLoginLogService;
 import elec.shop.service.sys.SysOperationLogService;
+import elec.shop.utils.AllContextUtils;
 import elec.shop.utils.IpUtils;
 import elec.shop.utils.Result;
 import eu.bitwalker.useragentutils.UserAgent;
@@ -83,11 +85,7 @@ public class OperationLogAspect {
             String location = IpUtils.getLocationByIP(ip);
 
             // 获取当前登录用户信息
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            String username = authentication != null ? authentication.getName() : null;
-            CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-            Long userId = userDetails.getUserId();
-
+            SysUser loginSysUser = AllContextUtils.getLoginSysUser();
 
             if (operationLog.isLogin()) {
                 // 处理登录日志
@@ -116,8 +114,8 @@ public class OperationLogAspect {
                 // 处理操作日志
                 SysOperationLog sysLog = new SysOperationLog();
                 sysLog.setLogId(System.currentTimeMillis()); // 实际项目中建议使用ID生成器
-                sysLog.setUserId(userId);
-                sysLog.setUsername(username);
+                sysLog.setUserId(loginSysUser.getUserId());
+                sysLog.setUsername(loginSysUser.getUsername());
                 sysLog.setOperationType(operationLog.operationType());
                 sysLog.setMethod(request.getMethod() + " " + request.getRequestURI());
                 sysLog.setIp(ip);

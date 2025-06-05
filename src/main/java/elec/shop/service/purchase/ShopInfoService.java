@@ -3,6 +3,8 @@ package elec.shop.service.purchase;
 import elec.shop.pojo.purchase.ShopInfo;
 import com.baomidou.mybatisplus.extension.service.IService;
 
+import java.util.List;
+
 /**
 * @author Lenovo
 * @description 针对表【shop_info(店铺信息表)】的数据库操作Service
@@ -10,4 +12,9 @@ import com.baomidou.mybatisplus.extension.service.IService;
 */
 public interface ShopInfoService extends IService<ShopInfo> {
 
+    /**
+     * 查询我的店铺信息
+     * @return
+     */
+    List<ShopInfo> queryShopInfo();
 }
