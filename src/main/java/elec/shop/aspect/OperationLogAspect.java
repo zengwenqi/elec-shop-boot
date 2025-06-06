@@ -2,26 +2,26 @@ package elec.shop.aspect;
 
 import com.alibaba.fastjson.JSON;
 import elec.shop.annotation.OperationLog;
+import elec.shop.pojo.purchase.PurchaseOrderLog;
 import elec.shop.pojo.sys.SysLoginLog;
 import elec.shop.pojo.sys.SysOperationLog;
 import elec.shop.pojo.sys.SysUser;
-import elec.shop.security.CustomUserDetails;
+import elec.shop.service.purchase.PurchaseOrderLogService;
 import elec.shop.service.sys.SysLoginLogService;
 import elec.shop.service.sys.SysOperationLogService;
 import elec.shop.utils.AllContextUtils;
 import elec.shop.utils.IpUtils;
 import elec.shop.utils.Result;
+import elec.shop.utils.SnowflakeLogIdGenerator;
 import eu.bitwalker.useragentutils.UserAgent;
-import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Pointcut;
 import org.aspectj.lang.reflect.MethodSignature;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -33,13 +33,12 @@ import java.util.*;
 @Slf4j
 @Aspect
 @Component
+@RequiredArgsConstructor
 public class OperationLogAspect {
 
-    @Resource
-    private SysLoginLogService loginLogService;
-
-    @Resource
-    private SysOperationLogService operationLogService;
+    private final SysLoginLogService loginLogService;
+    private final SysOperationLogService operationLogService;
+    private final PurchaseOrderLogService purchaseOrderLogService;
 
     @Pointcut("@annotation(elec.shop.annotation.OperationLog)")
     public void logPointCut() {
@@ -90,7 +89,7 @@ public class OperationLogAspect {
             if (operationLog.isLogin()) {
                 // 处理登录日志
                 SysLoginLog loginLog = new SysLoginLog();
-                loginLog.setLogId(System.currentTimeMillis()); // 实际项目中建议使用ID生成器
+                loginLog.setLogId(new SnowflakeLogIdGenerator(0L, 0L).generateId()); // 实际项目中建议使用ID生成器
                 loginLog.setIp(ip);
                 loginLog.setLocation(location);
                 loginLog.setBrowser(userAgent.getBrowser().getName());
@@ -111,11 +110,39 @@ public class OperationLogAspect {
 
                 loginLogService.save(loginLog);
             } else if (operationLog.isPurchaseOrder()) {
+                // 处理采购订单日志
+                PurchaseOrderLog orderLog = new PurchaseOrderLog();
+                orderLog.setLogId(new SnowflakeLogIdGenerator(1L, 1L).generateId());
+                orderLog.setOperatorId(loginSysUser.getUserId());
+                orderLog.setOperatorName(loginSysUser.getUsername());
+                orderLog.setOperationType(operationLog.operationType());
+                orderLog.setOperationDesc(operationLog.description());
+                orderLog.setCreatedAt(new Date());
 
-            }else {
+                // 从返回结果中获取订单ID和状态
+                if (result instanceof Result) {
+                    Result<?> res = (Result<?>) result;
+                    if (res.getData() != null) {
+                        if (res.getData() instanceof Map) {
+                            Map<String, Object> data = (Map<String, Object>) res.getData();
+                            if (data.containsKey("orderId")) {
+                                orderLog.setOrderId((Long) data.get("orderId"));
+                            }
+                            if (data.containsKey("orderStatus")) {
+                                orderLog.setOrderStatus((Integer) data.get("orderStatus"));
+                            }
+                        }
+                    }
+                }
+
+                // 设置状态
+                orderLog.setTenantId(0L);
+
+                purchaseOrderLogService.save(orderLog);
+            } else {
                 // 处理操作日志
                 SysOperationLog sysLog = new SysOperationLog();
-                sysLog.setLogId(System.currentTimeMillis()); // 实际项目中建议使用ID生成器
+                sysLog.setLogId(new SnowflakeLogIdGenerator(0L, 0L).generateId()); // 实际项目中建议使用ID生成器
                 sysLog.setUserId(loginSysUser.getUserId());
                 sysLog.setUsername(loginSysUser.getUsername());
                 sysLog.setOperationType(operationLog.operationType());

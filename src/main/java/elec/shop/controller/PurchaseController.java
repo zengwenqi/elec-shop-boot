@@ -1,14 +1,18 @@
 package elec.shop.controller;
 
-import elec.shop.pojo.purchase.ShopInfo;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import elec.shop.annotation.OperationLog;
+import elec.shop.pojo.purchase.*;
 import elec.shop.pojo.purchase.dto.PurchaseOrderDTO;
-import elec.shop.service.purchase.AccountBalanceService;
-import elec.shop.service.purchase.FinanceAccountService;
-import elec.shop.service.purchase.PurchaseOrderService;
-import elec.shop.service.purchase.ShopInfoService;
+import elec.shop.pojo.purchase.dto.PurchaseOrderQueryDTO;
+import elec.shop.pojo.purchase.dto.PurchaseTaskQueryDTO;
+import elec.shop.pojo.purchase.dto.PurchaserQueryDTO;
+import elec.shop.service.purchase.*;
+import elec.shop.utils.AllContextUtils;
 import elec.shop.utils.Result;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,6 +28,8 @@ public class PurchaseController {
     private final AccountBalanceService accountBalanceService;
     private final FinanceAccountService financeAccountService;
     private final PurchaseOrderService purchaseOrderService;
+    private final PurchaserInfoService purchaserInfoService;
+    private final PurchaseTaskService purchaseTaskService;
 
     @PostMapping("/shopInfo")
     @ApiOperation("查询我的店铺信息")
@@ -34,10 +40,65 @@ public class PurchaseController {
 
     @PostMapping("/createOrder")
     @ApiOperation("创建采购订单")
+    @OperationLog(
+        module = "采购管理",
+        operationType = "创建订单",
+        description = "创建采购订单",
+        isPurchaseOrder = true,
+        saveRequestData = true
+    )
     public Result createOrder(@RequestBody PurchaseOrderDTO purchaseOrderDTO) {
-        return purchaseOrderService.createOrder(purchaseOrderDTO);;
+        return purchaseOrderService.createOrder(purchaseOrderDTO);
     }
 
+    @GetMapping("/orders")
+    @ApiOperation("查询当前用户店铺下的采购订单")
+    @OperationLog(module = "采购管理", operationType = "查询订单", description = "查询采购订单列表")
+    public Result<Page<PurchaseOrder>> queryOrders(
+            @ApiParam("查询参数") @RequestBody PurchaseOrderQueryDTO query
+    ) {
+        Page<PurchaseOrder> orderPage = purchaseOrderService.queryUserOrders(query);
+        return Result.ok(orderPage);
+    }
+
+    @GetMapping("/purchasers")
+    @ApiOperation("查询采购员列表")
+    @OperationLog(module = "采购管理", operationType = "查询采购员", description = "查询采购员列表")
+    public Result<Page<PurchaserInfo>> queryPurchasers(
+            @ApiParam("查询参数") @RequestBody PurchaserQueryDTO purchaserQueryDTO
+    ) {
+        Page<PurchaserInfo> purchaserPage = purchaserInfoService.queryPurchasers(purchaserQueryDTO);
+        return Result.ok(purchaserPage);
+    }
+
+    @PostMapping("/purchaser/add")
+    @ApiOperation("新增采购员")
+    @OperationLog(module = "采购管理", operationType = "新增采购员", description = "新增采购员")
+    public Result addPurchaser(@ApiParam("用户ID") @RequestParam Long userId) {
+        PurchaserInfo purchaserInfo = purchaserInfoService.addPurchaser(userId);
+        return Result.ok(purchaserInfo);
+    }
+
+    @GetMapping("/tasks")
+    @ApiOperation("查询采购任务列表")
+    @OperationLog(module = "采购管理", operationType = "查询任务", description = "查询采购任务列表")
+    public Result<Page<PurchaseTask>> queryTasks(
+            @ApiParam("查询参数") @RequestBody PurchaseTaskQueryDTO query
+    ) {
+        Page<PurchaseTask> taskPage = purchaseTaskService.queryTasks(query);
+        return Result.ok(taskPage);
+    }
+
+    @PostMapping("/task/assign")
+    @ApiOperation("分配采购任务")
+    @OperationLog(module = "采购管理", operationType = "分配任务", description = "分配采购任务")
+    public Result assignTask(
+            @ApiParam("任务ID") @RequestParam Long taskId,
+            @ApiParam("采购员ID") @RequestParam Long purchaserId
+    ) {
+        purchaseTaskService.assignTask(taskId, purchaserId);
+        return Result.ok();
+    }
 
     @GetMapping("/test")
     @ApiOperation("测试汇率")
@@ -45,5 +106,4 @@ public class PurchaseController {
         shopInfoService.test(userId);
         return Result.ok();
     }
-
 }

@@ -27,12 +27,12 @@ spring:
   jackson:
     date-format: "yyyy-MM-dd HH:mm:ss"
     time-zone: "GMT+8"
-#  data:
-#    redis:
-#      host: ${ip.config}
-#      port: 6379
-#      database: 0
-#      timeout: 10000
+  data:
+    redis:
+      host: ${ip.config}
+      port: 6379
+      database: 0
+      timeout: 10000
 
 # 自动化单表查询语句，这样我就不需要写太多语句了
 mybatis-plus:

@@ -1,8 +1,10 @@
 package elec.shop.service.purchase;
 
-import elec.shop.pojo.purchase.PurchaseOrder;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
+import elec.shop.pojo.purchase.PurchaseOrder;
 import elec.shop.pojo.purchase.dto.PurchaseOrderDTO;
+import elec.shop.pojo.purchase.dto.PurchaseOrderQueryDTO;
 import elec.shop.utils.Result;
 
 /**
@@ -18,4 +20,29 @@ public interface PurchaseOrderService extends IService<PurchaseOrder> {
      * @return
      */
     Result createOrder(PurchaseOrderDTO purchaseOrderDTO);
+
+    /**
+     * 查询用户订单列表
+     */
+    Page<PurchaseOrder> queryUserOrders(PurchaseOrderQueryDTO query);
+
+    /**
+     * 更新订单状态
+     */
+    void updateOrderStatus(Long orderId, Integer orderStatus, String remark);
+
+    /**
+     * 取消订单
+     */
+    void cancelOrder(Long orderId, String cancelReason);
+
+    /**
+     * 确认订单
+     */
+    void confirmOrder(Long orderId);
+
+    /**
+     * 完成订单
+     */
+    void completeOrder(Long orderId);
 }
