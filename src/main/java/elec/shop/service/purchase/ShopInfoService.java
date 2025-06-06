@@ -17,4 +17,10 @@ public interface ShopInfoService extends IService<ShopInfo> {
      * @return
      */
     List<ShopInfo> queryShopInfo();
+
+    /**
+     * 测试
+     * @param userId
+     */
+    void test(Long userId);
 }

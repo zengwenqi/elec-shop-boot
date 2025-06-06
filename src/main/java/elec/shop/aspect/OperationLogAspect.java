@@ -110,7 +110,9 @@ public class OperationLogAspect {
                 }
 
                 loginLogService.save(loginLog);
-            } else {
+            } else if (operationLog.isPurchaseOrder()) {
+
+            }else {
                 // 处理操作日志
                 SysOperationLog sysLog = new SysOperationLog();
                 sysLog.setLogId(System.currentTimeMillis()); // 实际项目中建议使用ID生成器

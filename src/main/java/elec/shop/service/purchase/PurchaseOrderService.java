@@ -2,6 +2,8 @@ package elec.shop.service.purchase;
 
 import elec.shop.pojo.purchase.PurchaseOrder;
 import com.baomidou.mybatisplus.extension.service.IService;
+import elec.shop.pojo.purchase.dto.PurchaseOrderDTO;
+import elec.shop.utils.Result;
 
 /**
 * @author Lenovo
@@ -10,4 +12,10 @@ import com.baomidou.mybatisplus.extension.service.IService;
 */
 public interface PurchaseOrderService extends IService<PurchaseOrder> {
 
+    /**
+     * 创建采购订单
+     * @param purchaseOrderDTO
+     * @return
+     */
+    Result createOrder(PurchaseOrderDTO purchaseOrderDTO);
 }

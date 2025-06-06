@@ -1,27 +1,12 @@
-package elec.shop.pojo.purchase;
+package elec.shop.pojo.purchase.dto;
 
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
-import java.io.Serializable;
+import lombok.Data;
+
 import java.math.BigDecimal;
 import java.util.Date;
 
-import elec.shop.pojo.base.BaseEntity;
-import lombok.Data;
-
-/**
- * 采购订单主表
- * @TableName purchase_order
- */
-@TableName(value ="purchase_order")
 @Data
-public class PurchaseOrder extends BaseEntity implements Serializable {
-    /**
-     * 订单ID
-     */
-    @TableId
-    private Long orderId;
+public class PurchaseOrderDTO {
 
     /**
      * 订单编号
@@ -29,19 +14,9 @@ public class PurchaseOrder extends BaseEntity implements Serializable {
     private String orderNo;
 
     /**
-     * 用户ID
-     */
-    private Long userId;
-
-    /**
      * 店铺ID
      */
     private Long shopId;
-
-    /**
-     * 采购员ID
-     */
-    private Long purchaserId;
 
     /**
      * 订单类型
@@ -103,6 +78,4 @@ public class PurchaseOrder extends BaseEntity implements Serializable {
      */
     private Date completeTime;
 
-    @TableField(exist = false)
-    private static final long serialVersionUID = 1L;
 }

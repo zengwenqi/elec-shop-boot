@@ -38,4 +38,9 @@ public @interface OperationLog {
      * 是否是登录日志
      */
     boolean isLogin() default false;
+
+    /**
+     * 是否是采购订单日志
+     */
+    boolean isPurchaseOrder() default false;
 }

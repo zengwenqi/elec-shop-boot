@@ -24,7 +24,7 @@ public class AccountBalance implements Serializable {
     /**
      * 账户ID
      */
-    private Long accountId;
+    private String accountId;
 
     /**
      * 币种代码
@@ -45,16 +45,6 @@ public class AccountBalance implements Serializable {
      * 账户余额
      */
     private BigDecimal balance;
-
-    /**
-     * 冻结金额
-     */
-    private BigDecimal frozenAmount;
-
-    /**
-     * 可用金额
-     */
-    private BigDecimal availableAmount;
 
     /**
      * 相对于基础币种的汇率
