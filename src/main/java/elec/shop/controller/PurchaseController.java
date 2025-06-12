@@ -7,6 +7,7 @@ import elec.shop.pojo.purchase.dto.PurchaseOrderDTO;
 import elec.shop.pojo.purchase.dto.PurchaseOrderQueryDTO;
 import elec.shop.pojo.purchase.dto.PurchaseTaskQueryDTO;
 import elec.shop.pojo.purchase.dto.PurchaserQueryDTO;
+import elec.shop.pojo.sys.SysUser;
 import elec.shop.service.purchase.*;
 import elec.shop.utils.AllContextUtils;
 import elec.shop.utils.Result;
@@ -20,7 +21,7 @@ import java.util.List;
 
 @Api(tags = "采购管理")
 @RestController
-@RequestMapping("/api/purchase")
+@RequestMapping("/purchase")
 @RequiredArgsConstructor
 public class PurchaseController {
 
@@ -30,13 +31,6 @@ public class PurchaseController {
     private final PurchaseOrderService purchaseOrderService;
     private final PurchaserInfoService purchaserInfoService;
     private final PurchaseTaskService purchaseTaskService;
-
-    @PostMapping("/shopInfo")
-    @ApiOperation("查询我的店铺信息")
-    public Result queryShopInfo() {
-        List<ShopInfo> shopInfoList = shopInfoService.queryShopInfo();
-        return Result.ok(shopInfoList);
-    }
 
     @PostMapping("/createOrder")
     @ApiOperation("创建采购订单")
@@ -52,7 +46,7 @@ public class PurchaseController {
     }
 
     @GetMapping("/orders")
-    @ApiOperation("查询当前用户店铺下的采购订单")
+    @ApiOperation("查询当前用户下的采购订单")
     @OperationLog(module = "采购管理", operationType = "查询订单", description = "查询采购订单列表")
     public Result<Page<PurchaseOrder>> queryOrders(
             @ApiParam("查询参数") @RequestBody PurchaseOrderQueryDTO query
@@ -60,6 +54,34 @@ public class PurchaseController {
         Page<PurchaseOrder> orderPage = purchaseOrderService.queryUserOrders(query);
         return Result.ok(orderPage);
     }
+
+    @PostMapping("/orderInfo")
+    @ApiOperation("查询采购订单详情")
+    @OperationLog(module = "采购管理", operationType = "查询订单", description = "查询采购订单详情")
+    public Result orderInfo(
+            @RequestParam("orderId") Long orderId
+    ) {
+        return Result.ok(purchaseOrderService.orderInfo(orderId));
+    }
+
+    @PostMapping("/cancelOrder")
+    @ApiOperation("取消订单")
+    @OperationLog(module = "采购管理", operationType = "取消订单", description = "取消订单")
+    public Result cancelOrder(
+            @RequestParam("orderId") Long orderId,
+            @RequestParam("cancelReason") String cancelReason
+    ) {
+        return Result.ok(purchaseOrderService.cancelOrder(orderId,cancelReason));
+    }
+
+//    @PostMapping("/exportOrders")
+//    @ApiOperation("导出订单EXCEL")
+//    @OperationLog(module = "采购管理", operationType = "导出订单EXCEL", description = "导出订单EXCEL")
+//    public Result exportOrders(
+//
+//    ) {
+//        return Result.ok(purchaseOrderService.cancelOrder(orderId,cancelReason));
+//    }
 
     @GetMapping("/purchasers")
     @ApiOperation("查询采购员列表")
@@ -69,6 +91,15 @@ public class PurchaseController {
     ) {
         Page<PurchaserInfo> purchaserPage = purchaserInfoService.queryPurchasers(purchaserQueryDTO);
         return Result.ok(purchaserPage);
+    }
+
+    @GetMapping("/purchasersAll")
+    @ApiOperation("查询所有采购员")
+    @OperationLog(module = "采购管理", operationType = "查询采购员", description = "查询所有采购员")
+    public Result purchasersAll() {
+        SysUser loginSysUser = AllContextUtils.getLoginSysUser();
+        if (loginSysUser.getUserType() != 1 || loginSysUser.getUserType() != 2) return Result.fail().message("无权操作");
+        return Result.ok(purchaserInfoService.list());
     }
 
     @PostMapping("/purchaser/add")

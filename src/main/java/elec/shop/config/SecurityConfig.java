@@ -44,7 +44,7 @@ public class SecurityConfig {
             .csrf(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
-                    "/api/auth/**",
+                    "/auth/**",
                     "/api-docs/**",
                     "/v3/api-docs/**",
                     "/swagger-ui/**"
@@ -63,10 +63,10 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        
+
         // 允许的源
         configuration.setAllowedOriginPatterns(Collections.singletonList("*"));
-        
+
         // 允许的HTTP方法
         configuration.setAllowedMethods(Arrays.asList(
             HttpMethod.GET.name(),
@@ -75,7 +75,7 @@ public class SecurityConfig {
             HttpMethod.DELETE.name(),
             HttpMethod.OPTIONS.name()
         ));
-        
+
         // 允许的请求头
         configuration.setAllowedHeaders(Arrays.asList(
             HttpHeaders.AUTHORIZATION,
@@ -83,19 +83,19 @@ public class SecurityConfig {
             HttpHeaders.ACCEPT,
             TOKEN_HEADER
         ));
-        
+
         // 暴露的响应头
         configuration.setExposedHeaders(Arrays.asList(
             TOKEN_HEADER,
             HttpHeaders.AUTHORIZATION
         ));
-        
+
         // 允许携带认证信息
         configuration.setAllowCredentials(true);
-        
+
         // 预检请求的有效期，单位为秒
         configuration.setMaxAge(3600L);
-        
+
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
@@ -118,4 +118,4 @@ public class SecurityConfig {
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
-} 
+}

@@ -1,7 +1,11 @@
 package elec.shop.service.purchase;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import elec.shop.pojo.purchase.ShopInfo;
 import com.baomidou.mybatisplus.extension.service.IService;
+import elec.shop.pojo.purchase.dto.ShopInfoDTO;
+import elec.shop.pojo.purchase.dto.ShopInfoQueryDTO;
+import elec.shop.utils.Result;
 
 import java.util.List;
 
@@ -16,11 +20,32 @@ public interface ShopInfoService extends IService<ShopInfo> {
      * 查询我的店铺信息
      * @return
      */
-    List<ShopInfo> queryShopInfo();
+    IPage<ShopInfo> queryShopInfo(ShopInfoQueryDTO shopInfoQueryDTO);
 
     /**
      * 测试
      * @param userId
      */
     void test(Long userId);
+
+    /**
+     * 更新我的店铺信息
+     * @param shopInfoDTO
+     * @return
+     */
+    Result updateShopInfo(ShopInfoDTO shopInfoDTO);
+
+    /**
+     * 删除店铺
+     * @param shopId
+     * @return
+     */
+    Result deleteShop(Long shopId);
+
+    /**
+     * 新增店铺
+     * @param shopInfoDTO
+     * @return
+     */
+    Result addShop(ShopInfoDTO shopInfoDTO);
 }

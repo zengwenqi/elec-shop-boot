@@ -34,7 +34,7 @@ public interface PurchaseOrderService extends IService<PurchaseOrder> {
     /**
      * 取消订单
      */
-    void cancelOrder(Long orderId, String cancelReason);
+    Boolean cancelOrder(Long orderId, String cancelReason);
 
     /**
      * 确认订单
@@ -45,4 +45,9 @@ public interface PurchaseOrderService extends IService<PurchaseOrder> {
      * 完成订单
      */
     void completeOrder(Long orderId);
+
+    /**
+     * 查询订单详情
+     */
+    PurchaseOrderDTO orderInfo(Long orderId);
 }

@@ -83,6 +83,9 @@ public class PurchaseOrderServiceImpl extends ServiceImpl<PurchaseOrderMapper, P
         if (StringUtils.isNotBlank(query.getEndTime())) {
             wrapper.le(PurchaseOrder::getCreatedAt, query.getEndTime());
         }
+        if (query.getShopId() != null) {
+            wrapper.eq(PurchaseOrder::getShopId, query.getShopId());
+        }
 
         // 按创建时间倒序
         wrapper.orderByDesc(PurchaseOrder::getCreatedAt);
@@ -105,8 +108,8 @@ public class PurchaseOrderServiceImpl extends ServiceImpl<PurchaseOrderMapper, P
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void cancelOrder(Long orderId, String cancelReason) {
-        PurchaseOrder order = getById(orderId);
+    public Boolean cancelOrder(Long orderId, String cancelReason) {
+        PurchaseOrder order = this.getById(orderId);
         if (order == null) {
             throw new RuntimeException("订单不存在");
         }
@@ -119,7 +122,7 @@ public class PurchaseOrderServiceImpl extends ServiceImpl<PurchaseOrderMapper, P
         order.setOrderStatus(4); // 已取消
         order.setCancelReason(cancelReason);
         order.setCancelTime(new Date());
-        updateById(order);
+        return this.updateById(order);
     }
 
     @Override
@@ -156,6 +159,14 @@ public class PurchaseOrderServiceImpl extends ServiceImpl<PurchaseOrderMapper, P
         order.setOrderStatus(3); // 已完成
         order.setCompleteTime(new Date());
         updateById(order);
+    }
+
+    @Override
+    public PurchaseOrderDTO orderInfo(Long orderId) {
+        PurchaseOrder order = this.getById(orderId);
+        PurchaseOrderDTO purchaseOrderDTO = new PurchaseOrderDTO();
+        BeanUtils.copyProperties(order, purchaseOrderDTO);
+        return purchaseOrderDTO;
     }
 }
 
