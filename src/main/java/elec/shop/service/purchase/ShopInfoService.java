@@ -8,6 +8,7 @@ import elec.shop.pojo.purchase.dto.ShopInfoQueryDTO;
 import elec.shop.utils.Result;
 
 import java.util.List;
+import java.util.Map;
 
 /**
 * @author Lenovo
@@ -48,4 +49,17 @@ public interface ShopInfoService extends IService<ShopInfo> {
      * @return
      */
     Result addShop(ShopInfoDTO shopInfoDTO);
+
+    /**
+     * 获取店铺订单统计信息
+     * @param shopId 店铺ID
+     * @return 统计信息
+     */
+    Map<String, Object> getShopOrderStatistics(Long shopId);
+
+    /**
+     * 获取所有店铺信息
+     * @return 店铺信息列表
+     */
+    List<ShopInfo> queryShopInfoList();
 }

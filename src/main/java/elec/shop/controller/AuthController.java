@@ -7,6 +7,7 @@ import elec.shop.pojo.sys.SysUser;
 import elec.shop.security.JwtUtils;
 import elec.shop.service.sys.SysPermissionService;
 import elec.shop.service.sys.SysUserService;
+import elec.shop.utils.AllContextUtils;
 import elec.shop.utils.IpUtils;
 import elec.shop.utils.Result;
 import elec.shop.annotation.OperationLog;
@@ -83,10 +84,8 @@ public class AuthController {
     @GetMapping("/menu")
     @OperationLog(module = "认证管理", operationType = "动态菜单", description = "获取动态菜单数据", saveResponseData = false)
     public Result<Map<String, Object>> getUserMenu() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String username = authentication.getName();
-        SysUser user = userService.getUserByUsername(username);
-        Map<String, Object> result = permissionService.getUserMenusAndPermissions(user.getUserId());
+        SysUser loginSysUser = AllContextUtils.getLoginSysUser();
+        Map<String, Object> result = permissionService.getUserMenusAndPermissions(loginSysUser.getUserId());
         return Result.ok(result);
     }
 }

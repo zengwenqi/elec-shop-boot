@@ -69,6 +69,21 @@ public class PurchaseOrder extends BaseEntity implements Serializable {
     private String currency;
 
     /**
+     * 联系电话
+     */
+    private String contactPhone;
+
+    /**
+     * 收货地址
+     */
+    private String infoAddress;
+
+    /**
+     * 收货人
+     */
+    private String reciverPerson;
+
+    /**
      * 汇率
      */
     private BigDecimal exchangeRate;

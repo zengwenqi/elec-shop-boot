@@ -1,5 +1,6 @@
 package elec.shop.controller;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import elec.shop.annotation.OperationLog;
 import elec.shop.pojo.purchase.*;
@@ -7,6 +8,7 @@ import elec.shop.pojo.purchase.dto.PurchaseOrderDTO;
 import elec.shop.pojo.purchase.dto.PurchaseOrderQueryDTO;
 import elec.shop.pojo.purchase.dto.PurchaseTaskQueryDTO;
 import elec.shop.pojo.purchase.dto.PurchaserQueryDTO;
+import elec.shop.pojo.purchase.vo.PurchaseOrderVO;
 import elec.shop.pojo.sys.SysUser;
 import elec.shop.service.purchase.*;
 import elec.shop.utils.AllContextUtils;
@@ -14,10 +16,12 @@ import elec.shop.utils.Result;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import java.io.IOException;
+import java.net.URLEncoder;
 
 @Api(tags = "采购管理")
 @RestController
@@ -34,24 +38,24 @@ public class PurchaseController {
 
     @PostMapping("/createOrder")
     @ApiOperation("创建采购订单")
-    @OperationLog(
-        module = "采购管理",
-        operationType = "创建订单",
-        description = "创建采购订单",
-        isPurchaseOrder = true,
-        saveRequestData = true
-    )
+//    @OperationLog(
+//        module = "采购管理",
+//        operationType = "创建订单",
+//        description = "创建采购订单",
+//        isPurchaseOrder = true,
+//        saveRequestData = true
+//    )
     public Result createOrder(@RequestBody PurchaseOrderDTO purchaseOrderDTO) {
         return purchaseOrderService.createOrder(purchaseOrderDTO);
     }
 
-    @GetMapping("/orders")
+    @PostMapping("/orders")
     @ApiOperation("查询当前用户下的采购订单")
-    @OperationLog(module = "采购管理", operationType = "查询订单", description = "查询采购订单列表")
-    public Result<Page<PurchaseOrder>> queryOrders(
+    @OperationLog(module = "采购管理", operationType = "查询订单", description = "查询当前用户下的采购订单")
+    public Result<IPage<PurchaseOrderVO>> queryOrders(
             @ApiParam("查询参数") @RequestBody PurchaseOrderQueryDTO query
     ) {
-        Page<PurchaseOrder> orderPage = purchaseOrderService.queryUserOrders(query);
+        IPage<PurchaseOrderVO> orderPage = purchaseOrderService.queryUserOrders(query);
         return Result.ok(orderPage);
     }
 
@@ -74,14 +78,17 @@ public class PurchaseController {
         return Result.ok(purchaseOrderService.cancelOrder(orderId,cancelReason));
     }
 
-//    @PostMapping("/exportOrders")
-//    @ApiOperation("导出订单EXCEL")
+    @GetMapping("/exportOrders")
+    @ApiOperation("导出订单EXCEL")
 //    @OperationLog(module = "采购管理", operationType = "导出订单EXCEL", description = "导出订单EXCEL")
-//    public Result exportOrders(
-//
-//    ) {
-//        return Result.ok(purchaseOrderService.cancelOrder(orderId,cancelReason));
-//    }
+    public void exportOrders(
+            @ApiParam("店铺ID") @RequestParam(required = false) Long shopId,
+            @ApiParam("开始时间") @RequestParam(required = false) String startTime,
+            @ApiParam("结束时间") @RequestParam(required = false) String endTime,
+            HttpServletResponse response
+    ) {
+        purchaseOrderService.exportOrders(shopId, startTime, endTime, response);
+    }
 
     @GetMapping("/purchasers")
     @ApiOperation("查询采购员列表")

@@ -69,32 +69,8 @@
             <option name="tableUIInfoList">
               <list>
                 <TableUIInfo>
-                  <option name="className" value="FinanceAccount" />
-                  <option name="tableName" value="finance_account" />
-                </TableUIInfo>
-                <TableUIInfo>
-                  <option name="className" value="AccountBalance" />
-                  <option name="tableName" value="account_balance" />
-                </TableUIInfo>
-                <TableUIInfo>
-                  <option name="className" value="PurchaserInfo" />
-                  <option name="tableName" value="purchaser_info" />
-                </TableUIInfo>
-                <TableUIInfo>
-                  <option name="className" value="PurchaseOrder" />
-                  <option name="tableName" value="purchase_order" />
-                </TableUIInfo>
-                <TableUIInfo>
-                  <option name="className" value="PurchaseTask" />
-                  <option name="tableName" value="purchase_task" />
-                </TableUIInfo>
-                <TableUIInfo>
-                  <option name="className" value="ShopInfo" />
-                  <option name="tableName" value="shop_info" />
-                </TableUIInfo>
-                <TableUIInfo>
-                  <option name="className" value="PurchaseOrderLog" />
-                  <option name="tableName" value="purchase_order_log" />
+                  <option name="className" value="PurchaseOrderItem" />
+                  <option name="tableName" value="purchase_order_item" />
                 </TableUIInfo>
               </list>
             </option>

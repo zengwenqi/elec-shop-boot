@@ -4,6 +4,45 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="elec.shop.mapper.purchase.PurchaseOrderMapper">
 
+    <!-- 采购订单VO结果映射 -->
+    <resultMap id="PurchaseOrderVOResultMap" type="elec.shop.pojo.purchase.vo.PurchaseOrderVO">
+        <id column="order_id" property="orderId" />
+        <result column="order_no" property="orderNo" />
+        <result column="user_id" property="userId" />
+        <result column="shop_id" property="shopId" />
+        <result column="purchaser_id" property="purchaserId" />
+        <result column="order_type" property="orderType" />
+        <result column="order_status" property="orderStatus" />
+        <result column="payment_status" property="paymentStatus" />
+        <result column="total_amount" property="totalAmount" />
+        <result column="currency" property="currency" />
+        <result column="contact_phone" property="contactPhone" />
+        <result column="info_address" property="infoAddress" />
+        <result column="reciver_person" property="reciverPerson" />
+        <result column="exchange_rate" property="exchangeRate" />
+        <result column="remark_order_no" property="remarkOrderNo" />
+        <result column="remark" property="remark" />
+        <result column="cancel_reason" property="cancelReason" />
+        <result column="cancel_time" property="cancelTime" />
+        <result column="confirm_time" property="confirmTime" />
+        <result column="complete_time" property="completeTime" />
+        <result column="created_at" property="createdAt" />
+        <result column="updated_at" property="updatedAt" />
+        <result column="created_by" property="createdBy" />
+        <result column="updated_by" property="updatedBy" />
+
+        <!-- 关联查询订单商品明细 -->
+        <collection property="orderItems" ofType="elec.shop.pojo.purchase.vo.PurchaseOrderItemVO">
+            <id column="item_id" property="itemId" />
+            <result column="product_name" property="productName" />
+            <result column="product_link" property="productLink" />
+            <result column="product_image" property="productImage" />
+            <result column="sku" property="sku" />
+            <result column="unit_price" property="unitPrice" />
+            <result column="purchase_quantity" property="purchaseQuantity" />
+        </collection>
+    </resultMap>
+
     <resultMap id="BaseResultMap" type="elec.shop.pojo.purchase.PurchaseOrder">
             <id property="orderId" column="order_id" />
             <result property="orderNo" column="order_no" />
@@ -42,4 +81,115 @@
         deleted_at,created_by,updated_by,version,tenant_id,
         is_deleted
     </sql>
+
+    <select id="selectExportOrders" resultType="elec.shop.pojo.purchase.vo.PurchaseOrderExportVO">
+        SELECT
+            po.order_no,
+            si.shop_name,
+            si.shop_code,
+            pi.purchaser_code,
+            CASE po.order_type
+                WHEN 1 THEN '普通采购'
+                WHEN 2 THEN '紧急采购'
+                WHEN 3 THEN '批量采购'
+                ELSE '未知'
+            END as order_type,
+            CASE po.order_status
+                WHEN 0 THEN '待确认'
+                WHEN 1 THEN '已确认'
+                WHEN 2 THEN '采购中'
+                WHEN 3 THEN '已完成'
+                WHEN 4 THEN '已取消'
+                ELSE '未知'
+            END as order_status,
+            CASE po.payment_status
+                WHEN 0 THEN '待支付'
+                WHEN 1 THEN '已支付'
+                WHEN 2 THEN '已退款'
+                ELSE '未知'
+            END as payment_status,
+            po.total_amount,
+            po.currency,
+            po.exchange_rate,
+            po.remark_order_no,
+            po.remark,
+            po.cancel_reason,
+            po.cancel_time,
+            po.confirm_time,
+            po.complete_time,
+            po.created_at,
+            po.created_by,
+            po.updated_at,
+            po.updated_by
+        FROM purchase_order po
+        LEFT JOIN shop_info si ON po.shop_id = si.shop_id
+        LEFT JOIN purchaser_info pi ON po.purchaser_id = pi.purchaser_id
+        WHERE po.user_id = #{userId}
+        <if test="shopId != null">
+            AND po.shop_id = #{shopId}
+        </if>
+        <if test="startTime != null and startTime != ''">
+            AND po.created_at >= #{startTime}
+        </if>
+        <if test="endTime != null and endTime != ''">
+            AND po.created_at &lt;= #{endTime}
+        </if>
+        ORDER BY po.created_at DESC
+    </select>
+    <!-- 查询采购订单列表 -->
+    <select id="queryPurchaseOrderList" resultMap="PurchaseOrderVOResultMap">
+        SELECT
+        po.*,
+        poi.item_id,
+        poi.product_name,
+        poi.product_link,
+        poi.product_image,
+        poi.sku,
+        poi.unit_price,
+        poi.purchase_quantity
+        FROM
+        purchase_order po
+        LEFT JOIN
+        purchase_order_item poi ON po.order_id = poi.order_id
+        WHERE
+        po.is_deleted = 0
+        <if test="queryDTO.shopId != null">
+            AND po.shop_id = #{queryDTO.shopId}
+        </if>
+        <if test="queryDTO.orderStatus != null">
+            AND po.order_status = #{queryDTO.orderStatus}
+        </if>
+        <if test="queryDTO.paymentStatus != null">
+            AND po.payment_status = #{queryDTO.paymentStatus}
+        </if>
+        <if test="queryDTO.startTime != null and queryDTO.startTime != ''">
+            AND po.created_at >= #{queryDTO.startTime}
+        </if>
+        <if test="queryDTO.endTime != null and queryDTO.endTime != ''">
+            AND po.created_at &lt;= #{queryDTO.endTime}
+        </if>
+        ORDER BY
+        -- 已取消的订单排在最后
+        CASE WHEN po.order_status = 4 THEN 1 ELSE 0 END,
+        -- 其他状态的订单按创建时间倒序排列
+        po.created_at DESC
+    </select>
+    <select id="queryPurchaseOrderOne" resultMap="PurchaseOrderVOResultMap">
+        SELECT
+        po.*,
+        poi.item_id,
+        poi.product_name,
+        poi.product_link,
+        poi.product_image,
+        poi.sku,
+        poi.unit_price,
+        poi.purchase_quantity
+        FROM
+        purchase_order po
+        LEFT JOIN
+        purchase_order_item poi ON po.order_id = poi.order_id
+        WHERE
+        po.is_deleted = 0 and po.order_id = #{orderId}
+    </select>
+
 </mapper>

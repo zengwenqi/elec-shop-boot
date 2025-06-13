@@ -45,7 +45,7 @@ public class FinanceAccount extends BaseEntity implements Serializable {
     /**
      * 账户余额
      */
-    private BigDecimal balance;
+    private BigDecimal banlance;
 
     /**
      * 状态：1-正常 2-冻结 3-注销

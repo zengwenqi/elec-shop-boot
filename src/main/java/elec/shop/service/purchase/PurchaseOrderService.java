@@ -1,11 +1,14 @@
 package elec.shop.service.purchase;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import elec.shop.pojo.purchase.PurchaseOrder;
 import elec.shop.pojo.purchase.dto.PurchaseOrderDTO;
 import elec.shop.pojo.purchase.dto.PurchaseOrderQueryDTO;
+import elec.shop.pojo.purchase.vo.PurchaseOrderVO;
 import elec.shop.utils.Result;
+import jakarta.servlet.http.HttpServletResponse;
 
 /**
 * @author Lenovo
@@ -24,7 +27,7 @@ public interface PurchaseOrderService extends IService<PurchaseOrder> {
     /**
      * 查询用户订单列表
      */
-    Page<PurchaseOrder> queryUserOrders(PurchaseOrderQueryDTO query);
+    IPage<PurchaseOrderVO> queryUserOrders(PurchaseOrderQueryDTO query);
 
     /**
      * 更新订单状态
@@ -49,5 +52,21 @@ public interface PurchaseOrderService extends IService<PurchaseOrder> {
     /**
      * 查询订单详情
      */
-    PurchaseOrderDTO orderInfo(Long orderId);
+    PurchaseOrderVO orderInfo(Long orderId);
+
+    /**
+     * 查询店铺订单
+     * @param queryDTO 查询条件
+     * @return 订单分页数据
+     */
+    IPage<PurchaseOrder> queryShopOrders(PurchaseOrderQueryDTO queryDTO);
+
+    /**
+     * 导出订单数据
+     * @param shopId 店铺ID，可选
+     * @param startTime 开始时间，可选
+     * @param endTime 结束时间，可选
+     * @param response HTTP响应对象
+     */
+    void exportOrders(Long shopId, String startTime, String endTime, HttpServletResponse response);
 }

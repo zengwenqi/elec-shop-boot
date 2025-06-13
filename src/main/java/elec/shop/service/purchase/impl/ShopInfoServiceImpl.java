@@ -27,6 +27,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.stream.Collectors;
 
 
 /**
@@ -50,7 +53,7 @@ public class ShopInfoServiceImpl extends ServiceImpl<ShopInfoMapper, ShopInfo>
         SysUser loginSysUser = AllContextUtils.getLoginSysUser();
         LambdaQueryWrapper<ShopInfo> queryWrapper = new LambdaQueryWrapper<ShopInfo>()
                 .eq(ShopInfo::getUserId, loginSysUser.getUserId());
-        if (shopInfoQueryDTO.getShopName()!=null) {
+        if (shopInfoQueryDTO.getShopName()!=null&&!(shopInfoQueryDTO.getShopName().isEmpty())) {
             queryWrapper.eq(ShopInfo::getShopName, shopInfoQueryDTO.getShopName());
         }
         if (shopInfoQueryDTO.getShopCode()!=null) {
@@ -72,9 +75,10 @@ public class ShopInfoServiceImpl extends ServiceImpl<ShopInfoMapper, ShopInfo>
     @Override
     @Transactional
     public Result updateShopInfo(ShopInfoDTO shopInfoDTO) {
+        SysUser loginSysUser = AllContextUtils.getLoginSysUser();
         ShopInfo shopInfo = shopInfoMapper.selectOne(new LambdaQueryWrapper<ShopInfo>()
                 .eq(ShopInfo::getShopId, shopInfoDTO.getShopId()));
-        if (shopInfoDTO.getUserId().equals(shopInfo.getUserId())){
+        if (loginSysUser.getUserId().equals(shopInfo.getUserId())){
             ShopInfo shopInfo1 = new ShopInfo();
             BeanUtils.copyProperties(shopInfoDTO, shopInfo1);
             shopInfoMapper.updateById(shopInfo1);
@@ -104,13 +108,85 @@ public class ShopInfoServiceImpl extends ServiceImpl<ShopInfoMapper, ShopInfo>
     @Override
     @Transactional
     public Result addShop(ShopInfoDTO shopInfoDTO) {
+        SysUser loginSysUser = AllContextUtils.getLoginSysUser();
         ShopInfo shopInfo = new ShopInfo();
         BeanUtils.copyProperties(shopInfoDTO, shopInfo);
+        shopInfo.setUserId(loginSysUser.getUserId());
+        shopInfo.setShopCode(AllContextUtils.generateUniqueShopNumber(loginSysUser.getUserId()));
         int insert = shopInfoMapper.insert(shopInfo);
         if (insert > 0) return Result.ok();
         return Result.fail().message("无权操作");
     }
 
+    @Override
+    public Map<String, Object> getShopOrderStatistics(Long shopId) {
+        // 验证店铺是否属于当前用户
+        SysUser loginSysUser = AllContextUtils.getLoginSysUser();
+        ShopInfo shopInfo = shopInfoMapper.selectOne(new LambdaQueryWrapper<ShopInfo>()
+                .eq(ShopInfo::getShopId, shopId)
+                .eq(ShopInfo::getUserId, loginSysUser.getUserId()));
+
+        if (shopInfo == null) {
+            throw new RuntimeException("无权访问该店铺信息");
+        }
+
+        Map<String, Object> statistics = new HashMap<>();
+
+        // 统计各状态订单数量
+        LambdaQueryWrapper<PurchaseOrder> orderWrapper = new LambdaQueryWrapper<PurchaseOrder>()
+                .eq(PurchaseOrder::getShopId, shopId);
+
+        // 总订单数
+        long totalOrders = purchaseOrderMapper.selectCount(orderWrapper);
+        statistics.put("totalOrders", totalOrders);
+
+        // 待确认订单数
+        long pendingConfirmOrders = purchaseOrderMapper.selectCount(
+                orderWrapper.clone().eq(PurchaseOrder::getOrderStatus, 0));
+        statistics.put("pendingConfirmOrders", pendingConfirmOrders);
+
+        // 采购中订单数
+        long processingOrders = purchaseOrderMapper.selectCount(
+                orderWrapper.clone().eq(PurchaseOrder::getOrderStatus, 2));
+        statistics.put("processingOrders", processingOrders);
+
+        // 已完成订单数
+        long completedOrders = purchaseOrderMapper.selectCount(
+                orderWrapper.clone().eq(PurchaseOrder::getOrderStatus, 3));
+        statistics.put("completedOrders", completedOrders);
+
+        // 已取消订单数
+        long cancelledOrders = purchaseOrderMapper.selectCount(
+                orderWrapper.clone().eq(PurchaseOrder::getOrderStatus, 4));
+        statistics.put("cancelledOrders", cancelledOrders);
+
+        // 统计订单总金额
+        List<PurchaseOrder> allOrders = purchaseOrderMapper.selectList(orderWrapper);
+        BigDecimal totalAmount = allOrders.stream()
+                .map(PurchaseOrder::getTotalAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        statistics.put("totalAmount", totalAmount);
+
+        // 按币种统计订单金额
+        Map<String, BigDecimal> amountByCurrency = allOrders.stream()
+                .collect(Collectors.groupingBy(
+                        PurchaseOrder::getCurrency,
+                        Collectors.reducing(
+                                BigDecimal.ZERO,
+                                PurchaseOrder::getTotalAmount,
+                                BigDecimal::add)));
+        statistics.put("amountByCurrency", amountByCurrency);
+
+        return statistics;
+    }
+
+    @Override
+    public List<ShopInfo> queryShopInfoList() {
+        SysUser loginSysUser = AllContextUtils.getLoginSysUser();
+        LambdaQueryWrapper<ShopInfo> queryWrapper = new LambdaQueryWrapper<ShopInfo>()
+                .eq(ShopInfo::getUserId, loginSysUser.getUserId());
+        return shopInfoMapper.selectList(queryWrapper);
+    }
 
     /**
      * 初始化用户信息数据
@@ -131,7 +207,7 @@ public class ShopInfoServiceImpl extends ServiceImpl<ShopInfoMapper, ShopInfo>
         financeAccount.setUserId(userId);
         financeAccount.setAccountType(1);
         financeAccount.setAccountNo(AllContextUtils.generateAccountNo(userId));
-        financeAccount.setBalance(new BigDecimal("00.00"));
+        financeAccount.setBanlance(new BigDecimal("00.00"));
         financeAccount.setBaseCurrency("人民币");
         financeAccount.setStatus(1);
         financeAccountMapper.insert(financeAccount);
