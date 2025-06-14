@@ -1,5 +1,6 @@
 package elec.shop.pojo.sys.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 
 import java.util.Date;
@@ -16,7 +17,9 @@ public class UserDetailVO {
     private Integer gender;
     private Date birthDate;
     private Integer status;
+//    @JsonIgnore
     private Integer userType;
+//    private String userTypeName;
     private Date lastLoginTime;
     private String lastLoginIp;
     private List<String> roleNames;

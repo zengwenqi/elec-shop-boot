@@ -11,6 +11,7 @@ import elec.shop.pojo.purchase.dto.PurchaserQueryDTO;
 import elec.shop.pojo.purchase.vo.PurchaseOrderVO;
 import elec.shop.pojo.sys.SysUser;
 import elec.shop.service.purchase.*;
+import elec.shop.service.sys.SysUserService;
 import elec.shop.utils.AllContextUtils;
 import elec.shop.utils.Result;
 import io.swagger.annotations.Api;
@@ -36,6 +37,7 @@ public class PurchaseController {
     private final PurchaseOrderService purchaseOrderService;
     private final PurchaserInfoService purchaserInfoService;
     private final PurchaseTaskService purchaseTaskService;
+    private final SysUserService sysUserService;
 
     @PostMapping("/createOrder")
     @ApiOperation("创建采购订单")
@@ -107,7 +109,8 @@ public class PurchaseController {
     @OperationLog(module = "采购管理", operationType = "查询采购员", description = "查询所有采购员")
     public Result purchasersAll() {
         SysUser loginSysUser = AllContextUtils.getLoginSysUser();
-        if (loginSysUser.getUserType() != 1 || loginSysUser.getUserType() != 2) return Result.fail().message("无权操作");
+        loginSysUser.setUserType(sysUserService.getById(loginSysUser.getUserId()).getUserType());
+        if (!loginSysUser.getUserType().equals(1) && !loginSysUser.getUserType().equals(2)) return Result.fail().message("无权操作");
         return Result.ok(purchaserInfoService.list());
     }
 

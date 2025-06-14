@@ -2,6 +2,7 @@ package elec.shop.service.sys.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import elec.shop.pojo.sys.dto.RegisterRequest;
 import elec.shop.pojo.sys.dto.UserDetailVO;
@@ -12,6 +13,7 @@ import elec.shop.mapper.sys.SysUserRoleMapper;
 import elec.shop.pojo.sys.SysRole;
 import elec.shop.pojo.sys.SysUser;
 import elec.shop.pojo.sys.SysUserRole;
+import elec.shop.pojo.sys.enums.UserType;
 import elec.shop.service.sys.SysPermissionService;
 import elec.shop.service.sys.SysUserService;
 import elec.shop.utils.ResultCodeEnum;
@@ -20,6 +22,10 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import elec.shop.utils.AllContextUtils;
+import elec.shop.pojo.sys.dto.AssignRoleDTO;
 
 import java.util.Date;
 import java.util.List;
@@ -168,6 +174,113 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser>
                 .set(SysUser::getUpdatedAt, new Date());
 
         userMapper.update(null, updateWrapper);
+    }
+
+    @Override
+    public IPage<UserDetailVO> getUserList(Integer pageNum, Integer pageSize, String keyword) {
+        // 构建查询条件
+        // 默认不返回最高管理员数据
+        LambdaQueryWrapper<SysUser> queryWrapper = new LambdaQueryWrapper<SysUser>()
+                .eq(SysUser::getIsDeleted, 0)
+                .ne(SysUser::getUserType, 1)
+                .and(StringUtils.isNotBlank(keyword), wrapper -> wrapper
+                        .like(SysUser::getUsername, keyword)
+                        .or()
+                        .like(SysUser::getRealName, keyword)
+                        .or()
+                        .like(SysUser::getMobile, keyword)
+                )
+                .orderByDesc(SysUser::getCreatedAt);
+
+        // 执行分页查询
+        Page<SysUser> page = new Page<>(pageNum, pageSize);
+        IPage<SysUser> userPage = userMapper.selectPage(page, queryWrapper);
+
+        // 转换为UserDetailVO
+        return userPage.convert(user -> {
+            // 默认不返回最高管理员数据
+            UserDetailVO userDetail = new UserDetailVO();
+            BeanUtils.copyProperties(user, userDetail);
+//            userDetail.setUserTypeName(UserType.getById(user.getUserType()).getName());
+            // 获取用户角色
+            List<SysUserRole> userRoles = userRoleMapper.selectList(
+                new LambdaQueryWrapper<SysUserRole>()
+                    .eq(SysUserRole::getUserId, user.getUserId())
+                    .eq(SysUserRole::getIsDeleted, 0)
+            );
+
+            List<Long> roleIds = userRoles.stream()
+                    .map(SysUserRole::getRoleId)
+                    .collect(Collectors.toList());
+
+            if (!roleIds.isEmpty()) {
+                List<SysRole> roles = roleMapper.selectList(
+                    new LambdaQueryWrapper<SysRole>()
+                        .in(SysRole::getRoleId, roleIds)
+                        .eq(SysRole::getIsDeleted, 0)
+                );
+
+                List<String> roleNames = roles.stream()
+                        .map(SysRole::getRoleName)
+                        .collect(Collectors.toList());
+                userDetail.setRoleNames(roleNames);
+            }
+
+            // 获取用户权限
+            List<String> permissions = permissionService.getUserPermissions(user.getUserId());
+            userDetail.setPermissions(permissions);
+
+            return userDetail;
+        });
+    }
+
+    @Override
+    @Transactional
+    public void assignUserRoles(AssignRoleDTO assignRoleDTO) {
+        Long userId = assignRoleDTO.getUserId();
+        Long roleId = assignRoleDTO.getRoleId();
+
+        // 检查用户是否存在
+        SysUser user = userMapper.selectById(userId);
+        if (user == null || user.getIsDeleted() == 1) {
+            throw new BusinessException(ResultCodeEnum.NONE_USER_ERROR);
+        }
+
+        // 如果是超级管理员，不允许修改角色
+        if (user.getUserType() == 1) {
+            throw new BusinessException(ResultCodeEnum.PERMISSION);
+        }
+
+        // 检查角色是否存在且有效
+        if (roleId!=null) {
+            Long l = roleMapper.selectCount(
+                    new LambdaQueryWrapper<SysRole>()
+                            .eq(SysRole::getRoleId, roleId)
+                            .eq(SysRole::getStatus, 1)
+                            .eq(SysRole::getIsDeleted, 0)
+            );
+
+            if (l==0L) {
+                throw new BusinessException("存在无效的角色ID");
+            }
+        }
+
+        // 删除用户现有角色
+        LambdaUpdateWrapper<SysUserRole> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.eq(SysUserRole::getUserId, userId)
+                .set(SysUserRole::getIsDeleted, 1);
+        userRoleMapper.update(null, updateWrapper);
+
+        // 分配新角色
+        if (roleId!=null) {
+            SysUserRole userRole = new SysUserRole();
+            userRole.setUserId(userId);
+            userRole.setRoleId(roleId);
+            userRole.setCreatedAt(new Date());
+            userRole.setCreatedBy(AllContextUtils.getLoginSysUser().getUserId());
+
+            userRoleMapper.insert(userRole);
+        }
     }
 }
 
