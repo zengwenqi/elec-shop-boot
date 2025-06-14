@@ -55,13 +55,6 @@ public interface PurchaseOrderService extends IService<PurchaseOrder> {
     PurchaseOrderVO orderInfo(Long orderId);
 
     /**
-     * 查询店铺订单
-     * @param queryDTO 查询条件
-     * @return 订单分页数据
-     */
-    IPage<PurchaseOrder> queryShopOrders(PurchaseOrderQueryDTO queryDTO);
-
-    /**
      * 导出订单数据
      * @param shopId 店铺ID，可选
      * @param startTime 开始时间，可选

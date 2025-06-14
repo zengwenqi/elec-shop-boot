@@ -18,6 +18,7 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
@@ -80,7 +81,8 @@ public class PurchaseController {
 
     @GetMapping("/exportOrders")
     @ApiOperation("导出订单EXCEL")
-//    @OperationLog(module = "采购管理", operationType = "导出订单EXCEL", description = "导出订单EXCEL")
+    // @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    // @OperationLog(module = "采购管理", operationType = "导出订单EXCEL", description = "导出订单EXCEL")
     public void exportOrders(
             @ApiParam("店铺ID") @RequestParam(required = false) Long shopId,
             @ApiParam("开始时间") @RequestParam(required = false) String startTime,

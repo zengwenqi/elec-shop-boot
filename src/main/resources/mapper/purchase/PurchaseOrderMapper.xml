@@ -94,6 +94,9 @@
                 WHEN 3 THEN '批量采购'
                 ELSE '未知'
             END as order_type,
+            po.contact_phone,
+            po.info_address,
+            po.reciver_person,
             CASE po.order_status
                 WHEN 0 THEN '待确认'
                 WHEN 1 THEN '已确认'
@@ -120,11 +123,21 @@
             po.created_at,
             po.created_by,
             po.updated_at,
-            po.updated_by
+            po.updated_by,
+            poi.product_name,
+            poi.product_link,
+            poi.product_image,
+            poi.sku,
+            poi.unit_price,
+            poi.purchase_quantity
         FROM purchase_order po
         LEFT JOIN shop_info si ON po.shop_id = si.shop_id
         LEFT JOIN purchaser_info pi ON po.purchaser_id = pi.purchaser_id
-        WHERE po.user_id = #{userId}
+        LEFT JOIN purchase_order_item poi ON po.order_id = poi.order_id
+        WHERE po.is_deleted = 0
+        <if test="userId != null">
+            AND po.user_id = #{userId}
+        </if>
         <if test="shopId != null">
             AND po.shop_id = #{shopId}
         </if>
@@ -134,7 +147,7 @@
         <if test="endTime != null and endTime != ''">
             AND po.created_at &lt;= #{endTime}
         </if>
-        ORDER BY po.created_at DESC
+        ORDER BY po.created_at DESC, po.order_no, poi.item_id
     </select>
     <!-- 查询采购订单列表 -->
     <select id="queryPurchaseOrderList" resultMap="PurchaseOrderVOResultMap">

@@ -6,6 +6,7 @@ import elec.shop.pojo.purchase.dto.ShopInfoDTO;
 import elec.shop.pojo.purchase.dto.ShopInfoQueryDTO;
 import elec.shop.pojo.purchase.dto.PurchaseOrderQueryDTO;
 import elec.shop.pojo.purchase.PurchaseOrder;
+import elec.shop.pojo.purchase.vo.PurchaseOrderVO;
 import elec.shop.service.purchase.PurchaseOrderService;
 import elec.shop.service.purchase.ShopInfoService;
 import elec.shop.utils.Result;
@@ -59,7 +60,7 @@ public class ShopController {
         if (queryDTO.getShopId() == null) {
             return Result.fail().message("店铺ID不能为空");
         }
-        IPage<PurchaseOrder> orderPage = purchaseOrderService.queryShopOrders(queryDTO);
+        IPage<PurchaseOrderVO> orderPage = purchaseOrderService.queryUserOrders(queryDTO);
         return Result.ok(orderPage);
     }
 

@@ -1,5 +1,7 @@
 package elec.shop.service.purchase.impl;
 
+import com.alibaba.excel.EasyExcel;
+import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -12,6 +14,7 @@ import elec.shop.pojo.purchase.*;
 import elec.shop.pojo.purchase.dto.PurchaseOrderDTO;
 import elec.shop.pojo.purchase.dto.PurchaseOrderQueryDTO;
 import elec.shop.pojo.purchase.vo.PurchaseOrderExportVO;
+import elec.shop.pojo.purchase.vo.PurchaseOrderItemVO;
 import elec.shop.pojo.purchase.vo.PurchaseOrderVO;
 import elec.shop.pojo.sys.SysUser;
 import elec.shop.service.purchase.PurchaseOrderItemService;
@@ -19,6 +22,8 @@ import elec.shop.service.purchase.PurchaseOrderService;
 import elec.shop.utils.AllContextUtils;
 import elec.shop.utils.ExcelUtils;
 import elec.shop.utils.Result;
+import elec.shop.utils.excel.CustomCellStyleStrategy;
+import elec.shop.utils.excel.CustomMergeStrategy;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,9 +32,11 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
 * @author Lenovo
@@ -71,10 +78,10 @@ public class PurchaseOrderServiceImpl extends ServiceImpl<PurchaseOrderMapper, P
         purchaseOrder.setConfirmTime(new Date());
         purchaseOrder.setUserId(loginSysUser.getUserId());
 
-        PurchaseOrderItem purchaseOrderItem = new PurchaseOrderItem();
         List<PurchaseOrderItem> purchaseOrderItemList = new ArrayList<>();
         int insert = purchaseOrderMapper.insert(purchaseOrder);
         purchaseOrderDTO.getOrderItems().forEach(e-> {
+            PurchaseOrderItem purchaseOrderItem = new PurchaseOrderItem();
             BeanUtils.copyProperties(e,purchaseOrderItem);
             purchaseOrderItem.setOrderId(purchaseOrder.getOrderId());
             purchaseOrderItemList.add(purchaseOrderItem);
@@ -87,9 +94,69 @@ public class PurchaseOrderServiceImpl extends ServiceImpl<PurchaseOrderMapper, P
 
     @Override
     public IPage<PurchaseOrderVO> queryUserOrders(PurchaseOrderQueryDTO query) {
-        IPage page = new Page<>(query.getPage(),query.getSize());
-        purchaseOrderMapper.queryPurchaseOrderList(page, query);
-        return page;
+        // 1. 构建主表查询条件
+        LambdaQueryWrapper<PurchaseOrder> wrapper = new LambdaQueryWrapper<PurchaseOrder>()
+                .eq(PurchaseOrder::getIsDeleted, 0);
+
+        if (query.getShopId() != null) {
+            wrapper.eq(PurchaseOrder::getShopId, query.getShopId());
+        }
+        if (query.getOrderStatus() != null) {
+            wrapper.eq(PurchaseOrder::getOrderStatus, query.getOrderStatus());
+        }
+        if (query.getPaymentStatus() != null) {
+            wrapper.eq(PurchaseOrder::getPaymentStatus, query.getPaymentStatus());
+        }
+        if (StringUtils.isNotBlank(query.getStartTime())) {
+            wrapper.ge(PurchaseOrder::getCreatedAt, query.getStartTime());
+        }
+        if (StringUtils.isNotBlank(query.getEndTime())) {
+            wrapper.le(PurchaseOrder::getUpdatedAt, query.getEndTime());
+        }
+        wrapper.last("ORDER BY CASE WHEN order_status = 4 THEN 1 ELSE 0 END, created_at DESC");
+        // 2. 主表分页查询
+        Page<PurchaseOrder> page = new Page<>(query.getPage(), query.getSize());
+        IPage<PurchaseOrder> orderPage = this.page(page, wrapper);
+
+        // 3. 获取分页后的订单ID列表
+        List<Long> orderIds = orderPage.getRecords().stream()
+                .map(PurchaseOrder::getOrderId)
+                .collect(Collectors.toList());
+
+        if (orderIds.isEmpty()) {
+            return new Page<>(query.getPage(), query.getSize());
+        }
+
+        // 4. 查询订单项数据
+        List<PurchaseOrderItem> orderItems = purchaseOrderItemService.list(
+            new LambdaQueryWrapper<PurchaseOrderItem>()
+                .in(PurchaseOrderItem::getOrderId, orderIds)
+        );
+
+        // 5. 组装数据
+        List<PurchaseOrderVO> orderVOs = orderPage.getRecords().stream().map(order -> {
+            PurchaseOrderVO vo = new PurchaseOrderVO();
+            BeanUtils.copyProperties(order, vo);
+
+            // 设置订单项
+            List<PurchaseOrderItemVO> itemVOs = orderItems.stream()
+                .filter(item -> item.getOrderId().equals(order.getOrderId()))
+                .map(item -> {
+                    PurchaseOrderItemVO itemVO = new PurchaseOrderItemVO();
+                    BeanUtils.copyProperties(item, itemVO);
+                    return itemVO;
+                })
+                .collect(Collectors.toList());
+            vo.setOrderItems(itemVOs);
+
+            return vo;
+        }).collect(Collectors.toList());
+
+        // 6. 组装分页结果
+        Page<PurchaseOrderVO> resultPage = new Page<>(query.getPage(), query.getSize(), orderPage.getTotal());
+        resultPage.setRecords(orderVOs);
+
+        return resultPage;
     }
 
     @Override
@@ -167,47 +234,6 @@ public class PurchaseOrderServiceImpl extends ServiceImpl<PurchaseOrderMapper, P
     }
 
     @Override
-    public IPage<PurchaseOrder> queryShopOrders(PurchaseOrderQueryDTO queryDTO) {
-        // 验证店铺是否属于当前用户
-        SysUser loginSysUser = AllContextUtils.getLoginSysUser();
-        ShopInfo shopInfo = shopInfoMapper.selectOne(new LambdaQueryWrapper<ShopInfo>()
-                .eq(ShopInfo::getShopId, queryDTO.getShopId())
-                .eq(ShopInfo::getUserId, loginSysUser.getUserId()));
-
-        if (shopInfo == null) {
-            throw new RuntimeException("无权访问该店铺信息");
-        }
-
-        // 构建查询条件
-        LambdaQueryWrapper<PurchaseOrder> wrapper = new LambdaQueryWrapper<PurchaseOrder>()
-                .eq(PurchaseOrder::getShopId, queryDTO.getShopId());
-
-        // 添加订单状态条件
-        if (queryDTO.getOrderStatus() != null) {
-            wrapper.eq(PurchaseOrder::getOrderStatus, queryDTO.getOrderStatus());
-        }
-
-        // 添加支付状态条件
-        if (queryDTO.getPaymentStatus() != null) {
-            wrapper.eq(PurchaseOrder::getPaymentStatus, queryDTO.getPaymentStatus());
-        }
-
-        // 添加时间范围条件
-        if (StringUtils.isNotBlank(queryDTO.getStartTime())) {
-            wrapper.ge(PurchaseOrder::getCreatedAt, queryDTO.getStartTime());
-        }
-        if (StringUtils.isNotBlank(queryDTO.getEndTime())) {
-            wrapper.le(PurchaseOrder::getCreatedAt, queryDTO.getEndTime());
-        }
-
-        // 按创建时间倒序排序
-        wrapper.orderByDesc(PurchaseOrder::getCreatedAt);
-
-        // 执行分页查询
-        return page(new Page<>(queryDTO.getPage(), queryDTO.getSize()), wrapper);
-    }
-
-    @Override
     public void exportOrders(Long shopId, String startTime, String endTime, HttpServletResponse response) {
         // 获取当前登录用户
         SysUser loginSysUser = AllContextUtils.getLoginSysUser();
@@ -227,11 +253,10 @@ public class PurchaseOrderServiceImpl extends ServiceImpl<PurchaseOrderMapper, P
         List<PurchaseOrderExportVO> exportData = purchaseOrderMapper.selectExportOrders(
                 loginSysUser.getUserId(), shopId, startTime, endTime);
 
-        // 导出Excel
+        // 导出Excel（使用支持合并单元格的方法）
         String fileName = "采购订单数据";
         String sheetName = "订单列表";
-        log.info("导出数据为{}",exportData);
-        ExcelUtils.exportExcel(response, exportData, fileName, sheetName, PurchaseOrderExportVO.class);
+        ExcelUtils.exportExcelWithMerge(response, exportData, fileName, sheetName, PurchaseOrderExportVO.class);
     }
 }
 
