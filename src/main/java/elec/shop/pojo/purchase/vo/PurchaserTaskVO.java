@@ -10,17 +10,19 @@ import java.util.Date;
 import java.util.List;
 
 /**
- * 采购订单视图对象
+ * 采购订单任务视图对象
  */
 @Data
-@ApiModel("采购订单视图对象")
-public class PurchaserOrderVO {
-
+@ApiModel("采购订单任务视图对象")
+public class PurchaserTaskVO {
     @ApiModelProperty("订单ID")
     private Long orderId;
 
     @ApiModelProperty("订单编号")
     private String orderNo;
+
+    @ApiModelProperty("任务编号")
+    private String taskCode;
 
     @ApiModelProperty("用户ID")
     private Long userId;
@@ -57,6 +59,9 @@ public class PurchaserOrderVO {
 
     @ApiModelProperty("订单状态：0-待分配 1-待确认 2-已确认 3-采购中 4-已完成 5-已取消")
     private Integer orderStatus;
+
+    @ApiModelProperty("任务状态：0-待处理 1-处理中 2-已完成 3-已取消")
+    private Integer taskStatus;
 
     @ApiModelProperty("订单状态名称")
     private String orderStatusName;

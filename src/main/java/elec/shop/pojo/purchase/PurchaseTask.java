@@ -38,7 +38,7 @@ public class PurchaseTask extends BaseEntity implements Serializable {
     private Integer taskType;
 
     /**
-     * 任务状态：0-待处理 1-处理中 2-已完成 3-已取消
+     * 任务状态：0-待处理 1-处理中 2-待确认 3-已完成 4-已取消
      */
     private Integer taskStatus;
 

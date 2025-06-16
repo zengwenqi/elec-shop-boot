@@ -1,9 +1,12 @@
 package elec.shop.service.purchase;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import elec.shop.pojo.purchase.PurchaseTask;
-import elec.shop.pojo.purchase.dto.PurchaseTaskQueryDTO;
+import elec.shop.pojo.purchase.dto.PurchaserTaskQueryDTO;
+import elec.shop.pojo.purchase.dto.TaskStatusChangeDTO;
+import elec.shop.pojo.purchase.vo.PurchaserTaskVO;
 
 /**
 * @author Lenovo
@@ -14,7 +17,7 @@ public interface PurchaseTaskService extends IService<PurchaseTask> {
     /**
      * 查询采购任务列表
      */
-    Page<PurchaseTask> queryTasks(PurchaseTaskQueryDTO query);
+    Page<PurchaseTask> queryTasks(PurchaserTaskQueryDTO query);
 
     /**
      * 分配采购任务
@@ -40,4 +43,21 @@ public interface PurchaseTaskService extends IService<PurchaseTask> {
      * 创建采购任务
      */
     PurchaseTask createTask(PurchaseTask task);
+
+    /**
+     * 查询我的采购任务
+     */
+    IPage<PurchaserTaskVO> queryMyPurchaseTask(PurchaserTaskQueryDTO query);
+
+    /**
+     * 采购任务状态变化
+     */
+    Boolean taskStatusChange(TaskStatusChangeDTO dto);
+
+    /**
+     * 获取采购任务详情
+     * @param taskId 任务ID
+     * @return 任务详情VO
+     */
+    PurchaserTaskVO getTaskInfo(Long taskId);
 }

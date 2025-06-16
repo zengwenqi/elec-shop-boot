@@ -112,7 +112,7 @@ public class PurchaseOrderServiceImpl extends ServiceImpl<PurchaseOrderMapper, P
         if (StringUtils.isNotBlank(query.getEndTime())) {
             wrapper.le(PurchaseOrder::getUpdatedAt, query.getEndTime());
         }
-        wrapper.last("ORDER BY CASE WHEN order_status = 4 THEN 1 ELSE 0 END, created_at DESC");
+        wrapper.last("ORDER BY CASE WHEN order_status = 5 THEN 1 ELSE 0 END, created_at DESC");
         // 2. 主表分页查询
         Page<PurchaseOrder> page = new Page<>(query.getPage(), query.getSize());
         IPage<PurchaseOrder> orderPage = this.page(page, wrapper);
@@ -189,7 +189,7 @@ public class PurchaseOrderServiceImpl extends ServiceImpl<PurchaseOrderMapper, P
             throw new RuntimeException("当前订单状态不能取消");
         }
 
-        order.setOrderStatus(4); // 已取消
+        order.setOrderStatus(5); // 已取消
         order.setCancelReason(cancelReason);
         order.setCancelTime(new Date());
         return this.updateById(order);

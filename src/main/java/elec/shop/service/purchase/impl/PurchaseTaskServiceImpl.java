@@ -1,22 +1,39 @@
 package elec.shop.service.purchase.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import elec.shop.exception.BusinessException;
 import elec.shop.mapper.purchase.PurchaseTaskMapper;
+import elec.shop.mapper.purchase.PurchaserInfoMapper;
 import elec.shop.pojo.purchase.PurchaseOrder;
+import elec.shop.pojo.purchase.PurchaseOrderItem;
 import elec.shop.pojo.purchase.PurchaseTask;
 import elec.shop.pojo.purchase.PurchaserInfo;
-import elec.shop.pojo.purchase.dto.PurchaseTaskQueryDTO;
+import elec.shop.pojo.purchase.dto.PurchaserTaskQueryDTO;
+import elec.shop.pojo.purchase.dto.TaskStatusChangeDTO;
+import elec.shop.pojo.purchase.vo.PurchaserOrderItemVO;
+import elec.shop.pojo.purchase.vo.PurchaserTaskVO;
+import elec.shop.pojo.sys.SysUser;
+import elec.shop.service.purchase.PurchaseOrderItemService;
 import elec.shop.service.purchase.PurchaseOrderService;
 import elec.shop.service.purchase.PurchaseTaskService;
 import elec.shop.service.purchase.PurchaserInfoService;
+import elec.shop.service.sys.SysUserService;
 import elec.shop.utils.AllContextUtils;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
 * @author Lenovo
@@ -30,9 +47,12 @@ public class PurchaseTaskServiceImpl extends ServiceImpl<PurchaseTaskMapper, Pur
 
     private final PurchaserInfoService purchaserInfoService;
     private final PurchaseOrderService purchaseOrderService;
+    private final PurchaserInfoMapper purchaserInfoMapper;
+    private final PurchaseOrderItemService purchaseOrderItemService;
+    private final SysUserService sysUserService;
 
     @Override
-    public Page<PurchaseTask> queryTasks(PurchaseTaskQueryDTO query) {
+    public Page<PurchaseTask> queryTasks(PurchaserTaskQueryDTO query) {
         LambdaQueryWrapper<PurchaseTask> wrapper = new LambdaQueryWrapper<>();
 
         if (query.getTaskStatus() != null) {
@@ -40,9 +60,6 @@ public class PurchaseTaskServiceImpl extends ServiceImpl<PurchaseTaskMapper, Pur
         }
         if (query.getPriority() != null) {
             wrapper.eq(PurchaseTask::getPriority, query.getPriority());
-        }
-        if (query.getPurchaserId() != null) {
-            wrapper.eq(PurchaseTask::getPurchaserId, query.getPurchaserId());
         }
 
         wrapper.orderByDesc(PurchaseTask::getPriority)
@@ -156,6 +173,221 @@ public class PurchaseTaskServiceImpl extends ServiceImpl<PurchaseTaskMapper, Pur
 
         save(task);
         return task;
+    }
+
+    @Override
+    public IPage<PurchaserTaskVO> queryMyPurchaseTask(PurchaserTaskQueryDTO query) {
+        // 获取当前登录用户
+        SysUser loginSysUser = AllContextUtils.getLoginSysUser();
+
+        // 查询采购员信息
+        PurchaserInfo purchaserInfo = purchaserInfoMapper.selectOne(
+                new LambdaQueryWrapper<PurchaserInfo>()
+                        .eq(PurchaserInfo::getUserId, loginSysUser.getUserId())
+        );
+        if (purchaserInfo == null) {
+            return new Page<>(query.getPage(), query.getSize());
+        }
+
+        // 1. 构建主表查询条件
+        LambdaQueryWrapper<PurchaseTask> wrapper = new LambdaQueryWrapper<PurchaseTask>()
+                .eq(PurchaseTask::getPurchaserId, purchaserInfo.getPurchaserId())
+                .eq(PurchaseTask::getIsDeleted, 0);
+
+        // 添加动态查询条件
+        if (query.getTaskStatus() != null) {
+            wrapper.eq(PurchaseTask::getTaskStatus, query.getTaskStatus());
+        }
+        if (query.getPriority() != null) {
+            wrapper.eq(PurchaseTask::getPriority, query.getPriority());
+        }
+
+        // 自定义排序规则
+        wrapper.last("ORDER BY CASE WHEN task_status = 4 THEN 1 ELSE 0 END, created_at DESC");
+
+        // 2. 主表分页查询
+        Page<PurchaseTask> page = new Page<>(query.getPage(), query.getSize());
+        IPage<PurchaseTask> taskPage = this.page(page, wrapper);
+
+        // 3. 提前处理空结果
+        List<Long> taskIds = taskPage.getRecords().stream()
+                .map(PurchaseTask::getTaskId)
+                .collect(Collectors.toList());
+        if (taskIds.isEmpty()) {
+            return new Page<>(query.getPage(), query.getSize());
+        }
+
+        // 4. 查询订单数据（必须保留）
+        List<PurchaseOrder> orders = purchaseOrderService.list(
+                new LambdaQueryWrapper<PurchaseOrder>()
+                        .in(PurchaseOrder::getOrderId, taskIds)
+        );
+        Map<Long, PurchaseOrder> orderMap = orders.stream()
+                .collect(Collectors.toMap(PurchaseOrder::getOrderId, order -> order));
+
+        // 5. 查询订单项数据
+        List<PurchaseOrderItem> orderItems = purchaseOrderItemService.list(
+                new LambdaQueryWrapper<PurchaseOrderItem>()
+                        .in(PurchaseOrderItem::getOrderId, taskIds)
+        );
+        Map<Long, List<PurchaseOrderItem>> itemMap = orderItems.stream()
+                .collect(Collectors.groupingBy(PurchaseOrderItem::getOrderId));
+
+        // 6. 组装结果
+        List<PurchaserTaskVO> taskVOS = taskPage.getRecords().stream().map(task -> {
+            PurchaserTaskVO vo = new PurchaserTaskVO();
+
+            // 获取关联的订单信息（确保任务ID与订单ID匹配）
+            PurchaseOrder order = orderMap.get(task.getTaskId());
+            if (order != null) {
+                // 从订单表获取必要字段（根据实际VO字段调整）
+                BeanUtils.copyProperties(order, vo);
+            }
+
+            BeanUtils.copyProperties(task, vo);
+
+            // 设置采购员名称
+            vo.setPurchaserName(sysUserService
+                    .getById(loginSysUser
+                            .getUserId())
+                    .getRealName());
+
+            // 设置订单项
+            List<PurchaseOrderItem> items = itemMap.getOrDefault(task.getTaskId(), Collections.emptyList());
+            vo.setOrderItems(items.stream().map(item -> {
+                PurchaserOrderItemVO itemVO = new PurchaserOrderItemVO();
+                BeanUtils.copyProperties(item, itemVO);
+                return itemVO;
+            }).collect(Collectors.toList()));
+
+            return vo;
+        }).collect(Collectors.toList());
+
+        // 7. 组装分页结果
+        Page<PurchaserTaskVO> resultPage = new Page<>(query.getPage(), query.getSize(), taskPage.getTotal());
+        resultPage.setRecords(taskVOS);
+
+        return resultPage;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Boolean taskStatusChange(TaskStatusChangeDTO dto) {
+        // 1. 获取当前用户信息
+        SysUser loginSysUser = AllContextUtils.getLoginSysUser();
+
+        // 2. 查询当前用户对应的采购员信息
+        PurchaserInfo purchaserInfo = purchaserInfoMapper.selectOne(
+                new LambdaQueryWrapper<PurchaserInfo>()
+                        .eq(PurchaserInfo::getUserId, loginSysUser.getUserId())
+                        .eq(PurchaserInfo::getIsDeleted, 0) // 添加逻辑删除过滤
+        );
+
+        // 3. 查询任务信息并校验任务存在性
+        PurchaseTask task = this.getById(dto.getTaskId());
+
+        // 4. 校验当前用户是否有权限操作该任务
+        if (!task.getPurchaserId().equals(purchaserInfo.getPurchaserId())) {
+            throw new BusinessException("无权限操作该任务");
+        }
+
+        // 5. 校验状态变更合法性
+        if (!isValidStatusChange(task.getTaskStatus(), dto.getNewStatus())) {
+            throw new BusinessException("不允许的状态变更");
+        }
+
+        // 6. 更新任务状态
+        task.setTaskStatus(dto.getNewStatus());
+
+        boolean success = this.updateById(task);
+
+        // 7. 触发关联操作（如果有）
+        if (success && dto.getNewStatus() == 2) { // 任务完成状态
+            updateRelatedOrderStatus(task.getTaskId(), 4); // 更新关联订单为已完成
+        }
+
+        return success;
+    }
+
+    @Override
+    public PurchaserTaskVO getTaskInfo(Long taskId) {
+        // 1. 查询任务基本信息
+        PurchaseTask task = this.getById(taskId);
+        if (task == null || task.getIsDeleted() == 1) {
+            throw new BusinessException("任务不存在或已删除");
+        }
+
+        // 2. 查询关联的订单信息
+        PurchaseOrder order = purchaseOrderService.getOne(
+                new LambdaQueryWrapper<PurchaseOrder>()
+                        .eq(PurchaseOrder::getOrderId, taskId)
+                        .eq(PurchaseOrder::getIsDeleted, 0)
+        );
+        if (order == null) {
+            throw new BusinessException("关联的订单不存在");
+        }
+
+        // 3. 查询订单项信息
+        List<PurchaseOrderItem> orderItems = purchaseOrderItemService.list(
+                new LambdaQueryWrapper<PurchaseOrderItem>()
+                        .eq(PurchaseOrderItem::getOrderId, taskId)
+                        .eq(PurchaseOrderItem::getIsDeleted, 0)
+        );
+
+        // 4. 查询采购员信息
+        PurchaserInfo purchaserInfo = purchaserInfoService.getOne(
+                new LambdaQueryWrapper<PurchaserInfo>()
+                        .eq(PurchaserInfo::getPurchaserId, task.getPurchaserId())
+                        .eq(PurchaserInfo::getIsDeleted, 0)
+        );
+        SysUser purchaser = null;
+        if (purchaserInfo != null) {
+            purchaser = sysUserService.getById(purchaserInfo.getUserId());
+        }
+
+        // 5. 组装VO对象
+        PurchaserTaskVO vo = new PurchaserTaskVO();
+        // 复制任务基本信息
+        BeanUtils.copyProperties(task, vo);
+        // 复制订单信息
+        BeanUtils.copyProperties(order, vo);
+
+        // 设置额外信息
+        vo.setPurchaserName(purchaser != null ? purchaser.getRealName() : "未知");
+        vo.setOrderItems(orderItems.stream().map(item -> {
+            PurchaserOrderItemVO itemVO = new PurchaserOrderItemVO();
+            BeanUtils.copyProperties(item, itemVO);
+            return itemVO;
+        }).collect(Collectors.toList()));
+
+        return vo;
+    }
+
+    /**
+     * 校验状态变更是否合法
+     */
+    private boolean isValidStatusChange(Integer oldStatus, Integer newStatus) {
+        // 示例状态转换规则：
+        // 0(待处理) -> 1(处理中)
+        // 1(处理中) -> 2(已完成) 或 3(已取消)
+        // 其他状态不允许变更
+        return switch (oldStatus) {
+            case 0 -> newStatus == 1;
+            case 1 -> newStatus == 2 || newStatus == 3;
+            default -> false;
+        };
+    }
+
+    /**
+     * 更新关联订单状态
+     */
+    private void updateRelatedOrderStatus(Long orderId, Integer newStatus) {
+        PurchaseOrder order = new PurchaseOrder();
+        order.setOrderId(orderId);
+        order.setOrderStatus(newStatus);
+        order.setCompleteTime(new Date());
+
+        purchaseOrderService.updateById(order);
     }
 }
 

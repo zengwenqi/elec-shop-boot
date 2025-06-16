@@ -6,7 +6,7 @@ import elec.shop.annotation.OperationLog;
 import elec.shop.pojo.purchase.*;
 import elec.shop.pojo.purchase.dto.PurchaserOrderDTO;
 import elec.shop.pojo.purchase.dto.PurchaserOrderQueryDTO;
-import elec.shop.pojo.purchase.dto.PurchaseTaskQueryDTO;
+import elec.shop.pojo.purchase.dto.PurchaserTaskQueryDTO;
 import elec.shop.pojo.purchase.dto.PurchaserQueryDTO;
 import elec.shop.pojo.purchase.vo.PurchaserOrderVO;
 import elec.shop.pojo.sys.SysUser;
@@ -126,7 +126,7 @@ public class PurchaseController {
     @ApiOperation("查询采购任务列表")
     @OperationLog(module = "采购管理", operationType = "查询任务", description = "查询采购任务列表")
     public Result<Page<PurchaseTask>> queryTasks(
-            @ApiParam("查询参数") @RequestBody PurchaseTaskQueryDTO query
+            @ApiParam("查询参数") @RequestBody PurchaserTaskQueryDTO query
     ) {
         Page<PurchaseTask> taskPage = purchaseTaskService.queryTasks(query);
         return Result.ok(taskPage);
