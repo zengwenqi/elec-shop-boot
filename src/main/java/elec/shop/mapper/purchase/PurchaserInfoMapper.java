@@ -2,6 +2,9 @@ package elec.shop.mapper.purchase;
 
 import elec.shop.pojo.purchase.PurchaserInfo;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import elec.shop.pojo.sys.dto.PurchaseInfoVO;
+
+import java.util.List;
 
 /**
 * @author Lenovo
@@ -11,6 +14,11 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 */
 public interface PurchaserInfoMapper extends BaseMapper<PurchaserInfo> {
 
+    /**
+     * 查询采购员信息列表
+     * @return
+     */
+    List<PurchaseInfoVO> selectPurchaserInfoList();
 }
 
 

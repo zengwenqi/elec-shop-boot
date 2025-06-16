@@ -2,6 +2,8 @@ package elec.shop.utils;
 
 import elec.shop.pojo.sys.SysUser;
 import elec.shop.security.CustomUserDetails;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
@@ -18,6 +20,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * 全局通用工具类
  */
+@Tag(name = "全局通用工具类")
 public class AllContextUtils {
 
     // 原子计数器，用于生成序列号
@@ -41,6 +44,7 @@ public class AllContextUtils {
      * 获取当前登录用户信息
      * @return
      */
+    @Operation(summary = "获取当前登录用户信息")
     public static SysUser getLoginSysUser() {
         // 获取当前登录用户信息
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -66,6 +70,7 @@ public class AllContextUtils {
      * @param userId 用户ID
      * @return 唯一店铺编号（示例：US-123456-20231015143022-0001）
      */
+    @Operation(summary = "生成唯一店铺编号")
     public static String generateUniqueShopNumber(Long userId) {
         // 获取当前时间戳（精确到秒）
         String timestamp = LocalDateTime.now().format(FORMATTER);
@@ -84,6 +89,7 @@ public class AllContextUtils {
      * @param userId 用户ID
      * @return 唯一的账户编号
      */
+    @Operation(summary = "生成唯一的账户编号")
     public static String generateAccountNo(Long userId) {
         if (userId == null || userId <= 0) {
             throw new IllegalArgumentException("用户ID必须为正整数");
@@ -118,6 +124,7 @@ public class AllContextUtils {
      * @param userId 用户唯一标识（建议使用 Long 类型）
      * @return 32 位十六进制字符串（大写）
      */
+    @Operation(summary = "成基于用户 ID 的 32 位唯一账户 ID")
     public static String generateAccountId(Long userId) {
         try {
             // 1. 生成盐值（可配置为系统固定值或动态密钥）
@@ -146,6 +153,7 @@ public class AllContextUtils {
      * @param userId 用户ID
      * @return 订单编号（格式：ORD+时间戳+用户ID+序列号+随机数）
      */
+    @Operation(summary = "生成唯一订单编号")
     public static String generateOrderNumber(Long userId) {
         // 1. 获取当前时间戳（精确到毫秒）
         LocalDateTime now = LocalDateTime.now();
@@ -167,5 +175,65 @@ public class AllContextUtils {
 
         // 5. 组合各部分
         return ORDER_PREFIX + timestamp + userIdStr + seqStr + randomStr;
+    }
+
+    /**
+     * 生成唯一采购员编码（格式：BUY+时间戳+用户ID+随机数+计数器）
+     * @param userId 用户ID
+     * @return 唯一的采购员编码（示例：BUY202506152019120000010001001）
+     */
+    @Operation(summary = "生成唯一采购员编码")
+    public static String generatePurchaserCode(Long userId) {
+        if (userId == null || userId <= 0) {
+            throw new IllegalArgumentException("用户ID必须为正整数");
+        }
+
+        // 获取当前时间戳（精确到秒）
+        String timestamp = LocalDateTime.now().format(FORMATTER);
+
+        // 获取用户ID的后6位（不足6位补零）
+        String userIdPart = String.format("%06d", userId % 1000000);
+
+        // 生成5位随机数（00000-99999）
+        int randomNum = SECURE_RANDOM.nextInt(100000);
+        String randomPart = String.format("%05d", randomNum);
+
+        // 获取计数器值（3位数字）
+        int count = COUNTER.getAndIncrement();
+        if (count >= MAX_COUNTER) {
+            COUNTER.set(0); // 重置计数器
+        }
+        String counterPart = String.format("%03d", count);
+
+        // 组合各部分生成完整的采购员编码
+        return String.format("BUY%s%s%s%s", timestamp, userIdPart, randomPart, counterPart);
+    }
+
+    /**
+     * 生成12位唯一采购任务编号（格式：PT+日期两位+用户ID两位+计数器四位）
+     * @param orderId 订单ID
+     * @return 唯一的12位采购任务编号（示例：PT250600010001）
+     */
+    @Operation(summary = "生成12位唯一采购任务编号")
+    public static String generatePurchaseTaskNumber(Long orderId) {
+        if (orderId == null || orderId <= 0) {
+            throw new IllegalArgumentException("订单ID必须为正整数");
+        }
+
+        // 获取当前日期（年的后两位和月份）
+        LocalDateTime now = LocalDateTime.now();
+        String datePart = String.format("%02d%02d",
+                now.getYear() % 100,  // 年的后两位
+                now.getMonthValue());  // 月份
+
+        // 获取订单ID的后两位（不足两位补零）
+        String userIdPart = String.format("%02d", orderId % 100);
+
+        // 获取4位计数器值（范围0000-9999，自动循环）
+        int count = COUNTER.getAndIncrement() % 10000;
+        String counterPart = String.format("%04d", count);
+
+        // 组合各部分生成完整的12位采购任务编号
+        return String.format("PT%s%s%s", datePart, userIdPart, counterPart);
     }
 }

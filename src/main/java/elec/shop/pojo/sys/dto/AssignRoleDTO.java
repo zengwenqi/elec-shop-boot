@@ -15,4 +15,7 @@ public class AssignRoleDTO {
 
     @ApiModelProperty(value = "角色ID列表", required = true)
     private Long roleId;
+
+    @ApiModelProperty(value = "备注", required = true)
+    private String remark;
 }

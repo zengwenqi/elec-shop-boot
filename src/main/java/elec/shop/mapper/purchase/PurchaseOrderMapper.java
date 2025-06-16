@@ -1,12 +1,11 @@
 package elec.shop.mapper.purchase;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import elec.shop.pojo.purchase.PurchaseOrder;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import elec.shop.pojo.purchase.dto.PurchaseOrderQueryDTO;
-import elec.shop.pojo.purchase.vo.PurchaseOrderExportVO;
-import elec.shop.pojo.purchase.vo.PurchaseOrderVO;
+import elec.shop.pojo.purchase.dto.PurchaserOrderQueryDTO;
+import elec.shop.pojo.purchase.vo.PurchaserOrderExportVO;
+import elec.shop.pojo.purchase.vo.PurchaserOrderVO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import java.util.List;
@@ -28,7 +27,7 @@ public interface PurchaseOrderMapper extends BaseMapper<PurchaseOrder> {
      * @param endTime 结束时间，可选
      * @return 订单导出数据列表
      */
-    List<PurchaseOrderExportVO> selectExportOrders(
+    List<PurchaserOrderExportVO> selectExportOrders(
             @Param("userId") Long userId,
             @Param("shopId") Long shopId,
             @Param("startTime") String startTime,
@@ -38,18 +37,18 @@ public interface PurchaseOrderMapper extends BaseMapper<PurchaseOrder> {
     /**
      * 分页查询采购订单列表
      */
-    IPage<PurchaseOrderVO> queryPurchaseOrderList(IPage<PurchaseOrderVO> page,
-                                                  @Param("queryDTO") PurchaseOrderQueryDTO queryDTO);
+    IPage<PurchaserOrderVO> queryPurchaseOrderList(IPage<PurchaserOrderVO> page,
+                                                   @Param("queryDTO") PurchaserOrderQueryDTO queryDTO);
 
     /**
      * 查询采购订单列表（不分页）
      */
-    List<PurchaseOrderVO> queryPurchaseOrderList(@Param("queryDTO") PurchaseOrderQueryDTO queryDTO);
+    List<PurchaserOrderVO> queryPurchaseOrderList(@Param("queryDTO") PurchaserOrderQueryDTO queryDTO);
 
     /**
      * 查询采购订单详情
      */
-    PurchaseOrderVO queryPurchaseOrderOne(@Param("orderId") Long orderId);
+    PurchaserOrderVO queryPurchaseOrderOne(@Param("orderId") Long orderId);
 }
 
 

@@ -4,6 +4,9 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import elec.shop.pojo.purchase.PurchaserInfo;
 import elec.shop.pojo.purchase.dto.PurchaserQueryDTO;
+import elec.shop.pojo.sys.dto.PurchaseInfoVO;
+
+import java.util.List;
 
 /**
 * @author Lenovo
@@ -29,10 +32,15 @@ public interface PurchaserInfoService extends IService<PurchaserInfo> {
     /**
      * 检查用户是否是采购员
      */
-    boolean isPurchaser(Long userId);
+    boolean isPurchaser(Long purchaserId);
 
     /**
      * 获取采购员信息
      */
     PurchaserInfo getPurchaserByUserId(Long userId);
+
+    /**
+     * 获取采购员信息列表
+     */
+    List<PurchaseInfoVO> selectPurchaserInfoList();
 }

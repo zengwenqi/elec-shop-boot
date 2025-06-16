@@ -4,10 +4,14 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import elec.shop.mapper.purchase.PurchaseTaskMapper;
+import elec.shop.pojo.purchase.PurchaseOrder;
 import elec.shop.pojo.purchase.PurchaseTask;
+import elec.shop.pojo.purchase.PurchaserInfo;
 import elec.shop.pojo.purchase.dto.PurchaseTaskQueryDTO;
+import elec.shop.service.purchase.PurchaseOrderService;
 import elec.shop.service.purchase.PurchaseTaskService;
 import elec.shop.service.purchase.PurchaserInfoService;
+import elec.shop.utils.AllContextUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +29,7 @@ public class PurchaseTaskServiceImpl extends ServiceImpl<PurchaseTaskMapper, Pur
         implements PurchaseTaskService {
 
     private final PurchaserInfoService purchaserInfoService;
+    private final PurchaseOrderService purchaseOrderService;
 
     @Override
     public Page<PurchaseTask> queryTasks(PurchaseTaskQueryDTO query) {
@@ -54,18 +59,31 @@ public class PurchaseTaskServiceImpl extends ServiceImpl<PurchaseTaskMapper, Pur
             throw new RuntimeException("采购员不存在");
         }
 
-        PurchaseTask task = getById(taskId);
+        PurchaseOrder task = purchaseOrderService.getById(taskId);
         if (task == null) {
-            throw new RuntimeException("任务不存在");
+            throw new RuntimeException("订单不存在");
         }
 
         // 检查任务状态
-        if (task.getTaskStatus() != 0) {
-            throw new RuntimeException("只有待处理的任务可以分配");
+        if (task.getOrderStatus() != 0) {
+            throw new RuntimeException("只有待分配的任务可以分配");
         }
 
         task.setPurchaserId(purchaserId);
-        updateById(task);
+        task.setOrderStatus(1);
+        purchaseOrderService.updateById(task);
+
+        PurchaseTask purchaseTask = new PurchaseTask();
+        purchaseTask.setTaskId(taskId);
+        purchaseTask.setTaskCode(AllContextUtils.generatePurchaseTaskNumber(purchaserId));
+        purchaseTask.setPurchaserId(purchaserId);
+        purchaseTask.setTaskType(1);
+        purchaseTask.setTaskStatus(0);
+        purchaseTask.setPriority(2);
+        purchaseTask.setTitle(task.getOrderNo());
+        purchaseTask.setContent("采购订单");
+        purchaseTask.setStartTime(new Date());
+        this.save(purchaseTask);
     }
 
     @Override

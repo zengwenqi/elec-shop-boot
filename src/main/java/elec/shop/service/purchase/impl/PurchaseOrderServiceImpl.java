@@ -1,7 +1,5 @@
 package elec.shop.service.purchase.impl;
 
-import com.alibaba.excel.EasyExcel;
-import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -11,19 +9,19 @@ import elec.shop.mapper.purchase.FinanceAccountMapper;
 import elec.shop.mapper.purchase.PurchaseOrderMapper;
 import elec.shop.mapper.purchase.ShopInfoMapper;
 import elec.shop.pojo.purchase.*;
-import elec.shop.pojo.purchase.dto.PurchaseOrderDTO;
-import elec.shop.pojo.purchase.dto.PurchaseOrderQueryDTO;
-import elec.shop.pojo.purchase.vo.PurchaseOrderExportVO;
-import elec.shop.pojo.purchase.vo.PurchaseOrderItemVO;
-import elec.shop.pojo.purchase.vo.PurchaseOrderVO;
+import elec.shop.pojo.purchase.dto.PurchaserOrderDTO;
+import elec.shop.pojo.purchase.dto.PurchaserOrderQueryDTO;
+import elec.shop.pojo.purchase.vo.PurchaserOrderExportVO;
+import elec.shop.pojo.purchase.vo.PurchaserOrderItemVO;
+import elec.shop.pojo.purchase.vo.PurchaserOrderVO;
 import elec.shop.pojo.sys.SysUser;
 import elec.shop.service.purchase.PurchaseOrderItemService;
 import elec.shop.service.purchase.PurchaseOrderService;
+import elec.shop.service.purchase.PurchaserInfoService;
+import elec.shop.service.sys.SysUserService;
 import elec.shop.utils.AllContextUtils;
 import elec.shop.utils.ExcelUtils;
 import elec.shop.utils.Result;
-import elec.shop.utils.excel.CustomCellStyleStrategy;
-import elec.shop.utils.excel.CustomMergeStrategy;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,7 +30,6 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -54,19 +51,21 @@ public class PurchaseOrderServiceImpl extends ServiceImpl<PurchaseOrderMapper, P
     private final FinanceAccountMapper financeAccountMapper;
     private final ShopInfoMapper shopInfoMapper;
     private final PurchaseOrderItemService purchaseOrderItemService;
+    private final PurchaserInfoService purchaserInfoService;
+    private final SysUserService sysUserService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Result createOrder(PurchaseOrderDTO purchaseOrderDTO) {
+    public Result createOrder(PurchaserOrderDTO purchaserOrderDTO) {
         SysUser loginSysUser = AllContextUtils.getLoginSysUser();
         // 查询当前用户的财务账户余额和汇率
         FinanceAccount financeAccount = financeAccountMapper.selectOne(new LambdaQueryWrapper<FinanceAccount>()
                 .eq(FinanceAccount::getUserId, loginSysUser.getUserId()));
         AccountBalance accountBalance = accountBalanceMapper.selectOne(new LambdaQueryWrapper<AccountBalance>()
                 .eq(AccountBalance::getAccountId, financeAccount.getAccountId())
-                .eq(AccountBalance::getCurrency, purchaseOrderDTO.getCurrency()));
+                .eq(AccountBalance::getCurrency, purchaserOrderDTO.getCurrency()));
         PurchaseOrder purchaseOrder = new PurchaseOrder();
-        BeanUtils.copyProperties(purchaseOrderDTO,purchaseOrder);
+        BeanUtils.copyProperties(purchaserOrderDTO,purchaseOrder);
         //  生成订单编号
         purchaseOrder.setOrderNo(AllContextUtils.generateOrderNumber(loginSysUser.getUserId()));
         // 订单状态、支付状态、汇率、确认时间
@@ -80,7 +79,7 @@ public class PurchaseOrderServiceImpl extends ServiceImpl<PurchaseOrderMapper, P
 
         List<PurchaseOrderItem> purchaseOrderItemList = new ArrayList<>();
         int insert = purchaseOrderMapper.insert(purchaseOrder);
-        purchaseOrderDTO.getOrderItems().forEach(e-> {
+        purchaserOrderDTO.getOrderItems().forEach(e-> {
             PurchaseOrderItem purchaseOrderItem = new PurchaseOrderItem();
             BeanUtils.copyProperties(e,purchaseOrderItem);
             purchaseOrderItem.setOrderId(purchaseOrder.getOrderId());
@@ -93,7 +92,7 @@ public class PurchaseOrderServiceImpl extends ServiceImpl<PurchaseOrderMapper, P
     }
 
     @Override
-    public IPage<PurchaseOrderVO> queryUserOrders(PurchaseOrderQueryDTO query) {
+    public IPage<PurchaserOrderVO> queryUserOrders(PurchaserOrderQueryDTO query) {
         // 1. 构建主表查询条件
         LambdaQueryWrapper<PurchaseOrder> wrapper = new LambdaQueryWrapper<PurchaseOrder>()
                 .eq(PurchaseOrder::getIsDeleted, 0);
@@ -134,15 +133,20 @@ public class PurchaseOrderServiceImpl extends ServiceImpl<PurchaseOrderMapper, P
         );
 
         // 5. 组装数据
-        List<PurchaseOrderVO> orderVOs = orderPage.getRecords().stream().map(order -> {
-            PurchaseOrderVO vo = new PurchaseOrderVO();
+        List<PurchaserOrderVO> orderVOs = orderPage.getRecords().stream().map(order -> {
+            PurchaserOrderVO vo = new PurchaserOrderVO();
             BeanUtils.copyProperties(order, vo);
-
+            if (order.getPurchaserId() != null)
+                vo.setPurchaserName(sysUserService
+                    .getById(purchaserInfoService
+                            .getById(order.getPurchaserId())
+                            .getUserId())
+                    .getRealName());
             // 设置订单项
-            List<PurchaseOrderItemVO> itemVOs = orderItems.stream()
+            List<PurchaserOrderItemVO> itemVOs = orderItems.stream()
                 .filter(item -> item.getOrderId().equals(order.getOrderId()))
                 .map(item -> {
-                    PurchaseOrderItemVO itemVO = new PurchaseOrderItemVO();
+                    PurchaserOrderItemVO itemVO = new PurchaserOrderItemVO();
                     BeanUtils.copyProperties(item, itemVO);
                     return itemVO;
                 })
@@ -153,7 +157,7 @@ public class PurchaseOrderServiceImpl extends ServiceImpl<PurchaseOrderMapper, P
         }).collect(Collectors.toList());
 
         // 6. 组装分页结果
-        Page<PurchaseOrderVO> resultPage = new Page<>(query.getPage(), query.getSize(), orderPage.getTotal());
+        Page<PurchaserOrderVO> resultPage = new Page<>(query.getPage(), query.getSize(), orderPage.getTotal());
         resultPage.setRecords(orderVOs);
 
         return resultPage;
@@ -228,9 +232,9 @@ public class PurchaseOrderServiceImpl extends ServiceImpl<PurchaseOrderMapper, P
     }
 
     @Override
-    public PurchaseOrderVO orderInfo(Long orderId) {
-        PurchaseOrderVO purchaseOrderVO = purchaseOrderMapper.queryPurchaseOrderOne(orderId);
-        return purchaseOrderVO;
+    public PurchaserOrderVO orderInfo(Long orderId) {
+        PurchaserOrderVO purchaserOrderVO = purchaseOrderMapper.queryPurchaseOrderOne(orderId);
+        return purchaserOrderVO;
     }
 
     @Override
@@ -250,13 +254,13 @@ public class PurchaseOrderServiceImpl extends ServiceImpl<PurchaseOrderMapper, P
         }
 
         // 查询导出数据
-        List<PurchaseOrderExportVO> exportData = purchaseOrderMapper.selectExportOrders(
+        List<PurchaserOrderExportVO> exportData = purchaseOrderMapper.selectExportOrders(
                 loginSysUser.getUserId(), shopId, startTime, endTime);
 
         // 导出Excel（使用支持合并单元格的方法）
         String fileName = "采购订单数据";
         String sheetName = "订单列表";
-        ExcelUtils.exportExcelWithMerge(response, exportData, fileName, sheetName, PurchaseOrderExportVO.class);
+        ExcelUtils.exportExcelWithMerge(response, exportData, fileName, sheetName, PurchaserOrderExportVO.class);
     }
 }
 

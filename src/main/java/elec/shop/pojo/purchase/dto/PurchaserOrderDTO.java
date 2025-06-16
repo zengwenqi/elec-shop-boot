@@ -12,7 +12,7 @@ import java.util.List;
  */
 @Data
 @ApiModel("采购订单数据传输对象")
-public class PurchaseOrderDTO {
+public class PurchaserOrderDTO {
 
     @ApiModelProperty(value = "订单ID", hidden = true)
     private Long orderId;
@@ -66,5 +66,5 @@ public class PurchaseOrderDTO {
     private String cancelReason;
 
     @ApiModelProperty("订单商品明细列表")
-    private List<PurchaseOrderItemDTO> orderItems;
+    private List<PurchaserOrderItemDTO> orderItems;
 }

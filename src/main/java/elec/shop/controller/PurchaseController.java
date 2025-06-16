@@ -4,12 +4,13 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import elec.shop.annotation.OperationLog;
 import elec.shop.pojo.purchase.*;
-import elec.shop.pojo.purchase.dto.PurchaseOrderDTO;
-import elec.shop.pojo.purchase.dto.PurchaseOrderQueryDTO;
+import elec.shop.pojo.purchase.dto.PurchaserOrderDTO;
+import elec.shop.pojo.purchase.dto.PurchaserOrderQueryDTO;
 import elec.shop.pojo.purchase.dto.PurchaseTaskQueryDTO;
 import elec.shop.pojo.purchase.dto.PurchaserQueryDTO;
-import elec.shop.pojo.purchase.vo.PurchaseOrderVO;
+import elec.shop.pojo.purchase.vo.PurchaserOrderVO;
 import elec.shop.pojo.sys.SysUser;
+import elec.shop.pojo.sys.dto.PurchaseInfoVO;
 import elec.shop.service.purchase.*;
 import elec.shop.service.sys.SysUserService;
 import elec.shop.utils.AllContextUtils;
@@ -19,11 +20,9 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.IOException;
-import java.net.URLEncoder;
+import java.util.List;
 
 @Api(tags = "采购管理")
 @RestController
@@ -48,17 +47,17 @@ public class PurchaseController {
 //        isPurchaseOrder = true,
 //        saveRequestData = true
 //    )
-    public Result createOrder(@RequestBody PurchaseOrderDTO purchaseOrderDTO) {
-        return purchaseOrderService.createOrder(purchaseOrderDTO);
+    public Result createOrder(@RequestBody PurchaserOrderDTO purchaserOrderDTO) {
+        return purchaseOrderService.createOrder(purchaserOrderDTO);
     }
 
     @PostMapping("/orders")
     @ApiOperation("查询当前用户下的采购订单")
     @OperationLog(module = "采购管理", operationType = "查询订单", description = "查询当前用户下的采购订单")
-    public Result<IPage<PurchaseOrderVO>> queryOrders(
-            @ApiParam("查询参数") @RequestBody PurchaseOrderQueryDTO query
+    public Result<IPage<PurchaserOrderVO>> queryOrders(
+            @ApiParam("查询参数") @RequestBody PurchaserOrderQueryDTO query
     ) {
-        IPage<PurchaseOrderVO> orderPage = purchaseOrderService.queryUserOrders(query);
+        IPage<PurchaserOrderVO> orderPage = purchaseOrderService.queryUserOrders(query);
         return Result.ok(orderPage);
     }
 
@@ -111,7 +110,8 @@ public class PurchaseController {
         SysUser loginSysUser = AllContextUtils.getLoginSysUser();
         loginSysUser.setUserType(sysUserService.getById(loginSysUser.getUserId()).getUserType());
         if (!loginSysUser.getUserType().equals(1) && !loginSysUser.getUserType().equals(2)) return Result.fail().message("无权操作");
-        return Result.ok(purchaserInfoService.list());
+        List<PurchaseInfoVO> purchaseInfoVOList = purchaserInfoService.selectPurchaserInfoList();
+        return Result.ok(purchaseInfoVOList);
     }
 
     @PostMapping("/purchaser/add")

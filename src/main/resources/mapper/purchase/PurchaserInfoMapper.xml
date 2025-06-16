@@ -22,4 +22,21 @@
         purchaser_id,user_id,purchaser_code,created_at,updated_at,deleted_at,
         created_by,updated_by,version,tenant_id,is_deleted
     </sql>
+    <select id="selectPurchaserInfoList" resultType="elec.shop.pojo.sys.dto.PurchaseInfoVO">
+        -- 查询所有采购员信息及其关联的用户信息
+        SELECT
+            pi.purchaser_id,
+            pi.purchaser_code,
+            su.username purchaser_name,
+            su.real_name,
+            su.email,
+            su.mobile,
+            su.gender,
+            su.status
+        FROM
+            purchaser_info pi
+        LEFT JOIN sys_user su ON pi.user_id = su.user_id
+        WHERE
+            pi.is_deleted = 0 AND su.is_deleted = 0;
+    </select>
 </mapper>

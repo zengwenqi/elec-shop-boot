@@ -4,9 +4,8 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import elec.shop.pojo.purchase.ShopInfo;
 import elec.shop.pojo.purchase.dto.ShopInfoDTO;
 import elec.shop.pojo.purchase.dto.ShopInfoQueryDTO;
-import elec.shop.pojo.purchase.dto.PurchaseOrderQueryDTO;
-import elec.shop.pojo.purchase.PurchaseOrder;
-import elec.shop.pojo.purchase.vo.PurchaseOrderVO;
+import elec.shop.pojo.purchase.dto.PurchaserOrderQueryDTO;
+import elec.shop.pojo.purchase.vo.PurchaserOrderVO;
 import elec.shop.service.purchase.PurchaseOrderService;
 import elec.shop.service.purchase.ShopInfoService;
 import elec.shop.utils.Result;
@@ -56,11 +55,11 @@ public class ShopController {
 
     @PostMapping("/shopInfoPurchaseOrder")
     @ApiOperation("查询我的店铺下的采购订单")
-    public Result shopInfoPurchaseOrder(@RequestBody PurchaseOrderQueryDTO queryDTO) {
+    public Result shopInfoPurchaseOrder(@RequestBody PurchaserOrderQueryDTO queryDTO) {
         if (queryDTO.getShopId() == null) {
             return Result.fail().message("店铺ID不能为空");
         }
-        IPage<PurchaseOrderVO> orderPage = purchaseOrderService.queryUserOrders(queryDTO);
+        IPage<PurchaserOrderVO> orderPage = purchaseOrderService.queryUserOrders(queryDTO);
         return Result.ok(orderPage);
     }
 

@@ -13,7 +13,7 @@ import java.util.Date;
  */
 @Data
 @ApiModel("采购订单商品明细视图对象")
-public class PurchaseOrderItemVO {
+public class PurchaserOrderItemVO {
 
     @ApiModelProperty("商品明细ID")
     private Long itemId;

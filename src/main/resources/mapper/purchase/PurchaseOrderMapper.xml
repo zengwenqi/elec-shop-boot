@@ -5,12 +5,13 @@
 <mapper namespace="elec.shop.mapper.purchase.PurchaseOrderMapper">
 
     <!-- 采购订单VO结果映射 -->
-    <resultMap id="PurchaseOrderVOResultMap" type="elec.shop.pojo.purchase.vo.PurchaseOrderVO">
+    <resultMap id="PurchaseOrderVOResultMap" type="elec.shop.pojo.purchase.vo.PurchaserOrderVO">
         <id column="order_id" property="orderId" />
         <result column="order_no" property="orderNo" />
         <result column="user_id" property="userId" />
         <result column="shop_id" property="shopId" />
         <result column="purchaser_id" property="purchaserId" />
+        <result column="real_name" property="purchaserName" />
         <result column="order_type" property="orderType" />
         <result column="order_status" property="orderStatus" />
         <result column="payment_status" property="paymentStatus" />
@@ -32,7 +33,7 @@
         <result column="updated_by" property="updatedBy" />
 
         <!-- 关联查询订单商品明细 -->
-        <collection property="orderItems" ofType="elec.shop.pojo.purchase.vo.PurchaseOrderItemVO">
+        <collection property="orderItems" ofType="elec.shop.pojo.purchase.vo.PurchaserOrderItemVO">
             <id column="item_id" property="itemId" />
             <result column="product_name" property="productName" />
             <result column="product_link" property="productLink" />
@@ -82,7 +83,7 @@
         is_deleted
     </sql>
 
-    <select id="selectExportOrders" resultType="elec.shop.pojo.purchase.vo.PurchaseOrderExportVO">
+    <select id="selectExportOrders" resultType="elec.shop.pojo.purchase.vo.PurchaserOrderExportVO">
         SELECT
             po.order_no,
             si.shop_name,
@@ -190,6 +191,7 @@
     <select id="queryPurchaseOrderOne" resultMap="PurchaseOrderVOResultMap">
         SELECT
         po.*,
+        su.real_name,
         poi.item_id,
         poi.product_name,
         poi.product_link,
@@ -201,6 +203,10 @@
         purchase_order po
         LEFT JOIN
         purchase_order_item poi ON po.order_id = poi.order_id
+        LEFT JOIN
+        purchaser_info pi ON po.purchaser_id = pi.purchaser_id
+        LEFT JOIN
+        sys_user su ON pi.user_id = su.user_id
         WHERE
         po.is_deleted = 0 and po.order_id = #{orderId}
     </select>

@@ -6,7 +6,7 @@ import lombok.Data;
 
 @Data
 @ApiModel("采购订单查询参数")
-public class PurchaseOrderQueryDTO {
+public class PurchaserOrderQueryDTO {
     @ApiModelProperty("商店ID")
     private Integer shopId;
 

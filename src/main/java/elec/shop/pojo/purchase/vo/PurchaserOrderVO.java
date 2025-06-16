@@ -14,7 +14,7 @@ import java.util.List;
  */
 @Data
 @ApiModel("采购订单视图对象")
-public class PurchaseOrderVO {
+public class PurchaserOrderVO {
 
     @ApiModelProperty("订单ID")
     private Long orderId;
@@ -118,5 +118,5 @@ public class PurchaseOrderVO {
     private String updatedByName;
 
     @ApiModelProperty("订单商品明细列表")
-    private List<PurchaseOrderItemVO> orderItems;
+    private List<PurchaserOrderItemVO> orderItems;
 }

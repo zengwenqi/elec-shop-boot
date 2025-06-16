@@ -34,7 +34,7 @@ public class SysUserController {
 
     @ApiOperation("根据ID获取用户信息")
     @GetMapping("/{id}")
-    @PreAuthorize("hasAuthority('sys:user:view')")
+//    @PreAuthorize("hasAuthority('sys:user:view')")
     public Result<UserDetailVO> getUserById(
             @ApiParam(value = "用户ID", required = true) @PathVariable("id") Long userId) {
         UserDetailVO userDetail = userService.getUserDetailById(userId);

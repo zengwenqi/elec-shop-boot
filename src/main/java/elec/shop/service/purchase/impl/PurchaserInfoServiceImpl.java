@@ -5,12 +5,15 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import elec.shop.pojo.purchase.PurchaserInfo;
 import elec.shop.pojo.purchase.dto.PurchaserQueryDTO;
+import elec.shop.pojo.sys.dto.PurchaseInfoVO;
 import elec.shop.service.purchase.PurchaserInfoService;
 import elec.shop.mapper.purchase.PurchaserInfoMapper;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 /**
 * @author Lenovo
@@ -60,15 +63,21 @@ public class PurchaserInfoServiceImpl extends ServiceImpl<PurchaserInfoMapper, P
     }
 
     @Override
-    public boolean isPurchaser(Long userId) {
+    public boolean isPurchaser(Long purchaserId) {
         return count(new LambdaQueryWrapper<PurchaserInfo>()
-                .eq(PurchaserInfo::getUserId, userId)) > 0;
+                .eq(PurchaserInfo::getPurchaserId, purchaserId)) > 0;
     }
 
     @Override
     public PurchaserInfo getPurchaserByUserId(Long userId) {
         return getOne(new LambdaQueryWrapper<PurchaserInfo>()
                 .eq(PurchaserInfo::getUserId, userId));
+    }
+
+    @Override
+    public List<PurchaseInfoVO> selectPurchaserInfoList() {
+        List<PurchaseInfoVO> purchaserInfoList = baseMapper.selectPurchaserInfoList();
+        return purchaserInfoList;
     }
 }
 

@@ -1,12 +1,11 @@
 package elec.shop.service.purchase;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import elec.shop.pojo.purchase.PurchaseOrder;
-import elec.shop.pojo.purchase.dto.PurchaseOrderDTO;
-import elec.shop.pojo.purchase.dto.PurchaseOrderQueryDTO;
-import elec.shop.pojo.purchase.vo.PurchaseOrderVO;
+import elec.shop.pojo.purchase.dto.PurchaserOrderDTO;
+import elec.shop.pojo.purchase.dto.PurchaserOrderQueryDTO;
+import elec.shop.pojo.purchase.vo.PurchaserOrderVO;
 import elec.shop.utils.Result;
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -19,15 +18,15 @@ public interface PurchaseOrderService extends IService<PurchaseOrder> {
 
     /**
      * 创建采购订单
-     * @param purchaseOrderDTO
+     * @param purchaserOrderDTO
      * @return
      */
-    Result createOrder(PurchaseOrderDTO purchaseOrderDTO);
+    Result createOrder(PurchaserOrderDTO purchaserOrderDTO);
 
     /**
      * 查询用户订单列表
      */
-    IPage<PurchaseOrderVO> queryUserOrders(PurchaseOrderQueryDTO query);
+    IPage<PurchaserOrderVO> queryUserOrders(PurchaserOrderQueryDTO query);
 
     /**
      * 更新订单状态
@@ -52,7 +51,7 @@ public interface PurchaseOrderService extends IService<PurchaseOrder> {
     /**
      * 查询订单详情
      */
-    PurchaseOrderVO orderInfo(Long orderId);
+    PurchaserOrderVO orderInfo(Long orderId);
 
     /**
      * 导出订单数据

@@ -14,7 +14,7 @@ import java.util.Date;
 
 @Data
 @ContentStyle(horizontalAlignment = HorizontalAlignmentEnum.CENTER, verticalAlignment = VerticalAlignmentEnum.CENTER, wrapped = BooleanEnum.TRUE)
-public class PurchaseOrderExportVO {
+public class PurchaserOrderExportVO {
 
     // 基本信息字段（相同数据会自动合并）
     @ColumnWidth(30)

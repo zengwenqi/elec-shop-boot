@@ -11,7 +11,7 @@ import java.math.BigDecimal;
  */
 @Data
 @ApiModel("采购订单商品明细数据传输对象")
-public class PurchaseOrderItemDTO {
+public class PurchaserOrderItemDTO {
 
     @ApiModelProperty(value = "商品明细ID", hidden = true)
     private Long itemId;

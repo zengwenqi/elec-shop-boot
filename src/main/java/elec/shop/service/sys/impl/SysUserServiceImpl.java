@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import elec.shop.mapper.purchase.PurchaserInfoMapper;
+import elec.shop.pojo.purchase.PurchaserInfo;
 import elec.shop.pojo.sys.dto.RegisterRequest;
 import elec.shop.pojo.sys.dto.UserDetailVO;
 import elec.shop.exception.BusinessException;
@@ -46,6 +48,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser>
     private final SysRoleMapper roleMapper;
     private final SysPermissionService permissionService;
     private final PasswordEncoder passwordEncoder;
+    private final PurchaserInfoMapper purchaserInfoMapper;
 
     @Override
     public SysUser getUserByUsername(String username) {
@@ -251,13 +254,18 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser>
             throw new BusinessException(ResultCodeEnum.PERMISSION);
         }
 
+        // 判断用户之前是否是采购员
+        if (user.getUserType()==2){
+            purchaserInfoMapper.delete(new LambdaQueryWrapper<PurchaserInfo>()
+                    .eq(PurchaserInfo::getUserId,userId));
+        }
+
         // 检查角色是否存在且有效
         if (roleId!=null) {
             Long l = roleMapper.selectCount(
                     new LambdaQueryWrapper<SysRole>()
                             .eq(SysRole::getRoleId, roleId)
                             .eq(SysRole::getStatus, 1)
-                            .eq(SysRole::getIsDeleted, 0)
             );
 
             if (l==0L) {
@@ -265,21 +273,26 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser>
             }
         }
 
-        // 删除用户现有角色
-        LambdaUpdateWrapper<SysUserRole> updateWrapper = new LambdaUpdateWrapper<>();
-        updateWrapper.eq(SysUserRole::getUserId, userId)
-                .set(SysUserRole::getIsDeleted, 1);
-        userRoleMapper.update(null, updateWrapper);
-
         // 分配新角色
         if (roleId!=null) {
             SysUserRole userRole = new SysUserRole();
             userRole.setUserId(userId);
             userRole.setRoleId(roleId);
-            userRole.setCreatedAt(new Date());
-            userRole.setCreatedBy(AllContextUtils.getLoginSysUser().getUserId());
 
-            userRoleMapper.insert(userRole);
+            userRoleMapper.update(userRole,new LambdaQueryWrapper<SysUserRole>()
+                    .eq(SysUserRole::getUserId, userId));
+            SysUser sysUser = new SysUser();
+            sysUser.setUserType(roleId.intValue());
+            userMapper.update(sysUser,new LambdaUpdateWrapper<SysUser>()
+                    .eq(SysUser::getUserId, userId));
+        }
+
+        // 如果分配采购员，则要去添加数据
+        if (roleId==3L){
+            PurchaserInfo purchaserInfo = new PurchaserInfo();
+            purchaserInfo.setUserId(userId);
+            purchaserInfo.setPurchaserCode(AllContextUtils.generatePurchaserCode(userId));
+            purchaserInfoMapper.insert(purchaserInfo);
         }
     }
 }
