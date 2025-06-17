@@ -8,6 +8,7 @@ import elec.shop.security.JwtUtils;
 import elec.shop.service.sys.SysPermissionService;
 import elec.shop.service.sys.SysUserService;
 import elec.shop.utils.AllContextUtils;
+import elec.shop.utils.EmailUtil;
 import elec.shop.utils.IpUtils;
 import elec.shop.utils.Result;
 import elec.shop.annotation.OperationLog;
@@ -15,6 +16,7 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -34,11 +36,15 @@ public class AuthController {
     private final JwtUtils jwtUtils;
     private final SysUserService userService;
     private final SysPermissionService permissionService;
+    private final EmailUtil emailUtil;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     @ApiOperation("用户注册")
     @PostMapping("/register")
     @OperationLog(module = "认证管理", operationType = "注册", description = "用户注册")
     public Result register(@RequestBody RegisterRequest request) {
+        if (!(request.getEmailCode().equals(redisTemplate.opsForValue().get(request.getEmail()))))
+            return Result.fail().message("邮箱验证码错误");
         Boolean result = userService.registerUser(request);
         if (result){
             return Result.ok();
@@ -68,7 +74,7 @@ public class AuthController {
                 .username(user.getUsername())
                 .userId(user.getUserId())
                 .build();
-
+        emailUtil.sendEmail("925375548@qq.com");
         return Result.ok(response);
     }
 
@@ -87,5 +93,13 @@ public class AuthController {
         SysUser loginSysUser = AllContextUtils.getLoginSysUser();
         Map<String, Object> result = permissionService.getUserMenusAndPermissions(loginSysUser.getUserId());
         return Result.ok(result);
+    }
+
+
+    @ApiOperation("获取邮箱验证码")
+    @GetMapping("/email/code")
+    public Result<Void> getEmailCode(@RequestParam("email") String email) {
+        emailUtil.sendEmail(email);
+        return Result.ok();
     }
 }

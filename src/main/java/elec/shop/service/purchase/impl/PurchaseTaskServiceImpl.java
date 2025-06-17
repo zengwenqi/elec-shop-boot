@@ -21,14 +21,15 @@ import elec.shop.service.purchase.PurchaseOrderService;
 import elec.shop.service.purchase.PurchaseTaskService;
 import elec.shop.service.purchase.PurchaserInfoService;
 import elec.shop.service.sys.SysUserService;
+import elec.shop.strategy.factory.OrderStatusMessageHandlerFactory;
+import elec.shop.strategy.inter.OrderStatusMessageHandler;
 import elec.shop.utils.AllContextUtils;
+import elec.shop.utils.EmailUtil;
 import lombok.RequiredArgsConstructor;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -50,6 +51,8 @@ public class PurchaseTaskServiceImpl extends ServiceImpl<PurchaseTaskMapper, Pur
     private final PurchaserInfoMapper purchaserInfoMapper;
     private final PurchaseOrderItemService purchaseOrderItemService;
     private final SysUserService sysUserService;
+    private final EmailUtil emailUtil;
+    private final OrderStatusMessageHandlerFactory handlerFactory;
 
     @Override
     public Page<PurchaseTask> queryTasks(PurchaserTaskQueryDTO query) {
@@ -100,6 +103,17 @@ public class PurchaseTaskServiceImpl extends ServiceImpl<PurchaseTaskMapper, Pur
         purchaseTask.setTitle(task.getOrderNo());
         purchaseTask.setContent("采购订单");
         purchaseTask.setStartTime(new Date());
+
+        // 发送消息给采购员
+        PurchaserInfo byId1 = purchaserInfoService.getById(purchaserId);
+        SysUser byId2 = sysUserService.getById(byId1.getUserId());
+        emailUtil.sendCustomEmail(byId2.getEmail(),"采购任务通知","您有一个新的采购任务需要处理，请及时处理。");
+
+        // 发送消息给用户
+        PurchaseOrder byId = purchaseOrderService.getById(taskId);
+        SysUser user = sysUserService.getById(byId.getUserId());
+        emailUtil.sendCustomEmail(user.getEmail(),"采购订单通知",
+                "您的"+byId.getOrderNo()+"采购订单已被分配给对应的采购员。");
         this.save(purchaseTask);
     }
 
@@ -306,6 +320,7 @@ public class PurchaseTaskServiceImpl extends ServiceImpl<PurchaseTaskMapper, Pur
             updateRelatedOrderStatus(task.getTaskId(), 4); // 更新关联订单为已完成
         }
 
+
         return success;
     }
 
@@ -388,6 +403,26 @@ public class PurchaseTaskServiceImpl extends ServiceImpl<PurchaseTaskMapper, Pur
         order.setCompleteTime(new Date());
 
         purchaseOrderService.updateById(order);
+
+        PurchaseOrder byId = purchaseOrderService.getById(orderId);
+
+        String receiver = sysUserService.getById(byId.getUserId())
+                .getEmail();
+
+        // 获取对应的消息处理器
+        OrderStatusMessageHandler handler = handlerFactory.getHandler(newStatus);
+
+        if (handler != null) {
+            // 获取状态变更消息
+            String message = handler.getMessage(byId.getOrderNo());
+
+            // 发送邮件通知
+            emailUtil.sendCustomEmail(
+                    receiver,
+                    "订单状态更新通知",
+                    message
+            );
+        }
     }
 }
 

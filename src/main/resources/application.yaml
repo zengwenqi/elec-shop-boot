@@ -1,0 +1,26 @@
+spring:
+  application:
+    name: elec-shop
+  cloud:
+    nacos:
+      discovery:
+        server-addr: localhost:8848
+        namespace: 12eaeb1e-6da1-47e0-9632-0e12e66e00a7
+      config:
+        server-addr: localhost:8848
+        namespace: 12eaeb1e-6da1-47e0-9632-0e12e66e00a7
+        file-extension: yaml
+        group: DEFAULT_GROUP
+        extension-configs:
+          - data-id: elec-shop-dev.yaml
+            group: DEFAULT_GROUP
+            refresh: true
+          - data-id: elec-shop.yaml
+            group: DEFAULT_GROUP
+            refresh: true
+#      username: nacos
+#      password: nacos
+  config:
+    import:
+      - optional:nacos:${spring.application.name}-dev.${spring.cloud.nacos.config.file-extension}
+      - optional:nacos:${spring.application.name}.${spring.cloud.nacos.config.file-extension}

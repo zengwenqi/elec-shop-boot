@@ -11,4 +11,5 @@ public class RegisterRequest {
     private String mobile;
     private Integer gender;
     private String avatar;
+    private String emailCode;
 }
