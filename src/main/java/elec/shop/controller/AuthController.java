@@ -74,7 +74,6 @@ public class AuthController {
                 .username(user.getUsername())
                 .userId(user.getUserId())
                 .build();
-        emailUtil.sendEmail("925375548@qq.com");
         return Result.ok(response);
     }
 

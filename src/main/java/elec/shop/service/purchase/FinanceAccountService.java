@@ -1,7 +1,8 @@
 package elec.shop.service.purchase;
 
-import elec.shop.pojo.purchase.FinanceAccount;
 import com.baomidou.mybatisplus.extension.service.IService;
+import elec.shop.pojo.purchase.FinanceAccount;
+import java.math.BigDecimal;
 
 /**
 * @author Lenovo
@@ -9,5 +10,24 @@ import com.baomidou.mybatisplus.extension.service.IService;
 * @createDate 2025-06-05 11:28:32
 */
 public interface FinanceAccountService extends IService<FinanceAccount> {
-
+    
+    /**
+     * 获取用户基础账户（人民币账户）
+     */
+    FinanceAccount getBaseAccount(Long userId);
+    
+    /**
+     * 人民币充值
+     */
+    boolean rechargeCNY(Long userId, BigDecimal amount);
+    
+    /**
+     * 人民币扣减
+     */
+    boolean deductCNY(Long userId, BigDecimal amount);
+    
+    /**
+     * 检查人民币余额是否足够
+     */
+    boolean checkCNYBalance(Long userId, BigDecimal amount);
 }

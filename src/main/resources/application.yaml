@@ -4,10 +4,10 @@ spring:
   cloud:
     nacos:
       discovery:
-        server-addr: localhost:8848
+        server-addr: 101.43.172.126:8848
         namespace: 12eaeb1e-6da1-47e0-9632-0e12e66e00a7
       config:
-        server-addr: localhost:8848
+        server-addr: 101.43.172.126:8848
         namespace: 12eaeb1e-6da1-47e0-9632-0e12e66e00a7
         file-extension: yaml
         group: DEFAULT_GROUP
