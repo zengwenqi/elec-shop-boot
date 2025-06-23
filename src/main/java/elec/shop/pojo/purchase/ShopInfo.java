@@ -7,6 +7,7 @@ import java.io.Serializable;
 
 import elec.shop.pojo.base.BaseEntity;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 /**
  * 店铺信息表
@@ -14,6 +15,7 @@ import lombok.Data;
  */
 @TableName(value ="shop_info")
 @Data
+@EqualsAndHashCode(callSuper = true)
 public class ShopInfo extends BaseEntity implements Serializable {
     /**
      * 店铺ID

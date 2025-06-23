@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import elec.shop.pojo.purchase.AccountBalance;
+import elec.shop.pojo.purchase.dto.ExchangeRateDTO;
 import elec.shop.pojo.purchase.vo.CurrencyAccountVO;
 
 import java.math.BigDecimal;
@@ -44,4 +45,9 @@ public interface AccountBalanceService extends IService<AccountBalance> {
      * @return 分页的账户信息列表
      */
     IPage<CurrencyAccountVO> getCurrencyAccounts(String currency, Page<CurrencyAccountVO> page);
+
+    /**
+     * 更新指定账户的指定汇率信息
+     */
+    Boolean changeCurrencyAccounts(ExchangeRateDTO exchangeRateDTO);
 }

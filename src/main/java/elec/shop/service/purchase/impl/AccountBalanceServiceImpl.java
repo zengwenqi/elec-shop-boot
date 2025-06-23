@@ -1,10 +1,12 @@
 package elec.shop.service.purchase.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import elec.shop.pojo.purchase.AccountBalance;
 import elec.shop.pojo.purchase.FinanceAccount;
+import elec.shop.pojo.purchase.dto.ExchangeRateDTO;
 import elec.shop.pojo.sys.SysUser;
 import elec.shop.service.purchase.AccountBalanceService;
 import elec.shop.service.purchase.FinanceAccountService;
@@ -12,6 +14,7 @@ import elec.shop.service.sys.SysUserService;
 import elec.shop.mapper.purchase.AccountBalanceMapper;
 import elec.shop.pojo.purchase.vo.CurrencyAccountVO;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,6 +35,7 @@ public class AccountBalanceServiceImpl extends ServiceImpl<AccountBalanceMapper,
 
     private final FinanceAccountService financeAccountService;
     private final SysUserService sysUserService;
+    private final AccountBalanceMapper accountBalanceMapper;
 
     @Override
     public Map<String, Object> getAllBalances(String accountId) {
@@ -230,6 +234,19 @@ public class AccountBalanceServiceImpl extends ServiceImpl<AccountBalanceMapper,
 
         resultPage.setRecords(records);
         return resultPage;
+    }
+
+    @Override
+    @Transactional
+    public Boolean changeCurrencyAccounts(ExchangeRateDTO exchangeRateDTO) {
+        AccountBalance accountBalance = new AccountBalance();
+        BeanUtils.copyProperties(exchangeRateDTO, accountBalance);
+        int update = accountBalanceMapper.update(accountBalance, new LambdaQueryWrapper<AccountBalance>()
+                .eq(AccountBalance::getAccountId, exchangeRateDTO.getAccountId())
+                .eq(AccountBalance::getCurrency, exchangeRateDTO.getCurrency()));
+        if (update > 0)
+            return true;
+        return false;
     }
 }
 

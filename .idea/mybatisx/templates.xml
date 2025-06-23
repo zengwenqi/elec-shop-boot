@@ -69,8 +69,16 @@
             <option name="tableUIInfoList">
               <list>
                 <TableUIInfo>
-                  <option name="className" value="PurchaseOrderItem" />
-                  <option name="tableName" value="purchase_order_item" />
+                  <option name="className" value="Faq" />
+                  <option name="tableName" value="faq" />
+                </TableUIInfo>
+                <TableUIInfo>
+                  <option name="className" value="CrossBorderService" />
+                  <option name="tableName" value="cross_border_service" />
+                </TableUIInfo>
+                <TableUIInfo>
+                  <option name="className" value="MessageRecord" />
+                  <option name="tableName" value="message_record" />
                 </TableUIInfo>
               </list>
             </option>

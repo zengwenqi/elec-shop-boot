@@ -8,6 +8,7 @@ import java.util.Date;
 
 import elec.shop.pojo.base.BaseEntity;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 /**
  * 角色表
@@ -15,6 +16,7 @@ import lombok.Data;
  */
 @TableName(value ="sys_role")
 @Data
+@EqualsAndHashCode(callSuper = true)
 public class SysRole extends BaseEntity implements Serializable {
     /**
      * 角色ID

@@ -62,4 +62,10 @@ public interface ShopInfoService extends IService<ShopInfo> {
      * @return 店铺信息列表
      */
     List<ShopInfo> queryShopInfoList();
+
+    /**
+     * 初始化用户基本数据
+     * @param userId 用户ID
+     */
+    void initUserInfoData(Long userId);
 }

@@ -191,6 +191,7 @@ public class ShopInfoServiceImpl extends ServiceImpl<ShopInfoMapper, ShopInfo>
     /**
      * 初始化用户信息数据
      */
+    @Override
     public void initUserInfoData(Long userId) {
         // 初始化店铺数据
         ShopInfo shopInfo = new ShopInfo();

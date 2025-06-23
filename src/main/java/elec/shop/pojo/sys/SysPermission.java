@@ -8,6 +8,7 @@ import java.util.Date;
 
 import elec.shop.pojo.base.BaseEntity;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 /**
  * 权限表
@@ -15,6 +16,7 @@ import lombok.Data;
  */
 @TableName(value ="sys_permission")
 @Data
+@EqualsAndHashCode(callSuper = true)
 public class SysPermission extends BaseEntity implements Serializable {
     /**
      * 权限ID

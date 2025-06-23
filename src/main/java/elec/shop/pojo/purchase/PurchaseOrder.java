@@ -9,6 +9,7 @@ import java.util.Date;
 
 import elec.shop.pojo.base.BaseEntity;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 /**
  * 采购订单主表
@@ -16,6 +17,7 @@ import lombok.Data;
  */
 @TableName(value ="purchase_order")
 @Data
+@EqualsAndHashCode(callSuper = true)
 public class PurchaseOrder extends BaseEntity implements Serializable {
     /**
      * 订单ID

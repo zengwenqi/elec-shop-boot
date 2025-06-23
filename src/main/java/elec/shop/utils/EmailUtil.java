@@ -10,6 +10,8 @@ import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Component;
 
+import java.util.concurrent.TimeUnit;
+
 /**
  * 邮件工具类
  */
@@ -33,7 +35,7 @@ public class EmailUtil {
             String verifyCode = RandomStringUtils.random(6, "0123456789");
             String content = String.format(contentTemplate, verifyCode);
 
-            redisTemplate.opsForValue().set(receiver,verifyCode);
+            redisTemplate.opsForValue().set(receiver,verifyCode, 60, TimeUnit.SECONDS);
             //定义email信息格式
             SimpleMailMessage message = new SimpleMailMessage();
             //设置发件人

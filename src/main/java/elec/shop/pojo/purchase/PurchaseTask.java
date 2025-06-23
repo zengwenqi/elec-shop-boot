@@ -8,6 +8,7 @@ import java.util.Date;
 
 import elec.shop.pojo.base.BaseEntity;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 /**
  * 采购任务表
@@ -15,6 +16,7 @@ import lombok.Data;
  */
 @TableName(value ="purchase_task")
 @Data
+@EqualsAndHashCode(callSuper = true)
 public class PurchaseTask extends BaseEntity implements Serializable {
     /**
      * 任务ID

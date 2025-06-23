@@ -2,6 +2,7 @@ package elec.shop.service.sys.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import elec.shop.mapper.purchase.PurchaserInfoMapper;
@@ -16,8 +17,10 @@ import elec.shop.pojo.sys.SysRole;
 import elec.shop.pojo.sys.SysUser;
 import elec.shop.pojo.sys.SysUserRole;
 import elec.shop.pojo.sys.enums.UserType;
+import elec.shop.service.purchase.ShopInfoService;
 import elec.shop.service.sys.SysPermissionService;
 import elec.shop.service.sys.SysUserService;
+import elec.shop.utils.MinioUtil;
 import elec.shop.utils.ResultCodeEnum;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
@@ -28,9 +31,12 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import elec.shop.utils.AllContextUtils;
 import elec.shop.pojo.sys.dto.AssignRoleDTO;
+import elec.shop.pojo.sys.dto.UpdateProfileDTO;
 
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -49,6 +55,8 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser>
     private final SysPermissionService permissionService;
     private final PasswordEncoder passwordEncoder;
     private final PurchaserInfoMapper purchaserInfoMapper;
+    private final ShopInfoService shopInfoService;
+    private final MinioUtil minioUtil;
 
     @Override
     public SysUser getUserByUsername(String username) {
@@ -94,6 +102,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser>
 
             userRoleMapper.insert(userRole);
 
+            shopInfoService.initUserInfoData(user.getUserId());
             return true;
         } catch (Exception e) {
             log.error("注册用户失败：", e);
@@ -144,6 +153,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser>
         // 设置权限列表
         List<String> permissions = permissionService.getUserPermissions(userId);
         userDetail.setPermissions(permissions);
+        userDetail.setAvatar(minioUtil.getPreviewUrl(user.getAvatar()));
 
         return userDetail;
     }
@@ -294,6 +304,162 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser>
             purchaserInfo.setPurchaserCode(AllContextUtils.generatePurchaserCode(userId));
             purchaserInfoMapper.insert(purchaserInfo);
         }
+    }
+
+    @Override
+    public List<UserDetailVO> getAllUserList() {
+        // 构建查询条件，默认不返回最高管理员数据
+        LambdaQueryWrapper<SysUser> queryWrapper = new LambdaQueryWrapper<SysUser>()
+                .eq(SysUser::getIsDeleted, 0)
+                .orderByDesc(SysUser::getCreatedAt);
+
+        // 执行查询
+        List<SysUser> userList = userMapper.selectList(queryWrapper);
+
+        if (CollectionUtils.isEmpty(userList)) {
+            return Collections.emptyList();
+        }
+
+        // 批量获取所有用户的角色
+        Map<Long, List<SysRole>> userRoleMap = getUserRoleMap(userList);
+
+        // 转换为UserDetailVO
+        return userList.stream()
+                .map(user -> {
+                    UserDetailVO userDetail = new UserDetailVO();
+                    BeanUtils.copyProperties(user, userDetail);
+
+                    // 设置角色名称
+                    List<SysRole> roles = userRoleMap.getOrDefault(user.getUserId(), Collections.emptyList());
+                    List<String> roleNames = roles.stream()
+                            .map(SysRole::getRoleName)
+                            .collect(Collectors.toList());
+                    userDetail.setRoleNames(roleNames);
+
+                    // 获取用户权限
+                    List<String> permissions = permissionService.getUserPermissions(user.getUserId());
+                    userDetail.setPermissions(permissions);
+
+                    return userDetail;
+                })
+                .collect(Collectors.toList());
+    }
+
+    // 批量获取用户角色的辅助方法
+    private Map<Long, List<SysRole>> getUserRoleMap(List<SysUser> userList) {
+        // 提取所有用户ID
+        List<Long> userIds = userList.stream()
+                .map(SysUser::getUserId)
+                .collect(Collectors.toList());
+
+        if (userIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        // 批量查询所有用户的角色关联
+        List<SysUserRole> userRoles = userRoleMapper.selectList(
+                new LambdaQueryWrapper<SysUserRole>()
+                        .in(SysUserRole::getUserId, userIds)
+                        .eq(SysUserRole::getIsDeleted, 0)
+        );
+
+        if (CollectionUtils.isEmpty(userRoles)) {
+            return Collections.emptyMap();
+        }
+
+        // 提取所有角色ID
+        List<Long> roleIds = userRoles.stream()
+                .map(SysUserRole::getRoleId)
+                .collect(Collectors.toList());
+
+        // 批量查询所有角色信息
+        List<SysRole> roles = roleMapper.selectList(
+                new LambdaQueryWrapper<SysRole>()
+                        .in(SysRole::getRoleId, roleIds)
+                        .eq(SysRole::getIsDeleted, 0)
+        );
+
+        Map<Long, SysRole> roleMap = roles.stream()
+                .collect(Collectors.toMap(SysRole::getRoleId, role -> role));
+
+        // 构建用户ID到角色列表的映射
+        return userRoles.stream()
+                .filter(ur -> roleMap.containsKey(ur.getRoleId()))
+                .collect(Collectors.groupingBy(
+                        SysUserRole::getUserId,
+                        Collectors.mapping(ur -> roleMap.get(ur.getRoleId()), Collectors.toList())
+                ));
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updatePassword(Long userId, String oldPassword, String newPassword) {
+        // 查询用户信息
+        SysUser user = this.lambdaQuery()
+                .eq(SysUser::getUserId, userId)
+                .one();
+
+        if (user == null) {
+            throw new BusinessException("用户不存在");
+        }
+
+        // 验证原密码是否正确
+        if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
+            throw new BusinessException("原密码不正确");
+        }
+
+        // 加密新密码
+        String encodedPassword = passwordEncoder.encode(newPassword);
+
+        // 更新密码
+        user.setPassword(encodedPassword);
+        this.updateById(user);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateProfile(Long userId, UpdateProfileDTO profileDTO) {
+        // 查询用户信息
+        SysUser user = this.getById(userId);
+        if (user == null) {
+            throw new BusinessException("用户不存在");
+        }
+
+        // 更新用户信息
+        user.setRealName(profileDTO.getRealName());
+        user.setMobile(profileDTO.getMobile());
+        user.setEmail(profileDTO.getEmail());
+        user.setAvatar(profileDTO.getAvatar());
+        user.setUpdatedAt(new Date());
+
+        // 保存更新
+        this.updateById(user);
+    }
+
+    @Override
+    public Boolean resetPassword(String email, String newPassword) {
+        // 根据邮箱查找用户
+        SysUser user = baseMapper.selectOne(
+            new LambdaQueryWrapper<SysUser>()
+                .eq(SysUser::getEmail, email)
+        );
+
+        if (user == null) {
+            throw new RuntimeException("用户不存在");
+        }
+
+        // 更新密码
+        user.setPassword(passwordEncoder.encode(newPassword));
+        return baseMapper.updateById(user) > 0;
+    }
+
+    @Override
+    public SysUser getUserByEmail(String email) {
+        return baseMapper.selectOne(
+            new LambdaQueryWrapper<SysUser>()
+                .eq(SysUser::getEmail, email)
+                .eq(SysUser::getIsDeleted, 0)
+        );
     }
 }
 

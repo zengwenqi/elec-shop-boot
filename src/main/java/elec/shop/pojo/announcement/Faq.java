@@ -1,4 +1,4 @@
-package elec.shop.pojo.sys;
+package elec.shop.pojo.announcement;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
@@ -11,33 +11,48 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 /**
- * 数据字典表
- * @TableName sys_dict
+ * 常见问题表
+ * @TableName faq
  */
-@TableName(value ="sys_dict")
+@TableName(value ="faq")
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class SysDict extends BaseEntity implements Serializable {
+public class Faq extends BaseEntity implements Serializable {
     /**
-     * 字典ID
+     * FAQ ID
      */
     @TableId
-    private Long dictId;
+    private Long faqId;
 
     /**
-     * 字典类型
+     * 分类ID
      */
-    private String dictType;
+    private Long categoryId;
 
     /**
-     * 字典标签
+     * 问题
      */
-    private String dictLabel;
+    private String question;
 
     /**
-     * 字典值
+     * 答案
      */
-    private String dictValue;
+    private String answer;
+
+    /**
+     * 关键词
+     */
+    private String keywords;
+
+    /**
+     * 浏览次数
+     */
+    private Integer viewCount;
+
+    /**
+     * 有帮助次数
+     */
+    private Integer helpfulCount;
 
     /**
      * 排序
@@ -48,11 +63,6 @@ public class SysDict extends BaseEntity implements Serializable {
      * 状态：0-禁用 1-启用
      */
     private Integer status;
-
-    /**
-     * 备注
-     */
-    private String remark;
 
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;

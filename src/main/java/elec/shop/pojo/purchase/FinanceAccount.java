@@ -8,6 +8,7 @@ import java.math.BigDecimal;
 
 import elec.shop.pojo.base.BaseEntity;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 /**
  * 账户信息表
@@ -15,6 +16,7 @@ import lombok.Data;
  */
 @TableName(value ="finance_account")
 @Data
+@EqualsAndHashCode(callSuper = true)
 public class FinanceAccount extends BaseEntity implements Serializable {
     /**
      * 账户ID

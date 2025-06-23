@@ -6,6 +6,9 @@ import elec.shop.pojo.sys.dto.UserDetailVO;
 import elec.shop.pojo.sys.SysUser;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import elec.shop.pojo.sys.dto.AssignRoleDTO;
+import elec.shop.pojo.sys.dto.UpdateProfileDTO;
+
+import java.util.List;
 
 /**
 * @author Lenovo
@@ -65,4 +68,42 @@ public interface SysUserService extends IService<SysUser> {
      * @param assignRoleDTO 分配角色请求参数
      */
     void assignUserRoles(AssignRoleDTO assignRoleDTO);
+
+    /**
+     * 获取全部用户列表
+     * @return 全部用户列表
+     */
+    List<UserDetailVO> getAllUserList();
+
+    /**
+     * 修改用户密码
+     *
+     * @param userId    用户ID
+     * @param oldPassword 原密码
+     * @param newPassword 新密码
+     */
+    void updatePassword(Long userId, String oldPassword, String newPassword);
+
+    /**
+     * 更新用户个人信息
+     *
+     * @param userId 用户ID
+     * @param profileDTO 用户信息
+     */
+    void updateProfile(Long userId, UpdateProfileDTO profileDTO);
+
+    /**
+     * 重置密码
+     * @param email 邮箱
+     * @param newPassword 新密码
+     * @return 是否成功
+     */
+    Boolean resetPassword(String email, String newPassword);
+
+    /**
+     * 根据邮箱获取用户信息
+     * @param email 邮箱
+     * @return 用户信息
+     */
+    SysUser getUserByEmail(String email);
 }

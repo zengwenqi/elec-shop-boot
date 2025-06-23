@@ -1,9 +1,13 @@
 package elec.shop.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import elec.shop.pojo.sys.SysUser;
 import elec.shop.pojo.sys.dto.AssignRoleDTO;
+import elec.shop.pojo.sys.dto.UpdatePasswordDTO;
 import elec.shop.pojo.sys.dto.UserDetailVO;
+import elec.shop.pojo.sys.dto.UpdateProfileDTO;
 import elec.shop.service.sys.SysUserService;
+import elec.shop.utils.AllContextUtils;
 import elec.shop.utils.Result;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -14,6 +18,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @Api(tags = "用户管理")
 @RestController
@@ -67,6 +73,41 @@ public class SysUserController {
 //    @PreAuthorize("hasAuthority('sys:user:update')")
     public Result<Void> assignUserRoles(@Validated @RequestBody AssignRoleDTO assignRoleDTO) {
         userService.assignUserRoles(assignRoleDTO);
+        return Result.ok();
+    }
+
+    @ApiOperation("查询全部用户")
+    @GetMapping("/all-user")
+//    @PreAuthorize("hasAuthority('sys:user:update')")
+    public Result<List<UserDetailVO>> allUsersDetail() {
+        List<UserDetailVO> userDetailVOS = userService.getAllUserList();
+        return Result.ok(userDetailVOS);
+    }
+
+    @ApiOperation("修改当前用户密码")
+    @PutMapping("/password")
+    public Result updatePassword(@Validated @RequestBody UpdatePasswordDTO passwordDTO) {
+        // 获取当前用户
+        SysUser loginSysUser = AllContextUtils.getLoginSysUser();
+
+        // 验证新密码与确认密码是否一致
+        if (!passwordDTO.getNewPassword().equals(passwordDTO.getConfirmPassword())) {
+            return Result.fail().message("新密码与确认密码不一致");
+        }
+
+        // 调用service层修改密码
+        userService.updatePassword(loginSysUser.getUserId(), passwordDTO.getOldPassword(), passwordDTO.getNewPassword());
+        return Result.ok();
+    }
+
+    @ApiOperation("更新当前用户信息")
+    @PutMapping("/profile")
+    public Result updateProfile(@Validated @RequestBody UpdateProfileDTO profileDTO) {
+        // 获取当前用户
+        SysUser loginSysUser = AllContextUtils.getLoginSysUser();
+        
+        // 调用service层更新用户信息
+        userService.updateProfile(loginSysUser.getUserId(), profileDTO);
         return Result.ok();
     }
 }

@@ -3,7 +3,6 @@ package elec.shop.config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
-import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
@@ -26,12 +25,5 @@ public class RedisConfig {
 
         template.afterPropertiesSet();
         return template;
-    }
-
-    @Bean
-    public LettuceConnectionFactory redisConnectionFactory() {
-        // 这里可以根据需要配置连接池和Redis服务器信息
-        // 默认会读取application.properties中的spring.redis配置
-        return new LettuceConnectionFactory();
     }
 }

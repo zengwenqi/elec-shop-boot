@@ -7,7 +7,10 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.Date;
+
+import elec.shop.pojo.base.BaseEntity;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 /**
  * 采购订单商品明细表
@@ -15,7 +18,8 @@ import lombok.Data;
  */
 @TableName(value ="purchase_order_item")
 @Data
-public class PurchaseOrderItem implements Serializable {
+@EqualsAndHashCode(callSuper = true)
+public class PurchaseOrderItem extends BaseEntity implements Serializable {
     /**
      * 商品明细ID
      */
@@ -56,46 +60,6 @@ public class PurchaseOrderItem implements Serializable {
      * 采购数量
      */
     private Integer purchaseQuantity;
-
-    /**
-     * 创建时间
-     */
-    private Date createdAt;
-
-    /**
-     * 更新时间
-     */
-    private Date updatedAt;
-
-    /**
-     * 软删除时间
-     */
-    private Date deletedAt;
-
-    /**
-     * 创建人ID
-     */
-    private Long createdBy;
-
-    /**
-     * 更新人ID
-     */
-    private Long updatedBy;
-
-    /**
-     * 乐观锁版本
-     */
-    private Integer version;
-
-    /**
-     * 租户ID
-     */
-    private Long tenantId;
-
-    /**
-     * 逻辑删除：0-存在 1-删除
-     */
-    private Integer isDeleted;
 
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;

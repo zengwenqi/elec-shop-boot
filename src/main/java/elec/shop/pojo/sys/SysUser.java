@@ -8,6 +8,7 @@ import java.util.Date;
 
 import elec.shop.pojo.base.BaseEntity;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 /**
  * 用户表
@@ -15,6 +16,7 @@ import lombok.Data;
  */
 @TableName(value ="sys_user")
 @Data
+@EqualsAndHashCode(callSuper = true)
 public class SysUser extends BaseEntity implements Serializable {
     /**
      * 用户ID
