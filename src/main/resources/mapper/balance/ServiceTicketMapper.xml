@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="elec.shop.mapper.balance.ServiceTicketMapper">
+
+    <resultMap id="BaseResultMap" type="elec.shop.pojo.balance.ServiceTicket">
+            <id property="ticketId" column="ticket_id" />
+            <result property="ticketNo" column="ticket_no" />
+            <result property="userId" column="user_id" />
+            <result property="orderId" column="order_id" />
+            <result property="ticketType" column="ticket_type" />
+            <result property="priority" column="priority" />
+            <result property="title" column="title" />
+            <result property="content" column="content" />
+            <result property="images" column="images" />
+            <result property="status" column="status" />
+            <result property="serviceStaffId" column="service_staff_id" />
+            <result property="firstReplyTime" column="first_reply_time" />
+            <result property="lastReplyTime" column="last_reply_time" />
+            <result property="closeTime" column="close_time" />
+            <result property="createdAt" column="created_at" />
+            <result property="updatedAt" column="updated_at" />
+            <result property="tenantId" column="tenant_id" />
+            <result property="isDeleted" column="is_deleted" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        ticket_id,ticket_no,user_id,order_id,ticket_type,priority,
+        title,content,images,status,service_staff_id,
+        first_reply_time,last_reply_time,close_time,created_at,updated_at,
+        tenant_id,is_deleted
+    </sql>
+</mapper>

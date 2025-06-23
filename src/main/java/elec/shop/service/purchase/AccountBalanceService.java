@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import elec.shop.pojo.purchase.AccountBalance;
+import elec.shop.pojo.purchase.dto.CurrencyAccountBalanceDTO;
 import elec.shop.pojo.purchase.dto.ExchangeRateDTO;
 import elec.shop.pojo.purchase.vo.CurrencyAccountVO;
 
@@ -50,4 +51,14 @@ public interface AccountBalanceService extends IService<AccountBalance> {
      * 更新指定账户的指定汇率信息
      */
     Boolean changeCurrencyAccounts(ExchangeRateDTO exchangeRateDTO);
+
+    /**
+     * 更新指定账户的指定货币的余额
+     */
+    Boolean changeCurrencyAccountBalance(CurrencyAccountBalanceDTO currencyAccountBalanceDTO);
+
+    /**
+     * 账户的指定货币和人民币的转换(基于汇率)
+     */
+    Boolean changeCurrencyCNYAccountBalance(CurrencyAccountBalanceDTO currencyAccountBalanceDTO);
 }

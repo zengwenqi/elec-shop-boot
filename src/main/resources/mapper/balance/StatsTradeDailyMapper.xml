@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="elec.shop.mapper.balance.StatsTradeDailyMapper">
+
+    <resultMap id="BaseResultMap" type="elec.shop.pojo.balance.StatsTradeDaily">
+            <id property="id" column="id" />
+            <result property="statsDate" column="stats_date" />
+            <result property="merchantId" column="merchant_id" />
+            <result property="orderCount" column="order_count" />
+            <result property="orderAmount" column="order_amount" />
+            <result property="paidCount" column="paid_count" />
+            <result property="paidAmount" column="paid_amount" />
+            <result property="refundCount" column="refund_count" />
+            <result property="refundAmount" column="refund_amount" />
+            <result property="userCount" column="user_count" />
+            <result property="newUserCount" column="new_user_count" />
+            <result property="currency" column="currency" />
+            <result property="createdAt" column="created_at" />
+            <result property="updatedAt" column="updated_at" />
+            <result property="tenantId" column="tenant_id" />
+            <result property="isDeleted" column="is_deleted" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,stats_date,merchant_id,order_count,order_amount,paid_count,
+        paid_amount,refund_count,refund_amount,user_count,new_user_count,
+        currency,created_at,updated_at,tenant_id,is_deleted
+    </sql>
+</mapper>

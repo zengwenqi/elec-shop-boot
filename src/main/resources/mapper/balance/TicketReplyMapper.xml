@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="elec.shop.mapper.balance.TicketReplyMapper">
+
+    <resultMap id="BaseResultMap" type="elec.shop.pojo.balance.TicketReply">
+            <id property="replyId" column="reply_id" />
+            <result property="ticketId" column="ticket_id" />
+            <result property="replyType" column="reply_type" />
+            <result property="replyContent" column="reply_content" />
+            <result property="images" column="images" />
+            <result property="replierId" column="replier_id" />
+            <result property="replierName" column="replier_name" />
+            <result property="createdAt" column="created_at" />
+            <result property="tenantId" column="tenant_id" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        reply_id,ticket_id,reply_type,reply_content,images,replier_id,
+        replier_name,created_at,tenant_id
+    </sql>
+</mapper>

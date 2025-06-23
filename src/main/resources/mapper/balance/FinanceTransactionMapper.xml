@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="elec.shop.mapper.balance.FinanceTransactionMapper">
+
+    <resultMap id="BaseResultMap" type="elec.shop.pojo.balance.FinanceTransaction">
+            <id property="transactionId" column="transaction_id" />
+            <result property="transactionNo" column="transaction_no" />
+            <result property="accountId" column="account_id" />
+            <result property="relatedAccountId" column="related_account_id" />
+            <result property="transactionType" column="transaction_type" />
+            <result property="amount" column="amount" />
+            <result property="currency" column="currency" />
+            <result property="exchangeRate" column="exchange_rate" />
+            <result property="fee" column="fee" />
+            <result property="status" column="status" />
+            <result property="paymentMethod" column="payment_method" />
+            <result property="paymentNo" column="payment_no" />
+            <result property="remark" column="remark" />
+            <result property="createdAt" column="created_at" />
+            <result property="updatedAt" column="updated_at" />
+            <result property="deletedAt" column="deleted_at" />
+            <result property="createdBy" column="created_by" />
+            <result property="updatedBy" column="updated_by" />
+            <result property="version" column="version" />
+            <result property="tenantId" column="tenant_id" />
+            <result property="isDeleted" column="is_deleted" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        transaction_id,transaction_no,account_id,related_account_id,transaction_type,amount,
+        currency,exchange_rate,fee,status,payment_method,
+        payment_no,remark,created_at,updated_at,deleted_at,
+        created_by,updated_by,version,tenant_id,is_deleted
+    </sql>
+</mapper>

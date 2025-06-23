@@ -2,6 +2,7 @@ package elec.shop.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import elec.shop.pojo.purchase.dto.CurrencyAccountBalanceDTO;
 import elec.shop.pojo.purchase.dto.ExchangeRateDTO;
 import elec.shop.service.purchase.AccountBalanceService;
 import elec.shop.sms.ExchangeRateService;
@@ -85,6 +86,34 @@ public class ExchangeRateController {
             return Result.ok(result);
         } catch (Exception e) {
             return Result.fail().message("获取账户信息失败：" + e.getMessage());
+        }
+    }
+
+    @PostMapping("/accounts/change")
+    @ApiOperation("更新指定账户的指定货币的余额")
+    public Result<Object> changeCurrencyAccountBalance(@RequestBody CurrencyAccountBalanceDTO currencyAccountBalanceDTO) {
+        try {
+            if (!Arrays.asList("USD", "EUR", "GBP", "JPY", "CNY").contains(currencyAccountBalanceDTO.getCurrency())) {
+                return Result.fail().message("不支持的货币类型");
+            }
+            Boolean result = accountBalanceService.changeCurrencyAccountBalance(currencyAccountBalanceDTO);
+            return Result.ok(result);
+        } catch (Exception e) {
+            return Result.fail().message("更新指定账户的余额失败：" + e.getMessage());
+        }
+    }
+
+    @PostMapping("/accounts/CNY/change")
+    @ApiOperation("账户的指定货币和人民币的转换(基于汇率)")
+    public Result<Object> changeCurrencyCNYAccountBalance(@RequestBody CurrencyAccountBalanceDTO currencyAccountBalanceDTO) {
+        try {
+            if (!Arrays.asList("USD", "EUR", "GBP", "JPY", "CNY").contains(currencyAccountBalanceDTO.getCurrency())) {
+                return Result.fail().message("不支持的货币类型");
+            }
+            Boolean result = accountBalanceService.changeCurrencyCNYAccountBalance(currencyAccountBalanceDTO);
+            return Result.ok(result);
+        } catch (Exception e) {
+            return Result.fail().message("账户货币转换失败：" + e.getMessage());
         }
     }
 }
