@@ -27,11 +27,11 @@ public class EmailUtil {
     private String userName;// 用户发送者
 
     // 创建一个发送邮箱验证的方法
-    public String sendEmail(String receiver){
+    public String sendEmail(String messageHeader,String receiver){
 
         try{
-            String subjectName = "登录验证";
-            String contentTemplate = "您正在执行登录操作，验证码是%s，2分钟内有效";
+            String subjectName = messageHeader;
+            String contentTemplate = "您正在执行"+ messageHeader +"操作，验证码是%s，1分钟内有效";
             String verifyCode = RandomStringUtils.random(6, "0123456789");
             String content = String.format(contentTemplate, verifyCode);
 

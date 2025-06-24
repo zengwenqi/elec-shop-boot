@@ -9,16 +9,14 @@ import elec.shop.pojo.sys.SysUser;
 import elec.shop.security.JwtUtils;
 import elec.shop.service.sys.SysPermissionService;
 import elec.shop.service.sys.SysUserService;
-import elec.shop.utils.AllContextUtils;
-import elec.shop.utils.EmailUtil;
-import elec.shop.utils.IpUtils;
-import elec.shop.utils.Result;
+import elec.shop.utils.*;
 import elec.shop.annotation.OperationLog;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -42,6 +40,7 @@ public class AuthController {
     private final EmailUtil emailUtil;
     private final RedisTemplate<String, Object> redisTemplate;
     private final ObjectMapper objectMapper;
+    private final MinioUtil minioUtil;
 
     @ApiOperation("用户注册")
     @PostMapping("/register")
@@ -77,6 +76,7 @@ public class AuthController {
                 .token(token)
                 .username(user.getUsername())
                 .userId(user.getUserId())
+                .avatar(minioUtil.getPreviewUrl(user.getAvatar()))
                 .build();
         return Result.ok(response);
     }
@@ -91,6 +91,7 @@ public class AuthController {
 
     @ApiOperation("获取用户菜单和权限信息")
     @GetMapping("/menu")
+//    @PreAuthorize("hasPermission('system', 'sys:menu:list')")
     @OperationLog(module = "认证管理", operationType = "动态菜单", description = "获取动态菜单数据", saveResponseData = false)
     public Result<Map<String, Object>> getUserMenu() throws JsonProcessingException {
         SysUser loginSysUser = AllContextUtils.getLoginSysUser();
@@ -127,7 +128,7 @@ public class AuthController {
         if (count==1){
             return Result.fail().message("该邮箱已绑定其他账户");
         }
-        emailUtil.sendEmail(email);
+        emailUtil.sendEmail("注册账户",email);
         return Result.ok();
     }
 
@@ -157,6 +158,7 @@ public class AuthController {
 
     @ApiOperation("重置密码")
     @PostMapping("/reset-password")
+//    @PreAuthorize("hasPermission('system', 'sys:user:reset')")
     @OperationLog(module = "认证管理", operationType = "重置密码", description = "重置密码")
     public Result resetPassword(@RequestBody ResetPasswordRequest request) {
         // 验证邮箱验证码

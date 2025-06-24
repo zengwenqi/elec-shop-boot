@@ -261,7 +261,7 @@ public class MinioUtil {
             // 生成文件名
             String fileName = UUID.randomUUID().toString() +
                     file.getOriginalFilename().substring(file.getOriginalFilename().lastIndexOf("."));
-            fileName = name + "job-service-" + fileName;
+            fileName = name + "/" + fileName;
             // 设置文件类型
             String contentType = file.getContentType();
 
@@ -449,6 +449,7 @@ public class MinioUtil {
      * @return 预览URL
      */
     public String getPreviewUrl(String objectName) {
+        if (objectName == null || objectName.isEmpty()) return null;
         try {
             return minioClient.getPresignedObjectUrl(
                 GetPresignedObjectUrlArgs.builder()

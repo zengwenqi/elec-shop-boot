@@ -21,6 +21,7 @@ import elec.shop.service.purchase.PurchaserInfoService;
 import elec.shop.service.sys.SysUserService;
 import elec.shop.utils.AllContextUtils;
 import elec.shop.utils.ExcelUtils;
+import elec.shop.utils.MinioUtil;
 import elec.shop.utils.Result;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +31,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -53,6 +55,7 @@ public class PurchaseOrderServiceImpl extends ServiceImpl<PurchaseOrderMapper, P
     private final PurchaseOrderItemService purchaseOrderItemService;
     private final PurchaserInfoService purchaserInfoService;
     private final SysUserService sysUserService;
+    private final MinioUtil minioUtil;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -66,6 +69,11 @@ public class PurchaseOrderServiceImpl extends ServiceImpl<PurchaseOrderMapper, P
                 .eq(AccountBalance::getCurrency, purchaserOrderDTO.getCurrency()));
         PurchaseOrder purchaseOrder = new PurchaseOrder();
         BeanUtils.copyProperties(purchaserOrderDTO,purchaseOrder);
+        if (accountBalance.getBalance().compareTo(purchaseOrder.getTotalAmount()) < 0){
+            return Result.fail().message("余额不足");
+        }
+        accountBalance.setBalance(accountBalance.getBalance().subtract(purchaseOrder.getTotalAmount()));
+        accountBalanceMapper.updateById(accountBalance);
         //  生成订单编号
         purchaseOrder.setOrderNo(AllContextUtils.generateOrderNumber(loginSysUser.getUserId()));
         // 订单状态、支付状态、汇率、确认时间
@@ -82,6 +90,7 @@ public class PurchaseOrderServiceImpl extends ServiceImpl<PurchaseOrderMapper, P
         purchaserOrderDTO.getOrderItems().forEach(e-> {
             PurchaseOrderItem purchaseOrderItem = new PurchaseOrderItem();
             BeanUtils.copyProperties(e,purchaseOrderItem);
+            purchaseOrderItem.setProductImage(e.getFileName());
             purchaseOrderItem.setOrderId(purchaseOrder.getOrderId());
             purchaseOrderItemList.add(purchaseOrderItem);
         });
@@ -148,6 +157,7 @@ public class PurchaseOrderServiceImpl extends ServiceImpl<PurchaseOrderMapper, P
                 .map(item -> {
                     PurchaserOrderItemVO itemVO = new PurchaserOrderItemVO();
                     BeanUtils.copyProperties(item, itemVO);
+                    itemVO.setProductImage(minioUtil.getPreviewUrl(item.getProductImage()));
                     return itemVO;
                 })
                 .collect(Collectors.toList());
@@ -256,7 +266,7 @@ public class PurchaseOrderServiceImpl extends ServiceImpl<PurchaseOrderMapper, P
         // 查询导出数据
         List<PurchaserOrderExportVO> exportData = purchaseOrderMapper.selectExportOrders(
                 loginSysUser.getUserId(), shopId, startTime, endTime);
-
+        exportData.forEach(vo -> vo.setProductImage(minioUtil.getPreviewUrl(vo.getProductImage())));
         // 导出Excel（使用支持合并单元格的方法）
         String fileName = "采购订单数据";
         String sheetName = "订单列表";

@@ -40,7 +40,7 @@ public class SysUserController {
 
     @ApiOperation("根据ID获取用户信息")
     @GetMapping("/{id}")
-//    @PreAuthorize("hasAuthority('sys:user:view')")
+    @PreAuthorize("hasPermission(null, 'superadmin:role:query')")
     public Result<UserDetailVO> getUserById(
             @ApiParam(value = "用户ID", required = true) @PathVariable("id") Long userId) {
         UserDetailVO userDetail = userService.getUserDetailById(userId);
@@ -49,7 +49,7 @@ public class SysUserController {
 
     @ApiOperation("更新用户状态")
     @PutMapping("/status")
-//    @PreAuthorize("hasAuthority('sys:user:update')")
+    @PreAuthorize("hasPermission(null, 'superadmin:role:update')")
     public Result<Void> updateUserStatus(
             @ApiParam(value = "用户ID", required = true) @RequestParam("userId") Long userId,
             @ApiParam(value = "状态：0-禁用 1-启用", required = true) @RequestParam("status") Integer status) {
@@ -59,7 +59,9 @@ public class SysUserController {
 
     @ApiOperation("分页查询用户列表")
     @GetMapping("/list")
-//    @PreAuthorize("hasAuthority('sys:user:view')")
+    @PreAuthorize("hasPermission(null, 'superadmin:role:query') || " +
+                  "hasPermission(null, 'superadmin:dashboard:query') || " +
+                  "hasPermission(null, 'superadmin:announcement:query')")
     public Result<IPage<UserDetailVO>> getUserList(
             @ApiParam(value = "页码", required = true) @RequestParam(defaultValue = "1") Integer pageNum,
             @ApiParam(value = "每页大小", required = true) @RequestParam(defaultValue = "10") Integer pageSize,
@@ -70,7 +72,7 @@ public class SysUserController {
 
     @ApiOperation("分配用户角色")
     @PostMapping("/assign-roles")
-//    @PreAuthorize("hasAuthority('sys:user:update')")
+    @PreAuthorize("hasPermission(null, 'superadmin:role:update')")
     public Result<Void> assignUserRoles(@Validated @RequestBody AssignRoleDTO assignRoleDTO) {
         userService.assignUserRoles(assignRoleDTO);
         return Result.ok();
@@ -78,7 +80,7 @@ public class SysUserController {
 
     @ApiOperation("查询全部用户")
     @GetMapping("/all-user")
-//    @PreAuthorize("hasAuthority('sys:user:update')")
+    @PreAuthorize("hasPermission(null, 'superadmin:role:query')")
     public Result<List<UserDetailVO>> allUsersDetail() {
         List<UserDetailVO> userDetailVOS = userService.getAllUserList();
         return Result.ok(userDetailVOS);
@@ -105,7 +107,7 @@ public class SysUserController {
     public Result updateProfile(@Validated @RequestBody UpdateProfileDTO profileDTO) {
         // 获取当前用户
         SysUser loginSysUser = AllContextUtils.getLoginSysUser();
-        
+
         // 调用service层更新用户信息
         userService.updateProfile(loginSysUser.getUserId(), profileDTO);
         return Result.ok();

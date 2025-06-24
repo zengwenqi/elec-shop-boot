@@ -209,7 +209,7 @@ public class ShopInfoServiceImpl extends ServiceImpl<ShopInfoMapper, ShopInfo>
         financeAccount.setAccountType(1);
         financeAccount.setAccountNo(AllContextUtils.generateAccountNo(userId));
         financeAccount.setBanlance(new BigDecimal("00.00"));
-        financeAccount.setBaseCurrency("人民币");
+        financeAccount.setBaseCurrency("CNY");
         financeAccount.setStatus(1);
         financeAccountMapper.insert(financeAccount);
 

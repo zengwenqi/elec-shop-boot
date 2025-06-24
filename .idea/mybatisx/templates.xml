@@ -64,21 +64,37 @@
             <option name="needSerializable" value="true" />
             <option name="needsComment" value="true" />
             <option name="needsModel" value="true" />
-            <option name="relativePackage" value="pojo" />
+            <option name="relativePackage" value="pojo.balance" />
             <option name="superClass" value="" />
             <option name="tableUIInfoList">
               <list>
                 <TableUIInfo>
-                  <option name="className" value="Faq" />
-                  <option name="tableName" value="faq" />
+                  <option name="className" value="ScheduledTask" />
+                  <option name="tableName" value="scheduled_task" />
                 </TableUIInfo>
                 <TableUIInfo>
-                  <option name="className" value="CrossBorderService" />
-                  <option name="tableName" value="cross_border_service" />
+                  <option name="className" value="StatsUserBehaviorDaily" />
+                  <option name="tableName" value="stats_user_behavior_daily" />
                 </TableUIInfo>
                 <TableUIInfo>
-                  <option name="className" value="MessageRecord" />
-                  <option name="tableName" value="message_record" />
+                  <option name="className" value="SettlementRule" />
+                  <option name="tableName" value="settlement_rule" />
+                </TableUIInfo>
+                <TableUIInfo>
+                  <option name="className" value="TicketReply" />
+                  <option name="tableName" value="ticket_reply" />
+                </TableUIInfo>
+                <TableUIInfo>
+                  <option name="className" value="FinanceTransaction" />
+                  <option name="tableName" value="finance_transaction" />
+                </TableUIInfo>
+                <TableUIInfo>
+                  <option name="className" value="ServiceTicket" />
+                  <option name="tableName" value="service_ticket" />
+                </TableUIInfo>
+                <TableUIInfo>
+                  <option name="className" value="StatsTradeDaily" />
+                  <option name="tableName" value="stats_trade_daily" />
                 </TableUIInfo>
               </list>
             </option>

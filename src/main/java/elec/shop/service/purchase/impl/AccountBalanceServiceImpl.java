@@ -20,6 +20,7 @@ import elec.shop.service.sys.SysUserService;
 import elec.shop.mapper.purchase.AccountBalanceMapper;
 import elec.shop.pojo.purchase.vo.CurrencyAccountVO;
 import elec.shop.sms.ExchangeRateService;
+import elec.shop.utils.AllContextUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -321,11 +322,15 @@ public class AccountBalanceServiceImpl extends ServiceImpl<AccountBalanceMapper,
     public Boolean changeCurrencyCNYAccountBalance(CurrencyAccountBalanceDTO dto) {
         // 参数校验
         validateRequest(dto);
-
+        if (StringUtils.isBlank(dto.getAccountNo())){
+            SysUser loginSysUser = AllContextUtils.getLoginSysUser();
+            FinanceAccount baseAccount = financeAccountService.getBaseAccount(loginSysUser.getUserId());
+            dto.setAccountNo(baseAccount.getAccountNo());
+        }
         // 根据accountNo查找主账户(人民币)
         FinanceAccount mainAccount = getMainAccountByAccountNo(dto.getAccountNo());
 
-        // 目标货币账户(可能不存在，需要创建)
+        // 目标货币账户
         AccountBalance targetCurrencyAccount = getOrCreateTargetCurrencyAccount(
                 mainAccount.getAccountId(),
                 dto.getCurrency()
@@ -365,9 +370,9 @@ public class AccountBalanceServiceImpl extends ServiceImpl<AccountBalanceMapper,
             throw new IllegalArgumentException("请求参数不能为空");
         }
 
-        if (StringUtils.isBlank(dto.getAccountNo())) {
-            throw new IllegalArgumentException("账户编号不能为空");
-        }
+//        if (StringUtils.isBlank(dto.getAccountNo())) {
+//            throw new IllegalArgumentException("账户编号不能为空");
+//        }
 
         if (dto.getBalance() == null || dto.getBalance().compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("金额必须大于0");
@@ -440,7 +445,7 @@ public class AccountBalanceServiceImpl extends ServiceImpl<AccountBalanceMapper,
                                                BigDecimal cnyAmount,
                                                BigDecimal targetAmount) {
         // 检查人民币账户余额是否充足
-        if (mainAccount.getBanlance().compareTo(cnyAmount) < 0) {
+        if (mainAccount.getBanlance().compareTo(targetAmount) < 0) {
             throw new BusinessException("人民币余额不足");
         }
 
@@ -450,7 +455,7 @@ public class AccountBalanceServiceImpl extends ServiceImpl<AccountBalanceMapper,
                 .eq(FinanceAccount::getBanlance, mainAccount.getBanlance());
 
         FinanceAccount mainUpdate = new FinanceAccount();
-        mainUpdate.setBanlance(mainAccount.getBanlance().subtract(cnyAmount));
+        mainUpdate.setBanlance(mainAccount.getBanlance().subtract(targetAmount));
 
         int mainRows = financeAccountMapper.update(mainUpdate, mainUpdateWrapper);
 
@@ -460,7 +465,7 @@ public class AccountBalanceServiceImpl extends ServiceImpl<AccountBalanceMapper,
                 .eq(AccountBalance::getBalance, targetAccount.getBalance());
 
         AccountBalance targetUpdate = new AccountBalance();
-        targetUpdate.setBalance(targetAccount.getBalance().add(targetAmount));
+        targetUpdate.setBalance(targetAccount.getBalance().add(cnyAmount));
         targetUpdate.setLastUpdated(new Date());
 
         int targetRows = accountBalanceMapper.update(targetUpdate, targetUpdateWrapper);

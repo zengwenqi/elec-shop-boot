@@ -26,7 +26,7 @@ public class PurchaserOrderItemDTO {
     private String productLink;
 
     @ApiModelProperty("商品图片路径")
-    private String productImage;
+    private String fileName;
 
     @ApiModelProperty("商品SKU")
     private String sku;
