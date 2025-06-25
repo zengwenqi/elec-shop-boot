@@ -5,6 +5,8 @@ import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
 @Slf4j
@@ -14,30 +16,44 @@ import org.springframework.context.annotation.Configuration;
 public class JwtConfig implements InitializingBean {
     private final JwtConfigService jwtConfigService;
 
+    // 新增配置开关，控制是否从数据库加载配置
+    @Value("${jwt.load-from-db}")
+    private boolean loadFromDb;
+    @Value("${jwt.access-token-private-key}")
     private String accessTokenPrivateKey;
+    @Value("${jwt.access-token-public-key}")
     private String accessTokenPublicKey;
+    @Value("${jwt.refresh-token-private-key}")
     private String refreshTokenPrivateKey;
+    @Value("${jwt.refresh-token-public-key}")
     private String refreshTokenPublicKey;
-    private long accessTokenExpiration = 900000; // 15分钟
-    private long refreshTokenExpiration = 604800000; // 7天
-    private String issuer = "elec-shop-token";
-    private int loginAttemptLimit = 5; // 登录尝试次数限制
-    private int loginLockDuration = 300; // 登录锁定时间（秒）
+    @Value("${jwt.access-token-expiration}")
+    private long accessTokenExpiration; // 15分钟
+    @Value("${jwt.refresh-token-expiration}")
+    private long refreshTokenExpiration; // 7天
+    @Value("${jwt.issuer}")
+    private String issuer;
+    @Value("${jwt.login-attempt-limit}")
+    private int loginAttemptLimit; // 登录尝试次数限制
+    @Value("${jwt.login-lock-duration}")
+    private int loginLockDuration; // 登录锁定时间（秒）
 
     @Override
     public void afterPropertiesSet() {
         log.info("开始加载JWT配置...");
         try {
-            // 从数据库加载配置
-            this.accessTokenPrivateKey = getConfigOrDefault("jwt.access-token-private-key", this.accessTokenPrivateKey);
-            this.accessTokenPublicKey = getConfigOrDefault("jwt.access-token-public-key", this.accessTokenPublicKey);
-            this.refreshTokenPrivateKey = getConfigOrDefault("jwt.refresh-token-private-key", this.refreshTokenPrivateKey);
-            this.refreshTokenPublicKey = getConfigOrDefault("jwt.refresh-token-public-key", this.refreshTokenPublicKey);
-            this.accessTokenExpiration = Long.parseLong(getConfigOrDefault("jwt.access-token-expiration", String.valueOf(this.accessTokenExpiration)));
-            this.refreshTokenExpiration = Long.parseLong(getConfigOrDefault("jwt.refresh-token-expiration", String.valueOf(this.refreshTokenExpiration)));
-            this.issuer = getConfigOrDefault("jwt.issuer", this.issuer);
-            this.loginAttemptLimit = Integer.parseInt(getConfigOrDefault("jwt.login-attempt-limit", String.valueOf(this.loginAttemptLimit)));
-            this.loginLockDuration = Integer.parseInt(getConfigOrDefault("jwt.login-lock-duration", String.valueOf(this.loginLockDuration)));
+            if (loadFromDb) {
+                // 从数据库加载配置
+                this.accessTokenPrivateKey = getConfigOrDefault("jwt.access-token-private-key", this.accessTokenPrivateKey);
+                this.accessTokenPublicKey = getConfigOrDefault("jwt.access-token-public-key", this.accessTokenPublicKey);
+                this.refreshTokenPrivateKey = getConfigOrDefault("jwt.refresh-token-private-key", this.refreshTokenPrivateKey);
+                this.refreshTokenPublicKey = getConfigOrDefault("jwt.refresh-token-public-key", this.refreshTokenPublicKey);
+                this.accessTokenExpiration = Long.parseLong(getConfigOrDefault("jwt.access-token-expiration", String.valueOf(this.accessTokenExpiration)));
+                this.refreshTokenExpiration = Long.parseLong(getConfigOrDefault("jwt.refresh-token-expiration", String.valueOf(this.refreshTokenExpiration)));
+                this.issuer = getConfigOrDefault("jwt.issuer", this.issuer);
+                this.loginAttemptLimit = Integer.parseInt(getConfigOrDefault("jwt.login-attempt-limit", String.valueOf(this.loginAttemptLimit)));
+                this.loginLockDuration = Integer.parseInt(getConfigOrDefault("jwt.login-lock-duration", String.valueOf(this.loginLockDuration)));
+            }
 
             // 验证密钥格式
             validateKeyFormat(this.accessTokenPrivateKey, "Access Token私钥");
