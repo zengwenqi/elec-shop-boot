@@ -69,8 +69,11 @@ public class FileController {
 
             // 获取当前登录用户
             Long userId = AllContextUtils.getLoginSysUser().getUserId();
-            if (userService.getById(userId).getAvatar()!=null){
-                minioUtil.remove(userService.getById(userId).getAvatar());
+            if (userService.getById(userId).getAvatar() != null) {
+                boolean objectExist = minioUtil.isObjectExist("elec-shop", userService.getById(userId).getAvatar());
+                if (objectExist)
+                    // 删除旧头像
+                    minioUtil.remove(userService.getById(userId).getAvatar());
             }
             // 上传头像到MinIO
             String fileName = minioUtil.upload(file, "avatar/");

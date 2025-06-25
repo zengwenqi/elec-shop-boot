@@ -492,4 +492,30 @@ public class MinioUtil {
             return null;
         }
     }
+
+    /**
+     * 判断 MinIO 中指定存储桶、指定对象（文件）是否存在
+     * @param bucketName 存储桶名称
+     * @param objectName 对象（文件）名称
+     * @return true：存在；false：不存在
+     */
+    @SneakyThrows
+    public boolean isObjectExist(String bucketName, String objectName) {
+        try {
+            // 调用 statObject 方法，若对象存在则返回 StatObjectResponse，不存在则抛出异常
+            StatObjectResponse response = minioClient.statObject(
+                    StatObjectArgs.builder()
+                            .bucket(bucketName)
+                            .object(objectName)
+                            .build()
+            );
+            // 能执行到这里，说明对象存在
+            return true;
+        } catch (Exception e) {
+            // 捕获到异常，判断是否是对象不存在的异常（不同版本 MinIO 客户端异常类型可能有差异，可更精细判断）
+            // 简单处理：只要抛出异常就认为对象不存在，实际可根据异常信息细化，比如 MinioException 的 errorCode 等
+            log.debug("文件 {} 在存储桶 {} 中不存在，异常信息：", objectName, bucketName, e);
+            return false;
+        }
+    }
 }
