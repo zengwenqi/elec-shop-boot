@@ -77,7 +77,7 @@ public class AuthController {
             if (tokenManager.isLoginLocked(request.getUsername())) {
                 return Result.fail("账户已被锁定，请"+jwtConfigService.getConfigValue("jwt.login-lock-duration")+"再试");
             }
-
+            request.setPassword(RsaDecryptUtil.decrypt(request.getPassword()));
             // 获取用户信息
             SysUser user = userService.getUserByUsername(request.getUsername());
             if (user == null) {

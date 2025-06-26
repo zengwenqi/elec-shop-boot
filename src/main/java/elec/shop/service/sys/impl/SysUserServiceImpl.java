@@ -22,6 +22,7 @@ import elec.shop.service.sys.SysPermissionService;
 import elec.shop.service.sys.SysUserService;
 import elec.shop.utils.MinioUtil;
 import elec.shop.utils.ResultCodeEnum;
+import elec.shop.utils.RsaDecryptUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -82,6 +83,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser>
         }
 
         try {
+            request.setPassword(RsaDecryptUtil.decrypt(request.getPassword()));
             // 创建用户
             SysUser user = new SysUser();
             BeanUtils.copyProperties(request, user);
@@ -448,9 +450,13 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser>
             throw new RuntimeException("用户不存在");
         }
 
-        // 更新密码
-        user.setPassword(passwordEncoder.encode(newPassword));
-        return baseMapper.updateById(user) > 0;
+        try {
+            // 更新密码
+            user.setPassword(passwordEncoder.encode(RsaDecryptUtil.decrypt(newPassword)));
+            return baseMapper.updateById(user) > 0;
+        }catch (Exception e){
+            return false;
+        }
     }
 
     @Override

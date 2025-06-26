@@ -1,6 +1,7 @@
 package elec.shop.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import elec.shop.exception.BusinessException;
 import elec.shop.pojo.sys.SysUser;
 import elec.shop.pojo.sys.dto.AssignRoleDTO;
 import elec.shop.pojo.sys.dto.UpdatePasswordDTO;
@@ -9,6 +10,7 @@ import elec.shop.pojo.sys.dto.UpdateProfileDTO;
 import elec.shop.service.sys.SysUserService;
 import elec.shop.utils.AllContextUtils;
 import elec.shop.utils.Result;
+import elec.shop.utils.RsaDecryptUtil;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
@@ -92,14 +94,22 @@ public class SysUserController {
         // 获取当前用户
         SysUser loginSysUser = AllContextUtils.getLoginSysUser();
 
-        // 验证新密码与确认密码是否一致
-        if (!passwordDTO.getNewPassword().equals(passwordDTO.getConfirmPassword())) {
-            return Result.fail().message("新密码与确认密码不一致");
-        }
+        try {
+            // 验证新密码与确认密码是否一致
+            if (!RsaDecryptUtil.decrypt(passwordDTO.getNewPassword()).equals(RsaDecryptUtil.decrypt(passwordDTO.getConfirmPassword()))) {
+                return Result.fail().message("新密码与确认密码不一致");
+            }
 
-        // 调用service层修改密码
-        userService.updatePassword(loginSysUser.getUserId(), passwordDTO.getOldPassword(), passwordDTO.getNewPassword());
-        return Result.ok();
+            // 调用service层修改密码
+            userService.updatePassword(
+                    loginSysUser.getUserId(),
+                    RsaDecryptUtil.decrypt(passwordDTO.getOldPassword()),
+                    RsaDecryptUtil.decrypt(passwordDTO.getNewPassword())
+            );
+            return Result.ok();
+        }catch (Exception e){
+            throw new BusinessException("修改密码失败");
+        }
     }
 
     @ApiOperation("更新当前用户信息")
