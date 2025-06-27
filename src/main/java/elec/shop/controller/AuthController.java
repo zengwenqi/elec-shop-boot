@@ -58,7 +58,7 @@ public class AuthController {
     @ApiOperation("用户注册")
     @PostMapping("/register")
     @OperationLog(module = "认证管理", operationType = "注册", description = "用户注册")
-    public Result register(@RequestBody RegisterRequest request) {
+    public Result<Object> register(@RequestBody RegisterRequest request) {
         if (!(request.getEmailCode().equals(redisTemplate.opsForValue().get(request.getEmail()))))
             return Result.fail().message("邮箱验证码错误");
         Boolean result = userService.registerUser(request);
@@ -71,7 +71,7 @@ public class AuthController {
     @ApiOperation("用户登录")
     @PostMapping("/login")
     @OperationLog(module = "认证管理", operationType = "登录", description = "用户登录", isLogin = true)
-    public Result login(@RequestBody LoginRequest request, HttpServletRequest servletRequest, HttpServletResponse response) {
+    public Result<Object> login(@RequestBody LoginRequest request, HttpServletRequest servletRequest, HttpServletResponse response) {
         try {
             // 检查是否被锁定
             if (tokenManager.isLoginLocked(request.getUsername())) {
@@ -145,7 +145,7 @@ public class AuthController {
 
     @ApiOperation("刷新Token")
     @PostMapping("/refresh")
-    public Result refreshToken(HttpServletRequest request, HttpServletResponse response) {
+    public Result<Object> refreshToken(HttpServletRequest request, HttpServletResponse response) {
         // 从cookie中获取refresh token
         Cookie[] cookies = request.getCookies();
         if (cookies != null) {
@@ -196,18 +196,18 @@ public class AuthController {
                         }
                     } catch (Exception e) {
                         log.error("刷新token失败: {}", e.getMessage());
-                        return Result.fail("刷新token失败");
+                        return Result.fail().message("刷新token失败");
                     }
                 }
             }
         }
-        return Result.fail("无效的refresh token");
+        return Result.fail().message("无效的refresh token");
     }
 
     @ApiOperation("退出登录")
     @PostMapping("/logout")
     @OperationLog(module = "认证管理", operationType = "退出", description = "退出登录", saveRequestData = false)
-    public Result<String> logout(HttpServletRequest request, HttpServletResponse response) {
+    public Result<Object> logout(HttpServletRequest request, HttpServletResponse response) {
         try {
             // 获取当前用户名
             SysUser loginSysUser = AllContextUtils.getLoginSysUser();
@@ -242,7 +242,7 @@ public class AuthController {
             return Result.ok("注销成功");
         } catch (Exception e) {
             log.error("退出登录失败: {}", e.getMessage());
-            return Result.fail("退出登录失败");
+            return Result.fail().message("退出登录失败");
         }
     }
 
@@ -277,7 +277,7 @@ public class AuthController {
 
     @ApiOperation("获取邮箱验证码")
     @GetMapping("/email/code")
-    public Result getEmailCode(@RequestParam("email") String email) {
+    public Result<Object> getEmailCode(@RequestParam("email") String email) {
         long count = userService.count(new LambdaQueryWrapper<SysUser>()
                 .eq(SysUser::getEmail, email));
         if (count==1){
@@ -289,7 +289,7 @@ public class AuthController {
 
     @ApiOperation("验证邮箱验证码")
     @PostMapping("/email/verify")
-    public Result verifyEmailCode(@RequestBody EmailVerifyRequest request) {
+    public Result<Object> verifyEmailCode(@RequestBody EmailVerifyRequest request) {
         // 验证码校验
         String cachedCode = (String) redisTemplate.opsForValue().get(request.getEmail());
         if (cachedCode == null || !cachedCode.equals(request.getCode())) {
@@ -314,7 +314,7 @@ public class AuthController {
     @ApiOperation("重置密码")
     @PostMapping("/reset-password")
     @OperationLog(module = "认证管理", operationType = "重置密码", description = "重置密码")
-    public Result resetPassword(@RequestBody ResetPasswordRequest request) {
+    public Result<Object> resetPassword(@RequestBody ResetPasswordRequest request) {
         // 验证邮箱验证码
         String cachedCode = (String) redisTemplate.opsForValue().get(request.getEmail());
         if (cachedCode == null || !cachedCode.equals(request.getCode())) {

@@ -244,6 +244,7 @@ public class PurchaseOrderServiceImpl extends ServiceImpl<PurchaseOrderMapper, P
     @Override
     public PurchaserOrderVO orderInfo(Long orderId) {
         PurchaserOrderVO purchaserOrderVO = purchaseOrderMapper.queryPurchaseOrderOne(orderId);
+        purchaserOrderVO.getOrderItems().forEach(item -> item.setProductImage(minioUtil.getPreviewUrl(item.getProductImage())));
         return purchaserOrderVO;
     }
 

@@ -32,7 +32,7 @@ public class FileController {
      */
     @ApiOperation("上传文件")
     @PostMapping("/upload")
-    public Result uploadFile(
+    public Result<Object> uploadFile(
             @RequestParam("file") MultipartFile file,
             @RequestParam(value = "dir", defaultValue = "") String dir) {
         try {
@@ -59,7 +59,7 @@ public class FileController {
      */
     @ApiOperation("更新当前用户头像")
     @PostMapping("/avatar")
-    public Result updateAvatar(@RequestParam("file") MultipartFile file) {
+    public Result<Object> updateAvatar(@RequestParam("file") MultipartFile file) {
         try {
             // 验证文件类型
             String contentType = file.getContentType();
@@ -128,7 +128,7 @@ public class FileController {
      */
     @ApiOperation("删除文件")
     @DeleteMapping("/{fileName}")
-    public Result deleteFile(@PathVariable String fileName) {
+    public Result<Object> deleteFile(@PathVariable String fileName) {
         try {
             minioUtil.remove(fileName);
             return Result.ok();

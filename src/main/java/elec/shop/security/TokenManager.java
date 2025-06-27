@@ -156,9 +156,13 @@ public class TokenManager {
         try {
             String jti = extractClaim(token, Claims::getId);
             return Boolean.TRUE.equals(redisTemplate.hasKey(TOKEN_BLACKLIST_PREFIX + jti));
+        } catch (ExpiredJwtException e) {
+            // 过期Token无需检查黑名单，直接返回false
+            log.debug("Token已过期，无需检查黑名单");
+            return false;
         } catch (Exception e) {
             log.error("检查Token黑名单失败：{}", e.getMessage());
-            return true;
+            return true; // 其他异常时返回true（安全起见，默认视为无效）
         }
     }
 
@@ -194,15 +198,14 @@ public class TokenManager {
 
     private Claims extractAllClaims(String token) {
         try {
-            // 从token中获取issuer，以确定是access token还是refresh token
+            // 从token中获取issuer，确定是access token还是refresh token
             String tokenWithoutSignature = token.substring(0, token.lastIndexOf('.') + 1);
             Jwt<Header, Claims> untrusted = Jwts.parser().parseClaimsJwt(tokenWithoutSignature);
             Claims claims = untrusted.getBody();
 
-            // 根据token类型选择正确的公钥
+            // 根据token过期时间判断类型，选择公钥
             String publicKeyStr;
             if (claims.getExpiration().getTime() - claims.getIssuedAt().getTime() > jwtConfig.getAccessTokenExpiration()) {
-                // 如果过期时间超过access token的过期时间，说明是refresh token
                 publicKeyStr = jwtConfig.getRefreshTokenPublicKey();
                 log.debug("使用Refresh Token公钥验证");
             } else {
@@ -215,9 +218,7 @@ public class TokenManager {
                 throw new RuntimeException("Public key is not configured");
             }
 
-            // 移除可能存在的换行符
-            publicKeyStr = publicKeyStr.replaceAll("\\s+", "");
-
+            publicKeyStr = publicKeyStr.replaceAll("\\s+", ""); // 移除换行符
             byte[] publicKeyBytes = Base64.getDecoder().decode(publicKeyStr);
             X509EncodedKeySpec keySpec = new X509EncodedKeySpec(publicKeyBytes);
             KeyFactory keyFactory = KeyFactory.getInstance("RSA");
@@ -227,8 +228,12 @@ public class TokenManager {
                     .setSigningKey(publicKey)
                     .parseClaimsJws(token)
                     .getBody();
+        } catch (ExpiredJwtException e) {
+            // 单独捕获Token过期异常，直接抛出（不转换为RuntimeException）
+            log.debug("Token已过期（extractAllClaims）");
+            throw e;
         } catch (Exception e) {
-            log.error("解析Token失败：{}", e.getMessage());
+            log.error("Token解析失败（非过期原因）：{}", e.getMessage());
             throw new RuntimeException("Failed to extract claims: " + e.getMessage(), e);
         }
     }

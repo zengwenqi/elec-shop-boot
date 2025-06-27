@@ -28,34 +28,34 @@ public class ShopController {
 
     @PostMapping("/shopInfo")
     @ApiOperation("查询我的店铺信息")
-    public Result queryShopInfo(@RequestBody ShopInfoQueryDTO shopInfoQueryDTO) {
+    public Result<Object> queryShopInfo(@RequestBody ShopInfoQueryDTO shopInfoQueryDTO) {
         IPage<ShopInfo> shopInfoIPage = shopInfoService.queryShopInfo(shopInfoQueryDTO);
         return Result.ok(shopInfoIPage);
     }
 
     @PostMapping("/shopInfoList")
     @ApiOperation("查询我的所有店铺信息")
-    public Result queryShopInfo() {
+    public Result<Object> queryShopInfo() {
         List<ShopInfo> shopInfoList = shopInfoService.queryShopInfoList();
         return Result.ok(shopInfoList);
     }
 
     @PostMapping("/updateShopInfo")
     @ApiOperation("更新我的店铺信息")
-    public Result updateShopInfo(@RequestBody ShopInfoDTO shopInfoDTO) {
+    public Result<Object> updateShopInfo(@RequestBody ShopInfoDTO shopInfoDTO) {
         return shopInfoService.updateShopInfo(shopInfoDTO);
     }
 
     @PostMapping("/shopInfoStatistic")
     @ApiOperation("我的店铺信息采购订单统计")
-    public Result shopInfoStatistic(@RequestParam("shopId") Long shopId) {
+    public Result<Object> shopInfoStatistic(@RequestParam("shopId") Long shopId) {
         Map<String, Object> statistics = shopInfoService.getShopOrderStatistics(shopId);
         return Result.ok(statistics);
     }
 
     @PostMapping("/shopInfoPurchaseOrder")
     @ApiOperation("查询我的店铺下的采购订单")
-    public Result shopInfoPurchaseOrder(@RequestBody PurchaserOrderQueryDTO queryDTO) {
+    public Result<Object> shopInfoPurchaseOrder(@RequestBody PurchaserOrderQueryDTO queryDTO) {
         if (queryDTO.getShopId() == null) {
             return Result.fail().message("店铺ID不能为空");
         }
@@ -65,13 +65,13 @@ public class ShopController {
 
     @PostMapping("/deleteShop")
     @ApiOperation("删除店铺")
-    public Result deleteShop(@RequestParam("shopId") Long shopId) {
+    public Result<Object> deleteShop(@RequestParam("shopId") Long shopId) {
         return shopInfoService.deleteShop(shopId);
     }
 
     @PostMapping("/addShop")
     @ApiOperation("新增店铺")
-    public Result addShop(@RequestBody ShopInfoDTO shopInfoDTO) {
+    public Result<Object> addShop(@RequestBody ShopInfoDTO shopInfoDTO) {
         return shopInfoService.addShop(shopInfoDTO);
     }
 

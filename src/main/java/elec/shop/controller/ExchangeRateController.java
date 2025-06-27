@@ -2,15 +2,10 @@ package elec.shop.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import elec.shop.pojo.purchase.FinanceAccount;
 import elec.shop.pojo.purchase.dto.CurrencyAccountBalanceDTO;
 import elec.shop.pojo.purchase.dto.ExchangeRateDTO;
-import elec.shop.pojo.purchase.vo.ExchangeRateVO;
-import elec.shop.pojo.sys.SysUser;
 import elec.shop.service.purchase.AccountBalanceService;
-import elec.shop.service.purchase.FinanceAccountService;
 import elec.shop.sms.ExchangeRateService;
-import elec.shop.utils.AllContextUtils;
 import elec.shop.utils.Result;
 import elec.shop.pojo.purchase.vo.CurrencyAccountVO;
 import io.swagger.annotations.Api;
@@ -31,7 +26,6 @@ public class ExchangeRateController {
 
     private final ExchangeRateService exchangeRateService;
     private final AccountBalanceService accountBalanceService;
-    private final FinanceAccountService financeAccountService;
 
     @GetMapping("/real-time-rates")
     @ApiOperation("获取实时汇率")

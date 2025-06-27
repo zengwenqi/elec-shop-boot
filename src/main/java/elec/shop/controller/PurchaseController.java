@@ -47,7 +47,7 @@ public class PurchaseController {
 //        isPurchaseOrder = true,
 //        saveRequestData = true
 //    )
-    public Result createOrder(@RequestBody PurchaserOrderDTO purchaserOrderDTO) {
+    public Result<Object> createOrder(@RequestBody PurchaserOrderDTO purchaserOrderDTO) {
         return purchaseOrderService.createOrder(purchaserOrderDTO);
     }
 
@@ -64,7 +64,7 @@ public class PurchaseController {
     @PostMapping("/orderInfo")
     @ApiOperation("查询采购订单详情")
     @OperationLog(module = "采购管理", operationType = "查询订单", description = "查询采购订单详情")
-    public Result orderInfo(
+    public Result<Object> orderInfo(
             @RequestParam("orderId") Long orderId
     ) {
         return Result.ok(purchaseOrderService.orderInfo(orderId));
@@ -106,7 +106,7 @@ public class PurchaseController {
     @GetMapping("/purchasersAll")
     @ApiOperation("查询所有采购员")
     @OperationLog(module = "采购管理", operationType = "查询采购员", description = "查询所有采购员")
-    public Result purchasersAll() {
+    public Result<Object> purchasersAll() {
         SysUser loginSysUser = AllContextUtils.getLoginSysUser();
         loginSysUser.setUserType(sysUserService.getById(loginSysUser.getUserId()).getUserType());
         if (!loginSysUser.getUserType().equals(1) && !loginSysUser.getUserType().equals(2)) return Result.fail().message("无权操作");
@@ -117,7 +117,7 @@ public class PurchaseController {
     @PostMapping("/purchaser/add")
     @ApiOperation("新增采购员")
     @OperationLog(module = "采购管理", operationType = "新增采购员", description = "新增采购员")
-    public Result addPurchaser(@ApiParam("用户ID") @RequestParam Long userId) {
+    public Result<Object> addPurchaser(@ApiParam("用户ID") @RequestParam Long userId) {
         PurchaserInfo purchaserInfo = purchaserInfoService.addPurchaser(userId);
         return Result.ok(purchaserInfo);
     }
@@ -135,7 +135,7 @@ public class PurchaseController {
     @PostMapping("/task/assign")
     @ApiOperation("分配采购任务")
     @OperationLog(module = "采购管理", operationType = "分配任务", description = "分配采购任务")
-    public Result assignTask(
+    public Result<Object> assignTask(
             @ApiParam("任务ID") @RequestParam Long taskId,
             @ApiParam("采购员ID") @RequestParam Long purchaserId
     ) {
@@ -145,7 +145,7 @@ public class PurchaseController {
 
     @GetMapping("/test")
     @ApiOperation("测试汇率")
-    public Result test(@RequestParam("userId") Long userId) {
+    public Result<Object> test(@RequestParam("userId") Long userId) {
         shopInfoService.test(userId);
         return Result.ok();
     }

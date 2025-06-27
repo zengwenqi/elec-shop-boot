@@ -74,7 +74,7 @@ public class ShopInfoServiceImpl extends ServiceImpl<ShopInfoMapper, ShopInfo>
 
     @Override
     @Transactional
-    public Result updateShopInfo(ShopInfoDTO shopInfoDTO) {
+    public Result<Object> updateShopInfo(ShopInfoDTO shopInfoDTO) {
         SysUser loginSysUser = AllContextUtils.getLoginSysUser();
         ShopInfo shopInfo = shopInfoMapper.selectOne(new LambdaQueryWrapper<ShopInfo>()
                 .eq(ShopInfo::getShopId, shopInfoDTO.getShopId()));

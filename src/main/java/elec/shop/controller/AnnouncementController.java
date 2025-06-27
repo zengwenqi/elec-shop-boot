@@ -74,7 +74,7 @@ public class AnnouncementController {
     @ApiOperation("发送私信")
     @PostMapping("/private/{userId}")
     @OperationLog(module = "公告管理", operationType = "发送私信")
-    public Result sendPrivateNotice(@PathVariable String userId, @RequestBody MessageRequest request) {
+    public Result<Object> sendPrivateNotice(@PathVariable String userId, @RequestBody MessageRequest request) {
         try {
             MessageRecord messageRecord = convertToMessageRecord(request);
             messageRecord.setMessageType(MessageTypeEnum.PRIVATE_MESSAGE.getCode());
@@ -96,7 +96,7 @@ public class AnnouncementController {
 
     @ApiOperation("获取用户消息列表")
     @GetMapping("/messages")
-    public Result getUserMessages(
+    public Result<Object> getUserMessages(
             @RequestParam(required = false) Integer messageType,
             @RequestParam(required = false) String startDate,
             @RequestParam(required = false) String endDate) {
@@ -105,7 +105,7 @@ public class AnnouncementController {
             // 获取用户的所有消息：系统公告和私信
             List<MessageRecord> messages = messageRecordService.getUserMessages(
                     loginUser.getUsername(), messageType, startDate, endDate);
-            
+
             // 按发送时间倒序排序
             messages.sort((a, b) -> b.getSendTime().compareTo(a.getSendTime()));
             return Result.ok(messages);
@@ -117,7 +117,7 @@ public class AnnouncementController {
 
     @ApiOperation("标记消息已读")
     @PutMapping("/read/{recordId}")
-    public Result markMessageAsRead(@PathVariable Long recordId) {
+    public Result<Object> markMessageAsRead(@PathVariable Long recordId) {
         try {
             SysUser loginUser = AllContextUtils.getLoginSysUser();
             boolean success = messageRecordService.markMessageAsRead(recordId, loginUser.getUsername());

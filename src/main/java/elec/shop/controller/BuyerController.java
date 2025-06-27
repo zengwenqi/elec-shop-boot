@@ -19,28 +19,28 @@ public class BuyerController {
 
     @PostMapping("/updateShopInfo")
     @ApiOperation("查询我的待采购订单")
-    public Result updateShopInfo(@RequestBody ShopInfoDTO shopInfoDTO) {
+    public Result<Object> updateShopInfo(@RequestBody ShopInfoDTO shopInfoDTO) {
         return Result.ok();
     }
 
 
     @PostMapping("/a")
     @ApiOperation("价格上报")
-    public Result a(@RequestBody ShopInfoDTO shopInfoDTO) {
+    public Result<Object> a(@RequestBody ShopInfoDTO shopInfoDTO) {
         return Result.ok();
     }
 
 
     @PostMapping("/c")
     @ApiOperation("我的待采购订单详情")
-    public Result b(@RequestBody ShopInfoDTO shopInfoDTO) {
+    public Result<Object> b(@RequestBody ShopInfoDTO shopInfoDTO) {
         return Result.ok();
     }
 
 
     @PostMapping("/d")
     @ApiOperation("更新我的待采购订单状态")
-    public Result c(@RequestBody ShopInfoDTO shopInfoDTO) {
+    public Result<Object> c(@RequestBody ShopInfoDTO shopInfoDTO) {
         return Result.ok();
     }
 }

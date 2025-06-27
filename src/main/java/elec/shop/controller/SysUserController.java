@@ -114,7 +114,7 @@ public class SysUserController {
 
     @ApiOperation("更新当前用户信息")
     @PutMapping("/profile")
-    public Result updateProfile(@Validated @RequestBody UpdateProfileDTO profileDTO) {
+    public Result<Object> updateProfile(@Validated @RequestBody UpdateProfileDTO profileDTO) {
         // 获取当前用户
         SysUser loginSysUser = AllContextUtils.getLoginSysUser();
 
