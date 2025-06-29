@@ -10,11 +10,13 @@
         <result column="order_no" property="orderNo" />
         <result column="user_id" property="userId" />
         <result column="shop_id" property="shopId" />
+        <result column="cross_service" property="crossService" />
         <result column="purchaser_id" property="purchaserId" />
         <result column="real_name" property="purchaserName" />
         <result column="order_type" property="orderType" />
         <result column="order_status" property="orderStatus" />
         <result column="payment_status" property="paymentStatus" />
+        <result column="real_total_amount" property="realTotalAmount" />
         <result column="total_amount" property="totalAmount" />
         <result column="currency" property="currency" />
         <result column="contact_phone" property="contactPhone" />

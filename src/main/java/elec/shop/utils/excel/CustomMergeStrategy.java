@@ -10,9 +10,9 @@ import org.apache.poi.ss.util.CellRangeAddress;
 import java.util.*;
 
 public class CustomMergeStrategy extends AbstractMergeStrategy {
-    
+
     private final Map<String, List<Integer>> orderRowMap = new HashMap<>(); // 订单号 -> 行号列表
-    private static final int MERGE_COLUMN_COUNT = 23; // 0-22列需要合并
+    private static final int MERGE_COLUMN_COUNT = 24; // 0-23列需要合并
     private boolean dataCollected = false;
 
     @Override
@@ -28,7 +28,7 @@ public class CustomMergeStrategy extends AbstractMergeStrategy {
         if (!dataCollected && colIndex == 0) {
             String orderNo = getCellValue(cell);
             orderRowMap.computeIfAbsent(orderNo, k -> new ArrayList<>()).add(rowIndex);
-            
+
             // 如果是最后一行，开始处理合并
             if (rowIndex == sheet.getLastRowNum()) {
                 dataCollected = true;
@@ -49,7 +49,7 @@ public class CustomMergeStrategy extends AbstractMergeStrategy {
                     // 获取第一行的值作为参考
                     String baseValue = getCellValue(sheet.getRow(rows.get(0)).getCell(col));
                     boolean canMerge = true;
-                    
+
                     // 检查所有行的值是否相同
                     for (int i = 1; i < rows.size(); i++) {
                         String currentValue = getCellValue(sheet.getRow(rows.get(i)).getCell(col));
@@ -77,7 +77,7 @@ public class CustomMergeStrategy extends AbstractMergeStrategy {
         if (cell == null) {
             return "";
         }
-        
+
         try {
             CellType cellType = cell.getCellType();
             switch (cellType) {
@@ -106,4 +106,4 @@ public class CustomMergeStrategy extends AbstractMergeStrategy {
             return "";
         }
     }
-} 
+}

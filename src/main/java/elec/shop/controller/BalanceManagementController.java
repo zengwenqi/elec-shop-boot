@@ -1,15 +1,16 @@
 package elec.shop.controller;
 
+import elec.shop.pojo.balance.dto.AccountBalanceDTO;
 import elec.shop.pojo.purchase.FinanceAccount;
 import elec.shop.service.purchase.AccountBalanceService;
 import elec.shop.service.purchase.FinanceAccountService;
-import elec.shop.sms.ExchangeRateService;
 import elec.shop.utils.AllContextUtils;
 import elec.shop.utils.Result;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -23,7 +24,6 @@ public class BalanceManagementController {
 
     private final AccountBalanceService accountBalanceService;
     private final FinanceAccountService financeAccountService;
-    private final ExchangeRateService exchangeRateService;
 
     @GetMapping("/my")
     @ApiOperation("查询我的所有币种余额")
@@ -151,5 +151,14 @@ public class BalanceManagementController {
         } catch (Exception e) {
             return Result.fail().message("币种转换失败：" + e.getMessage());
         }
+    }
+
+    @PostMapping("/increase/account")
+    @ApiOperation("给指定账户充值")
+    @PreAuthorize("hasPermission(null ,'superadmin')")
+    public Result<Object> increaseAccount(@RequestBody AccountBalanceDTO dto) throws Exception {
+        boolean update = accountBalanceService.increaseAccount(dto);
+        if (update) return Result.ok();
+        return Result.fail().message("删除失败");
     }
 }

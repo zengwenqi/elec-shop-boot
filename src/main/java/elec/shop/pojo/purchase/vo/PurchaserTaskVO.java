@@ -21,6 +21,9 @@ public class PurchaserTaskVO {
     @ApiModelProperty("订单编号")
     private String orderNo;
 
+    @ApiModelProperty("采购平台")
+    private String crossService;
+
     @ApiModelProperty("任务编号")
     private String taskCode;
 
@@ -74,6 +77,9 @@ public class PurchaserTaskVO {
 
     @ApiModelProperty("订单总金额")
     private BigDecimal totalAmount;
+
+    @ApiModelProperty("实际订单总金额")
+    private BigDecimal realTotalAmount;
 
     @ApiModelProperty("币种")
     private String currency;

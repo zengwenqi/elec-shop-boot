@@ -26,119 +26,123 @@ public class PurchaserOrderExportVO {
     private String shopName;
 
     @ColumnWidth(15)
-    @ExcelProperty(value = "店铺编号", index = 2)
+    @ExcelProperty(value = "跨境采购平台", index = 2)
+    private String crossService;
+
+    @ColumnWidth(15)
+    @ExcelProperty(value = "店铺编号", index = 3)
     private String shopCode;
 
     @ColumnWidth(15)
-    @ExcelProperty(value = "采购员编号", index = 3)
+    @ExcelProperty(value = "采购员编号", index = 4)
     private String purchaserCode;
 
     @ColumnWidth(15)
-    @ExcelProperty(value = "订单类型", index = 4)
+    @ExcelProperty(value = "订单类型", index = 5)
     private String orderType;
 
     @ColumnWidth(15)
-    @ExcelProperty(value = "联系电话", index = 5)
+    @ExcelProperty(value = "联系电话", index = 6)
     private String contactPhone;
 
     @ColumnWidth(30)
-    @ExcelProperty(value = "收货地址", index = 6)
+    @ExcelProperty(value = "收货地址", index = 7)
     private String infoAddress;
 
     @ColumnWidth(15)
-    @ExcelProperty(value = "收货人", index = 7)
+    @ExcelProperty(value = "收货人", index = 8)
     private String reciverPerson;
 
     @ColumnWidth(15)
-    @ExcelProperty(value = "订单状态", index = 8)
+    @ExcelProperty(value = "订单状态", index = 9)
     private String orderStatus;
 
     @ColumnWidth(15)
-    @ExcelProperty(value = "支付状态", index = 9)
+    @ExcelProperty(value = "支付状态", index = 10)
     private String paymentStatus;
 
     @ColumnWidth(15)
     @NumberFormat("#.##")
-    @ExcelProperty(value = "订单金额", index = 10)
+    @ExcelProperty(value = "订单金额", index = 11)
     private BigDecimal totalAmount;
 
     @ColumnWidth(10)
-    @ExcelProperty(value = "币种", index = 11)
+    @ExcelProperty(value = "币种", index = 12)
     private String currency;
 
     @ColumnWidth(10)
     @NumberFormat("#.###")
-    @ExcelProperty(value = "汇率", index = 12)
+    @ExcelProperty(value = "汇率", index = 13)
     private BigDecimal exchangeRate;
 
     @ColumnWidth(30)
-    @ExcelProperty(value = "回填单号", index = 13)
+    @ExcelProperty(value = "回填单号", index = 14)
     private String remarkOrderNo;
 
     @ColumnWidth(20)
-    @ExcelProperty(value = "订单备注", index = 14)
+    @ExcelProperty(value = "订单备注", index = 15)
     private String remark;
 
     @ColumnWidth(20)
-    @ExcelProperty(value = "取消原因", index = 15)
+    @ExcelProperty(value = "取消原因", index = 16)
     private String cancelReason;
 
     @ColumnWidth(20)
-    @ExcelProperty(value = "取消时间", index = 16)
+    @ExcelProperty(value = "取消时间", index = 17)
     @DateTimeFormat("yyyy-MM-dd HH:mm:ss")
     private Date cancelTime;
 
     @ColumnWidth(20)
-    @ExcelProperty(value = "确认时间", index = 17)
+    @ExcelProperty(value = "确认时间", index = 18)
     @DateTimeFormat("yyyy-MM-dd HH:mm:ss")
     private Date confirmTime;
 
     @ColumnWidth(20)
-    @ExcelProperty(value = "完成时间", index = 18)
+    @ExcelProperty(value = "完成时间", index = 19)
     @DateTimeFormat("yyyy-MM-dd HH:mm:ss")
     private Date completeTime;
 
     @ColumnWidth(20)
-    @ExcelProperty(value = "创建时间", index = 19)
+    @ExcelProperty(value = "创建时间", index = 20)
     @DateTimeFormat("yyyy-MM-dd HH:mm:ss")
     private Date createdAt;
 
     @ColumnWidth(15)
-    @ExcelProperty(value = "创建人", index = 20)
+    @ExcelProperty(value = "创建人", index = 21)
     private String createdBy;
 
     @ColumnWidth(20)
-    @ExcelProperty(value = "更新时间", index = 21)
+    @ExcelProperty(value = "更新时间", index = 22)
     @DateTimeFormat("yyyy-MM-dd HH:mm:ss")
     private Date updatedAt;
 
     @ColumnWidth(15)
-    @ExcelProperty(value = "更新人", index = 22)
+    @ExcelProperty(value = "更新人", index = 23)
     private String updatedBy;
 
     // 商品明细字段（不会合并）
     @ColumnWidth(30)
-    @ExcelProperty(value = "商品名称", index = 23)
+    @ExcelProperty(value = "商品名称", index = 24)
     private String productName;
 
     @ColumnWidth(50)
-    @ExcelProperty(value = "商品链接", index = 24)
+    @ExcelProperty(value = "商品链接", index = 25)
     private String productLink;
 
     @ColumnWidth(50)
-    @ExcelProperty(value = "商品图片", index = 25)
+    @ExcelProperty(value = "商品图片", index = 26)
     private String productImage;
 
     @ColumnWidth(20)
-    @ExcelProperty(value = "SKU", index = 26)
+    @ExcelProperty(value = "SKU", index = 27)
     private String sku;
 
     @ColumnWidth(15)
     @NumberFormat("#.##")
-    @ExcelProperty(value = "单价", index = 27)
+    @ExcelProperty(value = "单价", index = 28)
     private BigDecimal unitPrice;
 
     @ColumnWidth(10)
-    @ExcelProperty(value = "采购数量", index = 28)
+    @ExcelProperty(value = "采购数量", index = 29)
     private Integer purchaseQuantity;
 }

@@ -8,7 +8,7 @@ import java.util.List;
 public class MenuVO {
     private Long id;
     private Long parentId;
-    private String name;
+    private String permissionName;
     private String path;
     private String component;
     private String icon;

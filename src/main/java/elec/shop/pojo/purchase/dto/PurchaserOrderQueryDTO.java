@@ -10,6 +10,9 @@ public class PurchaserOrderQueryDTO {
     @ApiModelProperty("商店ID")
     private Integer shopId;
 
+    @ApiModelProperty("跨境采购平台")
+    private String crossService;
+
     @ApiModelProperty("订单状态")
     private Integer orderStatus;
 

@@ -35,12 +35,17 @@ public class PurchaseTask extends BaseEntity implements Serializable {
     private Long purchaserId;
 
     /**
+     * 采购平台
+     */
+    private String crossService;
+
+    /**
      * 任务类型
      */
     private Integer taskType;
 
     /**
-     * 任务状态：0-待处理 1-处理中 2-待确认 3-已完成 4-已取消
+     * 任务状态：0-待处理 1-处理中 2-待确认 3-已完成 4-已取消 5-等待补价
      */
     private Integer taskStatus;
 

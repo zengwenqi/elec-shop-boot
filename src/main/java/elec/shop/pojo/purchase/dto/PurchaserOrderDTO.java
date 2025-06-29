@@ -20,6 +20,9 @@ public class PurchaserOrderDTO {
     @ApiModelProperty("订单编号")
     private String orderNo;
 
+    @ApiModelProperty("跨境采购平台")
+    private String crossService;
+
     @ApiModelProperty("用户ID")
     private Long userId;
 

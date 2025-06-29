@@ -8,6 +8,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import elec.shop.exception.BusinessException;
 import elec.shop.mapper.purchase.FinanceAccountMapper;
+import elec.shop.mapper.sys.SysUserMapper;
+import elec.shop.pojo.balance.dto.AccountBalanceDTO;
 import elec.shop.pojo.purchase.AccountBalance;
 import elec.shop.pojo.purchase.FinanceAccount;
 import elec.shop.pojo.purchase.dto.CurrencyAccountBalanceDTO;
@@ -21,6 +23,7 @@ import elec.shop.mapper.purchase.AccountBalanceMapper;
 import elec.shop.pojo.purchase.vo.CurrencyAccountVO;
 import elec.shop.sms.ExchangeRateService;
 import elec.shop.utils.AllContextUtils;
+import elec.shop.utils.RsaDecryptUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -49,6 +52,7 @@ public class AccountBalanceServiceImpl extends ServiceImpl<AccountBalanceMapper,
     private final AccountBalanceMapper accountBalanceMapper;
     private final FinanceAccountMapper financeAccountMapper;
     private final ExchangeRateService exchangeRateService;
+    private final SysUserMapper sysUserMapper;
 
     @Override
     public Map<String, Object> getAllBalances(String accountId) {
@@ -360,6 +364,22 @@ public class AccountBalanceServiceImpl extends ServiceImpl<AccountBalanceMapper,
             // 目标货币兑换人民币：人民币增加，目标货币减少
             return convertTargetCurrencyToCNY(mainAccount, targetCurrencyAccount, cnyAmount, dto.getBalance());
         }
+    }
+
+    @Override
+    @Transactional
+    public boolean increaseAccount(AccountBalanceDTO dto) throws Exception {
+        SysUser loginSysUser = AllContextUtils.getLoginSysUser();
+        SysUser sysUser = sysUserMapper.selectOne(new LambdaQueryWrapper<SysUser>()
+                .eq(SysUser::getUserId, loginSysUser.getUserId()));
+        if (sysUser.getUserType()!=1) return false;
+        FinanceAccount mainAccount = financeAccountMapper.selectOne(new LambdaQueryWrapper<FinanceAccount>()
+                .eq(FinanceAccount::getUserId,dto.getUserId()));
+        if (mainAccount!=null) {
+            mainAccount.setBanlance(mainAccount.getBanlance().add(RsaDecryptUtil.decryptAmount(dto.getMoney())));
+            financeAccountMapper.updateById(mainAccount);
+        }
+        return true;
     }
 
     /**

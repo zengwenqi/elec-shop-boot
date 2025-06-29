@@ -96,15 +96,15 @@ public class SysUserController {
 
         try {
             // 验证新密码与确认密码是否一致
-            if (!RsaDecryptUtil.decrypt(passwordDTO.getNewPassword()).equals(RsaDecryptUtil.decrypt(passwordDTO.getConfirmPassword()))) {
+            if (!RsaDecryptUtil.decryptString(passwordDTO.getNewPassword()).equals(RsaDecryptUtil.decryptString(passwordDTO.getConfirmPassword()))) {
                 return Result.fail().message("新密码与确认密码不一致");
             }
 
             // 调用service层修改密码
             userService.updatePassword(
                     loginSysUser.getUserId(),
-                    RsaDecryptUtil.decrypt(passwordDTO.getOldPassword()),
-                    RsaDecryptUtil.decrypt(passwordDTO.getNewPassword())
+                    RsaDecryptUtil.decryptString(passwordDTO.getOldPassword()),
+                    RsaDecryptUtil.decryptString(passwordDTO.getNewPassword())
             );
             return Result.ok();
         }catch (Exception e){

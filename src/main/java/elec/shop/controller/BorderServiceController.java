@@ -14,8 +14,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Api(tags = "跨境服务超市管理")
 @RestController
@@ -29,16 +29,44 @@ public class BorderServiceController {
     @GetMapping("/list")
     @ApiOperation("查询所有跨境服务超市")
     public Result<Object> list() {
+        // 1. 查询原始数据
         List<CrossBorderService> list = crossBorderServiceService.list();
-        List<CrossBorderVO> crossBorderVOList = new ArrayList<>();
-        list.forEach(e->{
-            CrossBorderVO crossBorderVO = new CrossBorderVO();
-            e.setServiceIcon(minioUtil.getPreviewUrl(e.getServiceIcon()));
-            e.setServiceImage(minioUtil.getPreviewUrl(e.getServiceImage()));
-            BeanUtil.copyProperties(list, crossBorderVO);
-            crossBorderVOList.add(crossBorderVO);
+
+        // 2. 转换为VO对象（修正复制逻辑）
+        List<CrossBorderVO> crossBorderVOList = list.stream()
+                .map(service -> {
+                    CrossBorderVO vo = new CrossBorderVO();
+                    BeanUtil.copyProperties(service, vo); // 源对象 -> 目标对象
+                    return vo;
+                })
+                .collect(Collectors.toList());
+
+        // 3. 处理URL（如果VO列表不为空）
+        crossBorderVOList.forEach(e -> {
+            try {
+                if (e.getServiceIcon() != null) {
+                    e.setServiceIcon(minioUtil.getPreviewUrl(e.getServiceIcon()));
+                }
+                if (e.getServiceImage() != null) {
+                    e.setServiceImage(minioUtil.getPreviewUrl(e.getServiceImage()));
+                }
+            } catch (Exception ex) {
+                Result.fail().message("处理URL时出错: " + ex.getMessage());
+            }
         });
+
         return Result.ok(crossBorderVOList);
+    }
+
+    @PostMapping("/add")
+    @ApiOperation("新增跨境服务超市")
+    @PreAuthorize("hasPermission(null ,'superadmin')")
+    public Result<Object> add(@RequestBody CrossBorderDTO crossBorderDTO) {
+        CrossBorderService crossBorderService = new CrossBorderService();
+        BeanUtil.copyProperties(crossBorderDTO, crossBorderService);
+        boolean insert = crossBorderServiceService.save(crossBorderService);
+        if (insert) return Result.ok();
+        return Result.fail().message("更新失败");
     }
 
     @PostMapping("/edit")

@@ -236,4 +236,61 @@ public class AllContextUtils {
         // 组合各部分生成完整的12位采购任务编号
         return String.format("PT%s%s%s", datePart, userIdPart, counterPart);
     }
+
+    /**
+     * 生成唯一充值反馈编号（格式：FB+时间戳+用户ID+序列号+校验位）
+     * @param userId 提交反馈的用户ID（用于增强唯一性和业务关联性）
+     * @return 32位反馈编号（示例：FB202506291530451234560001A3）
+     */
+    @Operation(summary = "生成唯一充值反馈编号")
+    public static String generateFeedbackNo(Long userId) {
+        if (userId == null || userId <= 0) {
+            throw new IllegalArgumentException("用户ID必须为正整数");
+        }
+
+        // 1. 固定前缀：FB（Feedback缩写，标识业务类型）
+        String prefix = "FB";
+
+        // 2. 时间戳部分：精确到毫秒（14位：yyyyMMddHHmmss）
+        LocalDateTime now = LocalDateTime.now();
+        String timestamp = now.format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
+
+        // 3. 用户ID部分：取后6位（不足6位左补0，确保固定长度）
+        String userIdPart = String.format("%06d", userId % 1000000);
+
+        // 4. 序列号：原子递增（4位，0000-9999循环，解决并发冲突）
+        int sequence = COUNTER.getAndIncrement() % 10000;
+        String sequencePart = String.format("%04d", sequence);
+
+        // 5. 随机校验位：2位字母+数字组合（增强唯一性，便于人工识别错误）
+        String checkCode = generateCheckCode(2);
+
+        // 6. 组合所有部分（总长度：2+14+6+4+2=28位，预留扩展空间至32位）
+        String feedbackNo = prefix + timestamp + userIdPart + sequencePart + checkCode;
+
+        // 若需严格32位，可补充4位随机数（根据实际需求调整）
+        if (feedbackNo.length() < 32) {
+            String bu = String.format("%04d", SECURE_RANDOM.nextInt(10000));
+            feedbackNo += bu;
+        }
+
+        return feedbackNo;
+    }
+
+    /**
+     * 生成指定长度的校验位（字母+数字组合，增强编号可读性和唯一性）
+     * @param length 校验位长度
+     * @return 随机校验字符串（如：A3、B7F2等）
+     */
+    private static String generateCheckCode(int length) {
+        // 字符池：数字+大写字母（排除易混淆的0/O、1/I）
+        String chars = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
+        StringBuilder checkCode = new StringBuilder();
+        for (int i = 0; i < length; i++) {
+            // 从字符池随机取字符
+            int index = SECURE_RANDOM.nextInt(chars.length());
+            checkCode.append(chars.charAt(index));
+        }
+        return checkCode.toString();
+    }
 }

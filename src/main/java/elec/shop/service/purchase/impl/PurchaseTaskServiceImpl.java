@@ -5,12 +5,8 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import elec.shop.exception.BusinessException;
-import elec.shop.mapper.purchase.PurchaseTaskMapper;
-import elec.shop.mapper.purchase.PurchaserInfoMapper;
-import elec.shop.pojo.purchase.PurchaseOrder;
-import elec.shop.pojo.purchase.PurchaseOrderItem;
-import elec.shop.pojo.purchase.PurchaseTask;
-import elec.shop.pojo.purchase.PurchaserInfo;
+import elec.shop.mapper.purchase.*;
+import elec.shop.pojo.purchase.*;
 import elec.shop.pojo.purchase.dto.PurchaserTaskQueryDTO;
 import elec.shop.pojo.purchase.dto.TaskStatusChangeDTO;
 import elec.shop.pojo.purchase.vo.PurchaserOrderItemVO;
@@ -30,6 +26,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -53,6 +50,9 @@ public class PurchaseTaskServiceImpl extends ServiceImpl<PurchaseTaskMapper, Pur
     private final SysUserService sysUserService;
     private final EmailUtil emailUtil;
     private final OrderStatusMessageHandlerFactory handlerFactory;
+    private final PurchaseOrderMapper purchaseOrderMapper;
+    private final FinanceAccountMapper financeAccountMapper;
+    private final AccountBalanceMapper accountBalanceMapper;
 
     @Override
     public Page<PurchaseTask> queryTasks(PurchaserTaskQueryDTO query) {
@@ -310,17 +310,65 @@ public class PurchaseTaskServiceImpl extends ServiceImpl<PurchaseTaskMapper, Pur
             throw new BusinessException("不允许的状态变更");
         }
 
-        // 6. 更新任务状态
-        task.setTaskStatus(dto.getNewStatus());
+        // 6. 校验价格是否存在变化
+        PurchaseOrder purchaseOrder = purchaseOrderMapper.selectOne(new LambdaQueryWrapper<PurchaseOrder>()
+                .eq(PurchaseOrder::getOrderNo, task.getTitle())
+        );
+        if (dto.getRealTotalAmount() != null && !dto.getRealTotalAmount().equals(purchaseOrder.getTotalAmount())) {
+            int i = dto.getRealTotalAmount().compareTo(purchaseOrder.getRealTotalAmount());
+            SysUser byId = sysUserService.getById(purchaseOrder.getUserId());
+            if (i>0){
+                purchaseOrder.setRealTotalAmount(dto.getRealTotalAmount());
+                purchaseOrder.setPaymentStatus(0);
+                emailUtil.sendCustomEmail(
+                        byId.getEmail(),
+                        "价格偏差",
+                        "订单差额，快去补齐差额以方便订单正常运作"
+                );
+                purchaseOrderMapper.updateById(purchaseOrder);
+                task.setTaskStatus(5);
+            } else if (i<0){
+                purchaseOrder.setTotalAmount(dto.getRealTotalAmount());
+                purchaseOrder.setRealTotalAmount(dto.getRealTotalAmount());
+                emailUtil.sendCustomEmail(
+                        sysUserService.getById(purchaseOrder.getUserId()).getEmail(),
+                        "价格偏差",
+                        "订单金额偏多，差价已给你补齐"
+                );
+                purchaseOrderMapper.updateById(purchaseOrder);
+                task.setTaskStatus(2);
+
+                String currency = purchaseOrder.getCurrency();
+                FinanceAccount financeAccount = financeAccountMapper.selectOne(new LambdaQueryWrapper<FinanceAccount>()
+                        .eq(FinanceAccount::getUserId, byId.getUserId()));
+
+                AccountBalance accountBalance = accountBalanceMapper.selectOne(new LambdaQueryWrapper<AccountBalance>()
+                        .eq(AccountBalance::getAccountId, financeAccount.getAccountId())
+                        .eq(AccountBalance::getCurrency, currency));
+                accountBalance.setAccountId(financeAccount.getAccountId());
+                accountBalance.setBalance(accountBalance.getBalance().add(BigDecimal.valueOf(i)));
+                accountBalanceMapper.updateById(accountBalance);
+            }
+        }else {
+            // 7. 更新任务状态
+            task.setTaskStatus(dto.getNewStatus());
+        }
 
         boolean success = this.updateById(task);
 
-        // 7. 触发关联操作（如果有）
-        if (success && dto.getNewStatus() == 2) { // 任务完成状态
+        // 8. 触发关联操作（如果有）
+        if (success && dto.getNewStatus() == 3) { // 任务完成状态
             updateRelatedOrderStatus(task.getTaskId(), 4); // 更新关联订单为已完成
         }
 
-
+        // 9. 更新回填单号和采购备注，如果有
+        if (dto.getRemarkOrderNo() != null) {
+            purchaseOrder.setRemarkOrderNo(dto.getRemarkOrderNo());
+        }
+        if (dto.getRemark() != null) {
+            purchaseOrder.setRemark(dto.getRemark());
+        }
+        purchaseOrderMapper.updateById(purchaseOrder);
         return success;
     }
 

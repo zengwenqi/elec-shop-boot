@@ -31,6 +31,11 @@ public class PurchaseOrder extends BaseEntity implements Serializable {
     private String orderNo;
 
     /**
+     * 跨境采购平台
+     */
+    private String crossService;
+
+    /**
      * 用户ID
      */
     private Long userId;
@@ -64,6 +69,11 @@ public class PurchaseOrder extends BaseEntity implements Serializable {
      * 订单总金额
      */
     private BigDecimal totalAmount;
+
+    /**
+     * 实际订单总金额
+     */
+    private BigDecimal realTotalAmount;
 
     /**
      * 币种

@@ -3,6 +3,7 @@ package elec.shop.service.purchase;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
+import elec.shop.pojo.balance.dto.AccountBalanceDTO;
 import elec.shop.pojo.purchase.AccountBalance;
 import elec.shop.pojo.purchase.dto.CurrencyAccountBalanceDTO;
 import elec.shop.pojo.purchase.dto.ExchangeRateDTO;
@@ -61,4 +62,9 @@ public interface AccountBalanceService extends IService<AccountBalance> {
      * 账户的指定货币和人民币的转换(基于汇率)
      */
     Boolean changeCurrencyCNYAccountBalance(CurrencyAccountBalanceDTO currencyAccountBalanceDTO);
+
+    /**
+     * 账户的指定货币和人民币的转换(基于汇率)
+     */
+    boolean increaseAccount(AccountBalanceDTO dto) throws Exception;
 }

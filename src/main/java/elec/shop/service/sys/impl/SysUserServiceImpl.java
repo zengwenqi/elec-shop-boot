@@ -83,7 +83,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser>
         }
 
         try {
-            request.setPassword(RsaDecryptUtil.decrypt(request.getPassword()));
+            request.setPassword(RsaDecryptUtil.decryptString(request.getPassword()));
             // 创建用户
             SysUser user = new SysUser();
             BeanUtils.copyProperties(request, user);
@@ -452,7 +452,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser>
 
         try {
             // 更新密码
-            user.setPassword(passwordEncoder.encode(RsaDecryptUtil.decrypt(newPassword)));
+            user.setPassword(passwordEncoder.encode(RsaDecryptUtil.decryptString(newPassword)));
             return baseMapper.updateById(user) > 0;
         }catch (Exception e){
             return false;
