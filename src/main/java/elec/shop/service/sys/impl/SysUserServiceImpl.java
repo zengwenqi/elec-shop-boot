@@ -467,6 +467,56 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser>
                 .eq(SysUser::getIsDeleted, 0)
         );
     }
+
+    @Override
+    public boolean checkPaymentPasswordExists() {
+        SysUser loginSysUser = AllContextUtils.getLoginSysUser();
+        SysUser user = getOne(new LambdaQueryWrapper<SysUser>()
+                .eq(SysUser::getUserId, loginSysUser.getUserId())
+                .select(SysUser::getPaymentPassword));
+        return user != null && org.springframework.util.StringUtils.hasText(user.getPaymentPassword());
+    }
+
+    @Override
+    public boolean verifyPaymentPassword(String paymentPassword) {
+        if (!org.springframework.util.StringUtils.hasText(paymentPassword)) {
+            return false;
+        }
+        SysUser loginSysUser = AllContextUtils.getLoginSysUser();
+        SysUser user = getOne(new LambdaQueryWrapper<SysUser>()
+                .eq(SysUser::getUserId, loginSysUser.getUserId())
+                .select(SysUser::getPaymentPassword));
+
+        if (user == null || !org.springframework.util.StringUtils.hasText(user.getPaymentPassword())) {
+            return false;
+        }
+
+        return passwordEncoder.matches(paymentPassword, user.getPaymentPassword());
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void setPaymentPassword(String paymentPassword) {
+        if (!org.springframework.util.StringUtils.hasText(paymentPassword)) {
+            throw new IllegalArgumentException("支付密码不能为空");
+        }
+
+        SysUser loginSysUser = AllContextUtils.getLoginSysUser();
+        // 获取用户信息
+        SysUser user = getOne(new LambdaQueryWrapper<SysUser>()
+                .eq(SysUser::getUserId, loginSysUser.getUserId()));
+
+        if (user == null) {
+            throw new IllegalArgumentException("用户不存在");
+        }
+
+        // 加密支付密码
+        String encodedPassword = passwordEncoder.encode(paymentPassword);
+
+        // 更新支付密码
+        user.setPaymentPassword(encodedPassword);
+        updateById(user);
+    }
 }
 
 

@@ -106,4 +106,26 @@ public interface SysUserService extends IService<SysUser> {
      * @return 用户信息
      */
     SysUser getUserByEmail(String email);
+
+    /**
+     * 检查用户是否设置了支付密码
+     *
+     * @return true-已设置 false-未设置
+     */
+    boolean checkPaymentPasswordExists();
+
+    /**
+     * 验证支付密码是否正确
+     *
+     * @param paymentPassword 支付密码
+     * @return true-正确 false-错误
+     */
+    boolean verifyPaymentPassword(String paymentPassword);
+
+    /**
+     * 设置支付密码
+     *
+     * @param paymentPassword 支付密码
+     */
+    void setPaymentPassword(String paymentPassword);
 }

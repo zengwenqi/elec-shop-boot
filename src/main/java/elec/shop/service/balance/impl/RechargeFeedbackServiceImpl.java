@@ -99,10 +99,10 @@ public class RechargeFeedbackServiceImpl extends ServiceImpl<RechargeFeedbackMap
                 log.warn("No feedback found with ID: {}", id);
                 return false;
             }
-
+            SysUser loginSysUser = AllContextUtils.getLoginSysUser();
             entity.setStatus(status);
-            entity.setHandlerId(handlerId);
-            entity.setHandler(handler);
+            entity.setHandlerId(loginSysUser.getUserId());
+            entity.setHandler(loginSysUser.getUsername());
             entity.setHandleTime(new Date());
 
             int result = rechargeFeedbackMapper.updateById(entity);

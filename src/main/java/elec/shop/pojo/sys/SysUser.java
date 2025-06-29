@@ -35,6 +35,11 @@ public class SysUser extends BaseEntity implements Serializable {
     private String password;
 
     /**
+     * 支付密码
+     */
+    private String paymentPassword;
+
+    /**
      * 真实姓名
      */
     private String realName;
