@@ -30,8 +30,10 @@ public class TokenManager {
 
     // 生成Access Token
     public String generateAccessToken(UserDetails userDetails) {
-        return generateToken(userDetails, jwtConfig.getAccessTokenPrivateKey(),
-                jwtConfig.getAccessTokenExpiration());
+        // 生成新的access token
+        String newToken = generateToken(userDetails, jwtConfig.getAccessTokenPrivateKey(), jwtConfig.getAccessTokenExpiration());
+        // 可以在这里做一些额外的处理，比如记录token生成时间等
+        return newToken;
     }
 
     // 生成Refresh Token
@@ -87,6 +89,11 @@ public class TokenManager {
 
     // 验证Refresh Token
     public boolean validateRefreshToken(String token, UserDetails userDetails) {
+        // 验证refresh token是否在Redis中存在且匹配
+        String storedToken = redisTemplate.opsForValue().get(REFRESH_TOKEN_KEY + userDetails.getUsername());
+        if (!token.equals(storedToken)) {
+            return false;
+        }
         return validateToken(token, userDetails, jwtConfig.getRefreshTokenPublicKey());
     }
 
@@ -251,5 +258,15 @@ public class TokenManager {
 
     public void invalidateRefreshToken(String username) {
         redisTemplate.delete(REFRESH_TOKEN_KEY + username);
+    }
+
+    public String extractUsername(String token) {
+        return extractClaim(token, Claims::getSubject);
+    }
+
+    public boolean canRefreshToken(String username) {
+        String refreshTokenKey = REFRESH_TOKEN_KEY + username;
+        // 检查refresh token是否存在且未过期
+        return Boolean.TRUE.equals(redisTemplate.hasKey(refreshTokenKey));
     }
 }

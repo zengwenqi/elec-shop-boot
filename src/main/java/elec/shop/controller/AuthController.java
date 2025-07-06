@@ -75,20 +75,20 @@ public class AuthController {
         try {
             // 检查是否被锁定
             if (tokenManager.isLoginLocked(request.getUsername())) {
-                return Result.fail("账户已被锁定，请"+jwtConfigService.getConfigValue("jwt.login-lock-duration")+"再试");
+                return Result.fail().message("账户已被锁定，请"+jwtConfigService.getConfigValue("jwt.login-lock-duration")+"再试");
             }
             request.setPassword(RsaDecryptUtil.decryptString(request.getPassword()));
             // 获取用户信息
             SysUser user = userService.getUserByUsername(request.getUsername());
             if (user == null) {
                 tokenManager.recordLoginAttempt(request.getUsername());
-                return Result.fail("用户名或密码错误");
+                return Result.fail().message("用户名或密码错误");
             }
 
             // 验证密码
             if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
                 tokenManager.recordLoginAttempt(request.getUsername());
-                return Result.fail("用户名或密码错误");
+                return Result.fail().message("用户名或密码错误");
             }
 
             // 尝试认证
@@ -139,7 +139,7 @@ public class AuthController {
             log.error("登录异常：{} - {}", request.getUsername(), e.getMessage());
             // 记录登录失败
             tokenManager.recordLoginAttempt(request.getUsername());
-            return Result.fail("用户名或密码错误");
+            return Result.fail().message("用户名或密码错误");
         }
     }
 
@@ -157,7 +157,7 @@ public class AuthController {
 
                         // 验证Redis中存储的refreshToken是否匹配
                         if (!tokenManager.validateStoredRefreshToken(username, refreshToken)) {
-                            return Result.fail("Refresh token已失效，请重新登录");
+                            return Result.fail().message("登录已失效，请重新登录");
                         }
 
                         CustomUserDetails userDetails = (CustomUserDetails) userDetailsServiceImpl.loadUserByUsername(username);
@@ -201,7 +201,7 @@ public class AuthController {
                 }
             }
         }
-        return Result.fail().message("无效的refresh token");
+        return Result.build(null,401001,"登录认证过期，请重新登录");
     }
 
     @ApiOperation("退出登录")

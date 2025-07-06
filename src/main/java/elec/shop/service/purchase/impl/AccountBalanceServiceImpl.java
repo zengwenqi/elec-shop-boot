@@ -7,11 +7,11 @@ import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import elec.shop.exception.BusinessException;
-import elec.shop.mapper.purchase.FinanceAccountMapper;
+import elec.shop.mapper.purchase.*;
 import elec.shop.mapper.sys.SysUserMapper;
 import elec.shop.pojo.balance.dto.AccountBalanceDTO;
-import elec.shop.pojo.purchase.AccountBalance;
-import elec.shop.pojo.purchase.FinanceAccount;
+import elec.shop.pojo.balance.dto.BuQiDTO;
+import elec.shop.pojo.purchase.*;
 import elec.shop.pojo.purchase.dto.CurrencyAccountBalanceDTO;
 import elec.shop.pojo.purchase.dto.ExchangeRateDTO;
 import elec.shop.pojo.purchase.enums.AccountStatusEnum;
@@ -19,10 +19,11 @@ import elec.shop.pojo.sys.SysUser;
 import elec.shop.service.purchase.AccountBalanceService;
 import elec.shop.service.purchase.FinanceAccountService;
 import elec.shop.service.sys.SysUserService;
-import elec.shop.mapper.purchase.AccountBalanceMapper;
 import elec.shop.pojo.purchase.vo.CurrencyAccountVO;
 import elec.shop.sms.ExchangeRateService;
 import elec.shop.utils.AllContextUtils;
+import elec.shop.utils.EmailUtil;
+import elec.shop.utils.Result;
 import elec.shop.utils.RsaDecryptUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -53,6 +54,10 @@ public class AccountBalanceServiceImpl extends ServiceImpl<AccountBalanceMapper,
     private final FinanceAccountMapper financeAccountMapper;
     private final ExchangeRateService exchangeRateService;
     private final SysUserMapper sysUserMapper;
+    private final PurchaseOrderMapper purchaseOrderMapper;
+    private final PurchaseTaskMapper purchaseTaskMapper;
+    private final EmailUtil emailUtil;
+    private final PurchaserInfoMapper purchaserInfoMapper;
 
     @Override
     public Map<String, Object> getAllBalances(String accountId) {
@@ -380,6 +385,32 @@ public class AccountBalanceServiceImpl extends ServiceImpl<AccountBalanceMapper,
             financeAccountMapper.updateById(mainAccount);
         }
         return true;
+    }
+
+    @Override
+    @Transactional
+    public Result buqiAccount(BuQiDTO dto) {
+        SysUser loginSysUser = AllContextUtils.getLoginSysUser();
+        FinanceAccount mainAccount = financeAccountMapper.selectOne(new LambdaQueryWrapper<FinanceAccount>()
+                .eq(FinanceAccount::getUserId,loginSysUser.getUserId()));
+        AccountBalance accountBalance = accountBalanceMapper.selectOne(new LambdaQueryWrapper<AccountBalance>()
+                .eq(AccountBalance::getAccountId, mainAccount.getAccountId())
+                .eq(AccountBalance::getCurrency, dto.getCurrency()));
+        if (accountBalance.getBalance().compareTo(dto.getAmount())<0) return Result.fail().message("余额不足");
+        accountBalance.setBalance(accountBalance.getBalance().subtract(dto.getAmount()));
+        accountBalanceMapper.updateById(accountBalance);
+        PurchaseOrder purchaseOrder = purchaseOrderMapper.selectOne(new LambdaQueryWrapper<PurchaseOrder>()
+                .eq(PurchaseOrder::getOrderNo, dto.getOrderNo())
+        );
+        purchaseOrder.setPaymentStatus(1);
+        purchaseOrderMapper.updateById(purchaseOrder);
+        PurchaseTask purchaseTask = purchaseTaskMapper.selectOne(new LambdaQueryWrapper<PurchaseTask>().eq(PurchaseTask::getTitle, dto.getOrderNo()));
+        purchaseTask.setTaskStatus(2);
+        purchaseTaskMapper.updateById(purchaseTask);
+        PurchaserInfo purchaserInfo = purchaserInfoMapper.selectOne(new LambdaQueryWrapper<PurchaserInfo>().eq(PurchaserInfo::getPurchaserId, purchaseOrder.getPurchaserId()));
+        SysUser sysUser = sysUserMapper.selectOne(new LambdaQueryWrapper<SysUser>().eq(SysUser::getUserId, purchaserInfo.getUserId()));
+        emailUtil.sendCustomEmail(sysUser.getEmail(),"采购订单通知", "您有一个采购订单"+purchaseOrder.getOrderNo()+"差价已补齐，请即使处理!!!。");
+        return Result.ok();
     }
 
     /**

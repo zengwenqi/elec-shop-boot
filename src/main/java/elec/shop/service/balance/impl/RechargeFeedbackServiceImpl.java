@@ -58,7 +58,7 @@ public class RechargeFeedbackServiceImpl extends ServiceImpl<RechargeFeedbackMap
     }
 
     @Override
-    public IPage<RechargeFeedbackVO> selectPage(Integer pageNum, Integer pageSize) {
+    public IPage<RechargeFeedbackVO> selectPage(Integer pageNum, Integer pageSize ,String status, String rechargeNo) {
         try {
             SysUser loginSysUser = AllContextUtils.getLoginSysUser();
             SysUser sysUser = sysUserMapper.selectById(loginSysUser.getUserId());
@@ -74,6 +74,14 @@ public class RechargeFeedbackServiceImpl extends ServiceImpl<RechargeFeedbackMap
             // 如果不是管理员，只能查看自己的记录
             if (sysUser.getUserType() != 1) {
                 wrapper.eq(RechargeFeedback::getUserId, sysUser.getUserId());
+            }
+
+            if (rechargeNo != null && !rechargeNo.isEmpty()){
+                wrapper.like(RechargeFeedback::getRechargeNo, rechargeNo);
+            }
+
+            if (status!= null && !status.isEmpty()){
+                wrapper.eq(RechargeFeedback::getStatus, status);
             }
 
             // 执行分页查询

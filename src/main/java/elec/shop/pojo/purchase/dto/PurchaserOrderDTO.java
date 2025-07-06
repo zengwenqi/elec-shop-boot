@@ -53,11 +53,17 @@ public class PurchaserOrderDTO {
     @ApiModelProperty("订单总金额")
     private BigDecimal totalAmount;
 
+    @ApiModelProperty("手续费")
+    private BigDecimal serviceCharge;
+
     @ApiModelProperty("币种")
     private String currency;
 
     @ApiModelProperty("汇率")
     private BigDecimal exchangeRate;
+
+    @ApiModelProperty("商品订单号")
+    private String goodsOrderNo;
 
     @ApiModelProperty("回填单号")
     private String remarkOrderNo;

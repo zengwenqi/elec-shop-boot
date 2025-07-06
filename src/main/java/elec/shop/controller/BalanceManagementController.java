@@ -1,6 +1,7 @@
 package elec.shop.controller;
 
 import elec.shop.pojo.balance.dto.AccountBalanceDTO;
+import elec.shop.pojo.balance.dto.BuQiDTO;
 import elec.shop.pojo.purchase.FinanceAccount;
 import elec.shop.service.purchase.AccountBalanceService;
 import elec.shop.service.purchase.FinanceAccountService;
@@ -160,5 +161,12 @@ public class BalanceManagementController {
         boolean update = accountBalanceService.increaseAccount(dto);
         if (update) return Result.ok();
         return Result.fail().message("删除失败");
+    }
+
+    @PostMapping("/buqi/account")
+    @ApiOperation("订单补齐差价")
+//    @PreAuthorize("hasPermission(null ,'superadmin')")
+    public Result<Object> buqiAccount(@RequestBody BuQiDTO dto) {
+        return accountBalanceService.buqiAccount(dto);
     }
 }

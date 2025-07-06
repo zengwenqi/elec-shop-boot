@@ -71,6 +71,11 @@ public class PurchaseOrder extends BaseEntity implements Serializable {
     private BigDecimal totalAmount;
 
     /**
+     * 手续费
+     */
+    private BigDecimal serviceCharge;
+
+    /**
      * 实际订单总金额
      */
     private BigDecimal realTotalAmount;
@@ -99,6 +104,11 @@ public class PurchaseOrder extends BaseEntity implements Serializable {
      * 汇率
      */
     private BigDecimal exchangeRate;
+
+    /**
+     * 商品顶单号
+     */
+    private String goodsOrderNo;
 
     /**
      * 回填单号

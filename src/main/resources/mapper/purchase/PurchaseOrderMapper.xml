@@ -88,9 +88,11 @@
     <select id="selectExportOrders" resultType="elec.shop.pojo.purchase.vo.PurchaserOrderExportVO">
         SELECT
             po.order_no,
+            po.cross_service,
             si.shop_name,
             si.shop_code,
             pi.purchaser_code,
+            po.service_charge,
             CASE po.order_type
                 WHEN 1 THEN '普通采购'
                 WHEN 2 THEN '紧急采购'

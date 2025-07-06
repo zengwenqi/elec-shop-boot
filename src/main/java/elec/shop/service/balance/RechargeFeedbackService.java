@@ -44,7 +44,7 @@ public interface RechargeFeedbackService extends IService<RechargeFeedback> {
      * @param pageSize
      * @return
      */
-    IPage<RechargeFeedbackVO> selectPage(Integer pageNum, Integer pageSize);
+    IPage<RechargeFeedbackVO> selectPage(Integer pageNum, Integer pageSize, String status, String rechargeNo);
 
     /**
      * 获取导出数据

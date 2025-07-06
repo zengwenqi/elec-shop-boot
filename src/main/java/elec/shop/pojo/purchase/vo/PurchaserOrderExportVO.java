@@ -63,86 +63,91 @@ public class PurchaserOrderExportVO {
 
     @ColumnWidth(15)
     @NumberFormat("#.##")
-    @ExcelProperty(value = "订单金额", index = 11)
+    @ExcelProperty(value = "手续费", index = 11)
+    private BigDecimal serviceCharge;
+
+    @ColumnWidth(15)
+    @NumberFormat("#.##")
+    @ExcelProperty(value = "订单金额", index = 12)
     private BigDecimal totalAmount;
 
     @ColumnWidth(10)
-    @ExcelProperty(value = "币种", index = 12)
+    @ExcelProperty(value = "币种", index = 13)
     private String currency;
 
     @ColumnWidth(10)
     @NumberFormat("#.###")
-    @ExcelProperty(value = "汇率", index = 13)
+    @ExcelProperty(value = "汇率", index = 14)
     private BigDecimal exchangeRate;
 
     @ColumnWidth(30)
-    @ExcelProperty(value = "回填单号", index = 14)
+    @ExcelProperty(value = "回填单号", index = 15)
     private String remarkOrderNo;
 
     @ColumnWidth(20)
-    @ExcelProperty(value = "订单备注", index = 15)
+    @ExcelProperty(value = "订单备注", index = 16)
     private String remark;
 
     @ColumnWidth(20)
-    @ExcelProperty(value = "取消原因", index = 16)
+    @ExcelProperty(value = "取消原因", index = 17)
     private String cancelReason;
 
     @ColumnWidth(20)
-    @ExcelProperty(value = "取消时间", index = 17)
+    @ExcelProperty(value = "取消时间", index = 18)
     @DateTimeFormat("yyyy-MM-dd HH:mm:ss")
     private Date cancelTime;
 
     @ColumnWidth(20)
-    @ExcelProperty(value = "确认时间", index = 18)
+    @ExcelProperty(value = "确认时间", index = 19)
     @DateTimeFormat("yyyy-MM-dd HH:mm:ss")
     private Date confirmTime;
 
     @ColumnWidth(20)
-    @ExcelProperty(value = "完成时间", index = 19)
+    @ExcelProperty(value = "完成时间", index = 20)
     @DateTimeFormat("yyyy-MM-dd HH:mm:ss")
     private Date completeTime;
 
     @ColumnWidth(20)
-    @ExcelProperty(value = "创建时间", index = 20)
+    @ExcelProperty(value = "创建时间", index = 21)
     @DateTimeFormat("yyyy-MM-dd HH:mm:ss")
     private Date createdAt;
 
     @ColumnWidth(15)
-    @ExcelProperty(value = "创建人", index = 21)
+    @ExcelProperty(value = "创建人", index = 22)
     private String createdBy;
 
     @ColumnWidth(20)
-    @ExcelProperty(value = "更新时间", index = 22)
+    @ExcelProperty(value = "更新时间", index = 23)
     @DateTimeFormat("yyyy-MM-dd HH:mm:ss")
     private Date updatedAt;
 
     @ColumnWidth(15)
-    @ExcelProperty(value = "更新人", index = 23)
+    @ExcelProperty(value = "更新人", index = 24)
     private String updatedBy;
 
     // 商品明细字段（不会合并）
     @ColumnWidth(30)
-    @ExcelProperty(value = "商品名称", index = 24)
+    @ExcelProperty(value = "商品名称", index = 25)
     private String productName;
 
     @ColumnWidth(50)
-    @ExcelProperty(value = "商品链接", index = 25)
+    @ExcelProperty(value = "商品链接", index = 26)
     private String productLink;
 
     @ColumnWidth(50)
-    @ExcelProperty(value = "商品图片", index = 26)
+    @ExcelProperty(value = "商品图片", index = 27)
     private String productImage;
 
     @ColumnWidth(20)
-    @ExcelProperty(value = "SKU", index = 27)
+    @ExcelProperty(value = "SKU", index = 28)
     private String sku;
 
     @ColumnWidth(15)
     @NumberFormat("#.##")
-    @ExcelProperty(value = "单价", index = 28)
+    @ExcelProperty(value = "单价", index = 29)
     private BigDecimal unitPrice;
 
     @ColumnWidth(10)
-    @ExcelProperty(value = "采购数量", index = 29)
+    @ExcelProperty(value = "采购数量", index = 30)
     private Integer purchaseQuantity;
 }

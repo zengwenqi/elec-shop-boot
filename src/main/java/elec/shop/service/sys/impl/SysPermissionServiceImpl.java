@@ -73,6 +73,7 @@ public class SysPermissionServiceImpl extends ServiceImpl<SysPermissionMapper, S
                 .in(SysPermission::getPermissionId, permissionIds)
                 .eq(SysPermission::getPermissionType, 1) // 菜单类型
                 .eq(SysPermission::getStatus, 1) // 启用状态
+                .eq(SysPermission::getHidden, 0) // 没有隐藏
                 .eq(SysPermission::getIsDeleted, 0)
                 .orderByAsc(SysPermission::getSortOrder)
         );

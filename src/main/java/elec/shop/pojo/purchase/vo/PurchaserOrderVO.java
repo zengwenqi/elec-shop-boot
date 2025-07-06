@@ -73,6 +73,9 @@ public class PurchaserOrderVO {
     @ApiModelProperty("订单总金额")
     private BigDecimal totalAmount;
 
+    @ApiModelProperty("手续费")
+    private BigDecimal serviceCharge;
+
     @ApiModelProperty("实际订单总金额")
     private BigDecimal realTotalAmount;
 

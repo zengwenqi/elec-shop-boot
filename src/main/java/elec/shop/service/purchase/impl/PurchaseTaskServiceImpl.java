@@ -315,7 +315,7 @@ public class PurchaseTaskServiceImpl extends ServiceImpl<PurchaseTaskMapper, Pur
                 .eq(PurchaseOrder::getOrderNo, task.getTitle())
         );
         if (dto.getRealTotalAmount() != null && !dto.getRealTotalAmount().equals(purchaseOrder.getTotalAmount())) {
-            int i = dto.getRealTotalAmount().compareTo(purchaseOrder.getRealTotalAmount());
+            int i = dto.getRealTotalAmount().compareTo(purchaseOrder.getTotalAmount());
             SysUser byId = sysUserService.getById(purchaseOrder.getUserId());
             if (i>0){
                 purchaseOrder.setRealTotalAmount(dto.getRealTotalAmount());

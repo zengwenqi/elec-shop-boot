@@ -69,10 +69,10 @@ public class PurchaseOrderServiceImpl extends ServiceImpl<PurchaseOrderMapper, P
                 .eq(AccountBalance::getCurrency, purchaserOrderDTO.getCurrency()));
         PurchaseOrder purchaseOrder = new PurchaseOrder();
         BeanUtils.copyProperties(purchaserOrderDTO,purchaseOrder);
-        if (accountBalance.getBalance().compareTo(purchaseOrder.getTotalAmount()) < 0){
+        if (accountBalance.getBalance().compareTo(purchaseOrder.getTotalAmount().add(purchaseOrder.getServiceCharge())) < 0){
             return Result.fail().message("余额不足");
         }
-        accountBalance.setBalance(accountBalance.getBalance().subtract(purchaseOrder.getTotalAmount()));
+        accountBalance.setBalance(accountBalance.getBalance().subtract(purchaseOrder.getTotalAmount().add(purchaseOrder.getServiceCharge())));
         accountBalanceMapper.updateById(accountBalance);
         //  生成订单编号
         purchaseOrder.setOrderNo(AllContextUtils.generateOrderNumber(loginSysUser.getUserId()));
@@ -120,6 +120,12 @@ public class PurchaseOrderServiceImpl extends ServiceImpl<PurchaseOrderMapper, P
         }
         if (StringUtils.isNotBlank(query.getEndTime())) {
             wrapper.le(PurchaseOrder::getUpdatedAt, query.getEndTime());
+        }
+        if (query.getKey() !=null){
+            wrapper.like(PurchaseOrder::getOrderNo, query.getKey());
+        }
+        if (query.getOrderNo()!=null&&!query.getOrderNo().equals("")){
+            wrapper.eq(PurchaseOrder::getOrderNo, query.getOrderNo());
         }
         wrapper.last("ORDER BY CASE WHEN order_status = 5 THEN 1 ELSE 0 END, created_at DESC");
         // 2. 主表分页查询

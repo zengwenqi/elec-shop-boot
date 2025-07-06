@@ -4,10 +4,12 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import elec.shop.pojo.balance.dto.AccountBalanceDTO;
+import elec.shop.pojo.balance.dto.BuQiDTO;
 import elec.shop.pojo.purchase.AccountBalance;
 import elec.shop.pojo.purchase.dto.CurrencyAccountBalanceDTO;
 import elec.shop.pojo.purchase.dto.ExchangeRateDTO;
 import elec.shop.pojo.purchase.vo.CurrencyAccountVO;
+import elec.shop.utils.Result;
 
 import java.math.BigDecimal;
 import java.util.Map;
@@ -67,4 +69,9 @@ public interface AccountBalanceService extends IService<AccountBalance> {
      * 账户的指定货币和人民币的转换(基于汇率)
      */
     boolean increaseAccount(AccountBalanceDTO dto) throws Exception;
+
+    /**
+     * 补齐差价
+     */
+    Result buqiAccount(BuQiDTO dto);
 }

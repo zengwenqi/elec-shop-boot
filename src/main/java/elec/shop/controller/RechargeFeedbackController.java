@@ -133,9 +133,12 @@ public class RechargeFeedbackController {
 
     @ApiOperation("分页查询充值反馈")
     @GetMapping("/page")
-    public Result<IPage<RechargeFeedbackVO>> page(@RequestParam(defaultValue = "1") Integer pageNum,
-                                            @RequestParam(defaultValue = "10") Integer pageSize) {
-        IPage<RechargeFeedbackVO> page = rechargeFeedbackService.selectPage(pageNum,pageSize);
+    public Result<IPage<RechargeFeedbackVO>> page(
+            @RequestParam(defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "10") Integer pageSize,
+            @RequestParam(value = "status",required = false) String status,
+            @RequestParam(value = "rechargeNo",required = false) String rechargeNo) {
+        IPage<RechargeFeedbackVO> page = rechargeFeedbackService.selectPage(pageNum,pageSize,status,rechargeNo);
         return Result.ok(page);
     }
 

@@ -1,19 +1,13 @@
 package elec.shop.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import elec.shop.config.JwtConfig;
-import elec.shop.utils.Result;
-import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -23,8 +17,9 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
 
 @Slf4j
 @Component
@@ -33,115 +28,82 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final UserDetailsServiceImpl userDetailsService;
     private final TokenManager tokenManager;
-    private final JwtConfig jwtConfig;
     private final ObjectMapper objectMapper;
-
-    private static final int TOKEN_EXPIRED = 401001; // token过期
-    private static final int TOKEN_INVALID = 401002; // token无效
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
         try {
-            // 1. 获取请求路径
-            String requestPath = request.getRequestURI();
-
-            // 2. 如果是白名单路径，直接放行
-            if (isPermitAllRequest(requestPath)) {
-                chain.doFilter(request, response);
-                return;
-            }
-
-            // 3. 获取并验证Access Token
-            String authHeader = request.getHeader(jwtConfig.getIssuer());
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                sendErrorResponse(response, TOKEN_INVALID, "没有权限");
-                return;
-            }
-
-            String accessToken = authHeader.substring(7);
-            String username = null;
-
-            try {
-                username = tokenManager.extractClaim(accessToken, Claims::getSubject);
-                // 验证token是否在黑名单中
-                if (tokenManager.isTokenBlacklisted(accessToken)) {
-                    sendErrorResponse(response, TOKEN_INVALID, "没有权限");
-                    return;
-                }
-            } catch (ExpiredJwtException e) {
-                // Access Token过期，尝试使用Refresh Token
-                handleExpiredAccessToken(request, response, chain);
-                return;
-            } catch (Exception e) {
-                sendErrorResponse(response, TOKEN_INVALID, "没有权限");
-                return;
-            }
-
-            // 4. 设置认证信息
-            if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-                if (tokenManager.validateAccessToken(accessToken, userDetails)) {
-                    UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                            userDetails, null, userDetails.getAuthorities());
-                    authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                    SecurityContextHolder.getContext().setAuthentication(authentication);
-                } else {
-                    sendErrorResponse(response, TOKEN_INVALID, "Token验证失败");
-                    return;
-                }
-            }
-
-            chain.doFilter(request, response);
-        } catch (Exception e) {
-            log.error("认证过程中发生错误: {}", e.getMessage(), e);
-            sendErrorResponse(response, TOKEN_INVALID, "认证失败");
-        } finally {
-            // 5. 清理SecurityContext
-            SecurityContextHolder.clearContext();
-        }
-    }
-
-    private void handleExpiredAccessToken(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
-            throws IOException, ServletException {
-        Cookie[] cookies = request.getCookies();
-        if (cookies != null) {
-            Optional<Cookie> refreshTokenCookie = Arrays.stream(cookies)
-                    .filter(cookie -> "refreshToken".equals(cookie.getName()))
-                    .findFirst();
-
-            if (refreshTokenCookie.isPresent()) {
-                String refreshToken = refreshTokenCookie.get().getValue();
+            String token = extractToken(request);
+            if (token != null && !tokenManager.isTokenBlacklisted(token)) {
                 try {
-                    String username = tokenManager.extractClaim(refreshToken, Claims::getSubject);
+                    // 验证 access token
+                    String username = tokenManager.extractUsername(token);
                     UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
-                    if (tokenManager.validateRefreshToken(refreshToken, userDetails)) {
-                        String newAccessToken = tokenManager.generateAccessToken(userDetails);
-                        response.setHeader(jwtConfig.getIssuer(), "Bearer " + newAccessToken);
-
-                        // 设置新的认证信息
-                        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                                userDetails, null, userDetails.getAuthorities());
-                        SecurityContextHolder.getContext().setAuthentication(authentication);
-
-                        // 继续请求
+                    if (tokenManager.validateAccessToken(token, userDetails)) {
+                        setAuthentication(userDetails,request);
                         chain.doFilter(request, response);
                         return;
                     }
-                } catch (Exception e) {
-                    log.error("Refresh token处理失败: {}", e.getMessage());
+                } catch (ExpiredJwtException e) {
+                    // access token 过期，检查是否可以刷新
+                    try {
+                        String username = e.getClaims().getSubject();
+                        // 检查用户的refresh token是否有效
+                        if (tokenManager.canRefreshToken(username)) {
+                            UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+                            // 生成新的 access token
+                            String newAccessToken = tokenManager.generateAccessToken(userDetails);
+
+                            // 在响应头中设置新的 token
+                            response.setHeader("New-Access-Token", newAccessToken);
+                            response.setHeader("Access-Control-Expose-Headers", "New-Access-Token");
+
+                            setAuthentication(userDetails,request);
+                            chain.doFilter(request, response);
+                            return;
+                        } else {
+                            // refresh token 过期或无效
+                            sendErrorResponse(response, 401003, "登录已过期，请重新登录");
+                            return;
+                        }
+                    } catch (Exception refreshError) {
+                        sendErrorResponse(response, 401003, "登录已过期，请重新登录");
+                        return;
+                    }
                 }
             }
+            chain.doFilter(request, response);
+        } catch (Exception e) {
+            log.error("Token validation error", e);
+            sendErrorResponse(response, 401002, "Token验证失败");
         }
-        sendErrorResponse(response, TOKEN_EXPIRED, "Token已过期，请重新登录");
+    }
+
+    private String extractToken(HttpServletRequest request) {
+        String header = request.getHeader("elec-shop-token");
+        if (header != null && header.startsWith("Bearer ")) {
+            return header.substring(7);
+        }
+        return null;
+    }
+
+    private void setAuthentication(UserDetails userDetails,HttpServletRequest request) {
+        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                userDetails, null, userDetails.getAuthorities());
+        authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+        SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 
     private void sendErrorResponse(HttpServletResponse response, int code, String message) throws IOException {
-        response.setStatus(HttpStatus.UNAUTHORIZED.value());
-        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-        response.setCharacterEncoding("UTF-8");
-        Result<?> result = Result.build(null, code, message);
+        response.setContentType("application/json;charset=UTF-8");
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("code", code);
+        result.put("message", message);
+
         response.getWriter().write(objectMapper.writeValueAsString(result));
     }
 

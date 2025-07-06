@@ -7,6 +7,10 @@ import lombok.Data;
 @Data
 @ApiModel("采购订单查询参数")
 public class PurchaserOrderQueryDTO {
+
+    @ApiModelProperty("关键字")
+    private String key;
+
     @ApiModelProperty("商店ID")
     private Integer shopId;
 
@@ -30,4 +34,9 @@ public class PurchaserOrderQueryDTO {
 
     @ApiModelProperty("每页大小")
     private Integer size = 10;
+
+
+    // 订单分配查询字段
+    @ApiModelProperty("订单编号")
+    private String orderNo;
 }
