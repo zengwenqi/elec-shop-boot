@@ -18,6 +18,7 @@ import elec.shop.service.purchase.ShopInfoService;
 import elec.shop.pojo.sys.SysUser;
 import elec.shop.mapper.purchase.ShopInfoMapper;
 import elec.shop.utils.AllContextUtils;
+import elec.shop.utils.MinioUtil;
 import elec.shop.utils.Result;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
@@ -25,10 +26,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.HashMap;
+import java.util.*;
 import java.util.stream.Collectors;
 
 
@@ -47,6 +45,7 @@ public class ShopInfoServiceImpl extends ServiceImpl<ShopInfoMapper, ShopInfo>
     private final FinanceAccountMapper financeAccountMapper;
     private final ExchangeRateService exchangeRateService;
     private final PurchaseOrderMapper  purchaseOrderMapper;
+    private final MinioUtil minioUtil;
 
     @Override
     public IPage<ShopInfo> queryShopInfo(ShopInfoQueryDTO shopInfoQueryDTO) {
@@ -63,7 +62,24 @@ public class ShopInfoServiceImpl extends ServiceImpl<ShopInfoMapper, ShopInfo>
             queryWrapper.eq(ShopInfo::getShopType, shopInfoQueryDTO.getShopType());
         }
         IPage page = new Page(shopInfoQueryDTO.getPageNum(), shopInfoQueryDTO.getPageSize());
-        return shopInfoMapper.selectPage(page,queryWrapper);
+        IPage<ShopInfo> page1 = shopInfoMapper.selectPage(page, queryWrapper);
+
+        // 提取所有需要处理的 shopLogo
+        List<String> shopLogos = page1.getRecords().stream()
+                .map(ShopInfo::getShopLogo)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+
+        // 批量获取 URL (假设 minioUtil 支持批量处理)
+        Map<String, String> logoUrlMap = minioUtil.getObjectUrls(shopLogos);
+
+        // 更新记录
+        page1.getRecords().forEach(shopInfo -> {
+            if (shopInfo.getShopLogo() != null) {
+                shopInfo.setShopLogo(logoUrlMap.getOrDefault(shopInfo.getShopLogo(), shopInfo.getShopLogo()));
+            }
+        });
+        return page1;
     }
 
     @Override
@@ -185,7 +201,11 @@ public class ShopInfoServiceImpl extends ServiceImpl<ShopInfoMapper, ShopInfo>
         SysUser loginSysUser = AllContextUtils.getLoginSysUser();
         LambdaQueryWrapper<ShopInfo> queryWrapper = new LambdaQueryWrapper<ShopInfo>()
                 .eq(ShopInfo::getUserId, loginSysUser.getUserId());
-        return shopInfoMapper.selectList(queryWrapper);
+        List<ShopInfo> shopInfoList = shopInfoMapper.selectList(queryWrapper);
+        shopInfoList.forEach(shopInfo -> {
+            shopInfo.setShopLogo(minioUtil.getPreviewUrl(shopInfo.getShopLogo()));
+        });
+        return shopInfoList;
     }
 
     /**

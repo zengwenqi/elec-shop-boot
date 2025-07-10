@@ -518,4 +518,13 @@ public class MinioUtil {
             return false;
         }
     }
+
+    public Map<String, String> getObjectUrls(List<String> objectNames) {
+        return objectNames.stream()
+                .collect(Collectors.toMap(
+                        name -> name,
+                        name -> getObjectUrl("elec-shop",name),
+                        (existing, replacement) -> existing
+                ));
+    }
 }
