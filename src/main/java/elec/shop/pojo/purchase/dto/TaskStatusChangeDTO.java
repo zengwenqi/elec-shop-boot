@@ -18,6 +18,9 @@ public class TaskStatusChangeDTO {
     @ApiModelProperty(value = "实际采购价格")
     private BigDecimal realTotalAmount;
 
+    @ApiModelProperty(value = "服务费")
+    private BigDecimal serviceCharge;
+
     @ApiModelProperty(value = "平台订单号")
     private String remarkOrderNo;
 

@@ -23,12 +23,18 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import org.apache.commons.lang3.StringUtils;
+import elec.shop.exception.BusinessException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Api(tags = "采购管理")
 @RestController
 @RequestMapping("/purchase")
 @RequiredArgsConstructor
 public class PurchaseController {
+
+    private static final Logger log = LoggerFactory.getLogger(PurchaseController.class);
 
     private final ShopInfoService shopInfoService;
     private final AccountBalanceService accountBalanceService;
@@ -54,11 +60,48 @@ public class PurchaseController {
     @PostMapping("/orders")
     @ApiOperation("查询当前用户下的采购订单")
     @OperationLog(module = "采购管理", operationType = "查询订单", description = "查询当前用户下的采购订单")
-    public Result<IPage<PurchaserOrderVO>> queryOrders(
+    public Result queryOrders(
             @ApiParam("查询参数") @RequestBody PurchaserOrderQueryDTO query
     ) {
-        IPage<PurchaserOrderVO> orderPage = purchaseOrderService.queryUserOrders(query);
-        return Result.ok(orderPage);
+        try {
+            // 参数验证
+            if (query == null) {
+                return Result.fail().message("查询参数不能为空");
+            }
+            if (query.getPage() == null || query.getPage() < 1) {
+                query.setPage(1);
+            }
+            if (query.getSize() == null || query.getSize() < 1) {
+                query.setSize(10);
+            }
+            // 限制每页最大条数
+            if (query.getSize() > 100) {
+                query.setSize(100);
+            }
+
+            // 日期格式验证
+            if (StringUtils.isNotBlank(query.getStartTime()) && !query.getStartTime().matches("\\d{4}-\\d{2}-\\d{2}.*")) {
+                return Result.fail().message("开始时间格式不正确");
+            }
+            if (StringUtils.isNotBlank(query.getEndTime()) && !query.getEndTime().matches("\\d{4}-\\d{2}-\\d{2}.*")) {
+                return Result.fail().message("结束时间格式不正确");
+            }
+
+            // 调用服务层查询数据
+            IPage<PurchaserOrderVO> orderPage = purchaseOrderService.queryUserOrders(query);
+
+            if (orderPage == null || orderPage.getRecords().isEmpty()) {
+                return Result.ok().message("暂无数据");
+            }
+
+            return Result.ok(orderPage);
+        } catch (BusinessException be) {
+            log.warn("查询订单失败: {}", be.getMessage());
+            return Result.fail().message(be.getMessage());
+        } catch (Exception e) {
+            log.error("查询订单异常", e);
+            return Result.fail().message("系统异常，请稍后重试");
+        }
     }
 
     @PostMapping("/orderInfo")

@@ -403,6 +403,7 @@ public class AccountBalanceServiceImpl extends ServiceImpl<AccountBalanceMapper,
                 .eq(PurchaseOrder::getOrderNo, dto.getOrderNo())
         );
         purchaseOrder.setPaymentStatus(1);
+        purchaseOrder.setOrderStatus(2);
         purchaseOrderMapper.updateById(purchaseOrder);
         PurchaseTask purchaseTask = purchaseTaskMapper.selectOne(new LambdaQueryWrapper<PurchaseTask>().eq(PurchaseTask::getTitle, dto.getOrderNo()));
         purchaseTask.setTaskStatus(2);

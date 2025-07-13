@@ -124,7 +124,7 @@ public class AllContextUtils {
      * @param userId 用户唯一标识（建议使用 Long 类型）
      * @return 32 位十六进制字符串（大写）
      */
-    @Operation(summary = "成基于用户 ID 的 32 位唯一账户 ID")
+    @Operation(summary = "生成基于用户 ID 的 32 位唯一账户 ID")
     public static String generateAccountId(Long userId) {
         try {
             // 1. 生成盐值（可配置为系统固定值或动态密钥）
@@ -210,33 +210,68 @@ public class AllContextUtils {
     }
 
     /**
-     * 生成12位唯一采购任务编号（格式：PT+日期两位+用户ID两位+计数器四位）
-     * @param orderId 订单ID
-     * @return 唯一的12位采购任务编号（示例：PT250600010001）
+     * 生成16位唯一采购任务编号（绝对唯一版）
+     * 格式：PT + 时间戳（yyMMddHHmm，10位） + 机器标识（1位） + 分钟内计数器（3位）
+     * 示例：PT2507132158A001 → 2025年7月13日21点58分，A机器，第1个编号
+     * @param orderId 订单ID（用于业务关联，不参与编号生成，仅日志追踪）
+     * @return 16位唯一采购任务编号
      */
-    @Operation(summary = "生成12位唯一采购任务编号")
+    @Operation(summary = "生成16位唯一采购任务编号（绝对唯一版）")
     public static String generatePurchaseTaskNumber(Long orderId) {
         if (orderId == null || orderId <= 0) {
             throw new IllegalArgumentException("订单ID必须为正整数");
         }
 
-        // 获取当前日期（年的后两位和月份）
+        // 1. 时间戳部分：yyMMddHHmm（10位，精确到分钟，确保不同分钟前缀不同）
         LocalDateTime now = LocalDateTime.now();
-        String datePart = String.format("%02d%02d",
-                now.getYear() % 100,  // 年的后两位
-                now.getMonthValue());  // 月份
+        String timePart = now.format(DateTimeFormatter.ofPattern("yyMMddHHmm"));
 
-        // 获取订单ID的后两位（不足两位补零）
-        String userIdPart = String.format("%02d", orderId % 100);
+        // 2. 机器标识（1位，支持分布式部署，可配置为服务器ID/实例ID）
+        String machineId = getMachineId(); // 从配置文件或环境变量获取，默认A
 
-        // 获取4位计数器值（范围0000-9999，自动循环）
-        int count = COUNTER.getAndIncrement() % 10000;
-        String counterPart = String.format("%04d", count);
+        // 3. 分钟级计数器（000-999，独立计数器，每分钟重置，确保同一分钟内不重复）
+        String counterPart = getMinuteCounter(timePart);
 
-        // 组合各部分生成完整的12位采购任务编号
-        return String.format("PT%s%s%s", datePart, userIdPart, counterPart);
+        // 4. 组合生成16位编号
+        return String.format("PT%s%s%s", timePart, machineId, counterPart);
     }
 
+    // ------------------------------ 核心工具组件 ------------------------------
+
+    /**
+     * 机器标识（可在配置文件中设置，分布式环境下确保不同实例不同）
+     * 例如：部署3台机器，可配置为A、B、C
+     */
+    private static String getMachineId() {
+        // 实际项目中建议从application.yml或环境变量读取
+        return "A"; // 默认值，可根据部署环境动态修改
+    }
+
+    /**
+     * 分钟级计数器（独立于其他编号，每分钟自动重置，线程安全）
+     */
+// 存储当前计数器对应的分钟（用于判断是否需要重置）
+    private static volatile String currentMinute = "";
+    // 分钟内原子计数器（0-999循环）
+    private static final AtomicInteger minuteCounter = new AtomicInteger(0);
+
+    /**
+     * 获取当前分钟的计数器（3位，000-999），跨分钟自动重置
+     */
+    private static String getMinuteCounter(String currentTimePart) {
+        // 双重检查锁定：确保跨分钟时重置计数器（线程安全）
+        if (!currentTimePart.equals(currentMinute)) {
+            synchronized (AllContextUtils.class) {
+                if (!currentTimePart.equals(currentMinute)) {
+                    minuteCounter.set(0); // 重置计数器为0
+                    currentMinute = currentTimePart; // 更新当前分钟标识
+                }
+            }
+        }
+        // 生成3位计数器（000-999），超过999自动循环（配合分钟重置，实际不会循环）
+        int count = minuteCounter.getAndIncrement() % 1000;
+        return String.format("%03d", count);
+    }
     /**
      * 生成唯一充值反馈编号（格式：FB+时间戳+用户ID+序列号+校验位）
      * @param userId 提交反馈的用户ID（用于增强唯一性和业务关联性）

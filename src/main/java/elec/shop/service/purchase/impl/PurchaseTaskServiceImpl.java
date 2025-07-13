@@ -314,6 +314,7 @@ public class PurchaseTaskServiceImpl extends ServiceImpl<PurchaseTaskMapper, Pur
         PurchaseOrder purchaseOrder = purchaseOrderMapper.selectOne(new LambdaQueryWrapper<PurchaseOrder>()
                 .eq(PurchaseOrder::getOrderNo, task.getTitle())
         );
+        purchaseOrder.setServiceCharge(dto.getServiceCharge());
         if (dto.getRealTotalAmount() != null && !dto.getRealTotalAmount().equals(purchaseOrder.getTotalAmount())) {
             int i = dto.getRealTotalAmount().compareTo(purchaseOrder.getTotalAmount());
             SysUser byId = sysUserService.getById(purchaseOrder.getUserId());
@@ -323,7 +324,7 @@ public class PurchaseTaskServiceImpl extends ServiceImpl<PurchaseTaskMapper, Pur
                 emailUtil.sendCustomEmail(
                         byId.getEmail(),
                         "价格偏差",
-                        "订单差额，快去补齐差额以方便订单正常运作"
+                        "订单差额，快去补齐差额和手续费以方便订单正常运作"
                 );
                 purchaseOrderMapper.updateById(purchaseOrder);
                 task.setTaskStatus(5);
@@ -333,10 +334,12 @@ public class PurchaseTaskServiceImpl extends ServiceImpl<PurchaseTaskMapper, Pur
                 emailUtil.sendCustomEmail(
                         sysUserService.getById(purchaseOrder.getUserId()).getEmail(),
                         "价格偏差",
-                        "订单金额偏多，差价已给你补齐"
+                        "订单金额偏多，差价已给你补齐，快去补齐手续费以方便后续工作"
                 );
                 purchaseOrderMapper.updateById(purchaseOrder);
-                task.setTaskStatus(2);
+                purchaseOrder.setPaymentStatus(0);
+//                task.setTaskStatus(2);
+                task.setTaskStatus(5);
 
                 String currency = purchaseOrder.getCurrency();
                 FinanceAccount financeAccount = financeAccountMapper.selectOne(new LambdaQueryWrapper<FinanceAccount>()
@@ -351,7 +354,15 @@ public class PurchaseTaskServiceImpl extends ServiceImpl<PurchaseTaskMapper, Pur
             }
         }else {
             // 7. 更新任务状态
-            task.setTaskStatus(dto.getNewStatus());
+            emailUtil.sendCustomEmail(
+                    sysUserService.getById(purchaseOrder.getUserId()).getEmail(),
+                    "后续补充",
+                    "订单金额没有问题，快去补齐手续费以方便后续操作"
+            );
+            purchaseOrder.setRealTotalAmount(dto.getRealTotalAmount());
+            purchaseOrder.setPaymentStatus(0);
+//            task.setTaskStatus(dto.getNewStatus());
+            task.setTaskStatus(5);
         }
 
         boolean success = this.updateById(task);

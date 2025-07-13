@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import elec.shop.exception.BusinessException;
 import elec.shop.mapper.purchase.AccountBalanceMapper;
 import elec.shop.mapper.purchase.FinanceAccountMapper;
 import elec.shop.mapper.purchase.PurchaseOrderMapper;
@@ -35,7 +36,11 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+import java.util.Collections;
 
 /**
 * @author Lenovo
@@ -69,10 +74,12 @@ public class PurchaseOrderServiceImpl extends ServiceImpl<PurchaseOrderMapper, P
                 .eq(AccountBalance::getCurrency, purchaserOrderDTO.getCurrency()));
         PurchaseOrder purchaseOrder = new PurchaseOrder();
         BeanUtils.copyProperties(purchaserOrderDTO,purchaseOrder);
-        if (accountBalance.getBalance().compareTo(purchaseOrder.getTotalAmount().add(purchaseOrder.getServiceCharge())) < 0){
+//        if (accountBalance.getBalance().compareTo(purchaseOrder.getTotalAmount().add(purchaseOrder.getServiceCharge())) < 0){
+        if (accountBalance.getBalance().compareTo(purchaseOrder.getTotalAmount()) < 0){
             return Result.fail().message("余额不足");
         }
-        accountBalance.setBalance(accountBalance.getBalance().subtract(purchaseOrder.getTotalAmount().add(purchaseOrder.getServiceCharge())));
+//        accountBalance.setBalance(accountBalance.getBalance().subtract(purchaseOrder.getTotalAmount().add(purchaseOrder.getServiceCharge())));
+        accountBalance.setBalance(accountBalance.getBalance().subtract(purchaseOrder.getTotalAmount()));
         accountBalanceMapper.updateById(accountBalance);
         //  生成订单编号
         purchaseOrder.setOrderNo(AllContextUtils.generateOrderNumber(loginSysUser.getUserId()));
@@ -102,81 +109,85 @@ public class PurchaseOrderServiceImpl extends ServiceImpl<PurchaseOrderMapper, P
 
     @Override
     public IPage<PurchaserOrderVO> queryUserOrders(PurchaserOrderQueryDTO query) {
-        // 1. 构建主表查询条件
-        LambdaQueryWrapper<PurchaseOrder> wrapper = new LambdaQueryWrapper<PurchaseOrder>()
-                .eq(PurchaseOrder::getIsDeleted, 0);
+        try {
+            // 1. 构建主表查询条件，使用索引优化
+            LambdaQueryWrapper<PurchaseOrder> wrapper = new LambdaQueryWrapper<PurchaseOrder>()
+                    .eq(PurchaseOrder::getIsDeleted, 0)
+                    .eq(query.getShopId() != null, PurchaseOrder::getShopId, query.getShopId())
+                    .eq(query.getOrderStatus() != null, PurchaseOrder::getOrderStatus, query.getOrderStatus())
+                    .eq(query.getPaymentStatus() != null, PurchaseOrder::getPaymentStatus, query.getPaymentStatus())
+                    .ge(StringUtils.isNotBlank(query.getStartTime()), PurchaseOrder::getCreatedAt, query.getStartTime())
+                    .le(StringUtils.isNotBlank(query.getEndTime()), PurchaseOrder::getUpdatedAt, query.getEndTime())
+                    .like(query.getKey() != null, PurchaseOrder::getOrderNo, query.getKey())
+                    .eq(StringUtils.isNotBlank(query.getOrderNo()), PurchaseOrder::getOrderNo, query.getOrderNo())
+                    .last("ORDER BY CASE WHEN order_status = 5 THEN 1 ELSE 0 END, created_at DESC");
 
-        if (query.getShopId() != null) {
-            wrapper.eq(PurchaseOrder::getShopId, query.getShopId());
-        }
-        if (query.getOrderStatus() != null) {
-            wrapper.eq(PurchaseOrder::getOrderStatus, query.getOrderStatus());
-        }
-        if (query.getPaymentStatus() != null) {
-            wrapper.eq(PurchaseOrder::getPaymentStatus, query.getPaymentStatus());
-        }
-        if (StringUtils.isNotBlank(query.getStartTime())) {
-            wrapper.ge(PurchaseOrder::getCreatedAt, query.getStartTime());
-        }
-        if (StringUtils.isNotBlank(query.getEndTime())) {
-            wrapper.le(PurchaseOrder::getUpdatedAt, query.getEndTime());
-        }
-        if (query.getKey() !=null){
-            wrapper.like(PurchaseOrder::getOrderNo, query.getKey());
-        }
-        if (query.getOrderNo()!=null&&!query.getOrderNo().equals("")){
-            wrapper.eq(PurchaseOrder::getOrderNo, query.getOrderNo());
-        }
-        wrapper.last("ORDER BY CASE WHEN order_status = 5 THEN 1 ELSE 0 END, created_at DESC");
-        // 2. 主表分页查询
-        Page<PurchaseOrder> page = new Page<>(query.getPage(), query.getSize());
-        IPage<PurchaseOrder> orderPage = this.page(page, wrapper);
+            // 2. 主表分页查询
+            Page<PurchaseOrder> page = new Page<>(query.getPage(), query.getSize());
+            IPage<PurchaseOrder> orderPage = this.page(page, wrapper);
 
-        // 3. 获取分页后的订单ID列表
-        List<Long> orderIds = orderPage.getRecords().stream()
-                .map(PurchaseOrder::getOrderId)
-                .collect(Collectors.toList());
+            if (orderPage.getRecords().isEmpty()) {
+                return new Page<>(query.getPage(), query.getSize());
+            }
 
-        if (orderIds.isEmpty()) {
-            return new Page<>(query.getPage(), query.getSize());
-        }
+            // 3. 获取分页后的订单ID列表
+            List<Long> orderIds = orderPage.getRecords().stream()
+                    .map(PurchaseOrder::getOrderId)
+                    .collect(Collectors.toList());
 
-        // 4. 查询订单项数据
-        List<PurchaseOrderItem> orderItems = purchaseOrderItemService.list(
-            new LambdaQueryWrapper<PurchaseOrderItem>()
-                .in(PurchaseOrderItem::getOrderId, orderIds)
-        );
+            // 4. 并行查询订单项数据和采购员信息
+            CompletableFuture<List<PurchaseOrderItem>> orderItemsFuture = CompletableFuture.supplyAsync(() ->
+                purchaseOrderItemService.list(new LambdaQueryWrapper<PurchaseOrderItem>()
+                    .in(PurchaseOrderItem::getOrderId, orderIds)));
 
-        // 5. 组装数据
-        List<PurchaserOrderVO> orderVOs = orderPage.getRecords().stream().map(order -> {
-            PurchaserOrderVO vo = new PurchaserOrderVO();
-            BeanUtils.copyProperties(order, vo);
-            if (order.getPurchaserId() != null)
-                vo.setPurchaserName(sysUserService
-                    .getById(purchaserInfoService
-                            .getById(order.getPurchaserId())
-                            .getUserId())
-                    .getRealName());
-            // 设置订单项
-            List<PurchaserOrderItemVO> itemVOs = orderItems.stream()
-                .filter(item -> item.getOrderId().equals(order.getOrderId()))
-                .map(item -> {
+            // 5. 使用Map存储采购员信息，避免重复查询
+            Map<Long, String> purchaserNameCache = new ConcurrentHashMap<>();
+
+            // 6. 并行处理订单数据
+            List<PurchaserOrderVO> orderVOs = orderPage.getRecords().parallelStream().map(order -> {
+                PurchaserOrderVO vo = new PurchaserOrderVO();
+                BeanUtils.copyProperties(order, vo);
+
+                // 设置采购员名称
+                if (order.getPurchaserId() != null) {
+                    vo.setPurchaserName(purchaserNameCache.computeIfAbsent(order.getPurchaserId(), purchaserId -> {
+                        PurchaserInfo purchaserInfo = purchaserInfoService.getById(purchaserId);
+                        if (purchaserInfo != null) {
+                            SysUser user = sysUserService.getById(purchaserInfo.getUserId());
+                            return user != null ? user.getRealName() : "未知";
+                        }
+                        return "未知";
+                    }));
+                }
+                return vo;
+            }).collect(Collectors.toList());
+
+            // 7. 等待订单项数据查询完成并设置
+            List<PurchaseOrderItem> orderItems = orderItemsFuture.get();
+            Map<Long, List<PurchaseOrderItem>> itemMap = orderItems.stream()
+                    .collect(Collectors.groupingBy(PurchaseOrderItem::getOrderId));
+
+            // 8. 并行处理订单项数据
+            orderVOs.parallelStream().forEach(vo -> {
+                List<PurchaseOrderItem> items = itemMap.getOrDefault(vo.getOrderId(), Collections.emptyList());
+                List<PurchaserOrderItemVO> itemVOs = items.parallelStream().map(item -> {
                     PurchaserOrderItemVO itemVO = new PurchaserOrderItemVO();
                     BeanUtils.copyProperties(item, itemVO);
                     itemVO.setProductImage(minioUtil.getPreviewUrl(item.getProductImage()));
                     return itemVO;
-                })
-                .collect(Collectors.toList());
-            vo.setOrderItems(itemVOs);
+                }).collect(Collectors.toList());
+                vo.setOrderItems(itemVOs);
+            });
 
-            return vo;
-        }).collect(Collectors.toList());
+            // 9. 组装分页结果
+            Page<PurchaserOrderVO> resultPage = new Page<>(query.getPage(), query.getSize(), orderPage.getTotal());
+            resultPage.setRecords(orderVOs);
 
-        // 6. 组装分页结果
-        Page<PurchaserOrderVO> resultPage = new Page<>(query.getPage(), query.getSize(), orderPage.getTotal());
-        resultPage.setRecords(orderVOs);
-
-        return resultPage;
+            return resultPage;
+        } catch (Exception e) {
+            log.error("查询订单列表失败", e);
+            throw new BusinessException("查询订单列表失败: " + e.getMessage());
+        }
     }
 
     @Override
