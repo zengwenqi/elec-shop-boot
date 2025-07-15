@@ -21,6 +21,7 @@
         <result column="currency" property="currency" />
         <result column="contact_phone" property="contactPhone" />
         <result column="info_address" property="infoAddress" />
+        <result column="info_address_bei" property="infoAddressBei" />
         <result column="reciver_person" property="reciverPerson" />
         <result column="exchange_rate" property="exchangeRate" />
         <result column="remark_order_no" property="remarkOrderNo" />

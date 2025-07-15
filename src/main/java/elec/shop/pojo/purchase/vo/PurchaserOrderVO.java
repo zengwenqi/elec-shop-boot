@@ -49,6 +49,9 @@ public class PurchaserOrderVO {
     @ApiModelProperty("收货地址")
     private String infoAddress;
 
+    @ApiModelProperty("收货地址二")
+    private String infoAddressBei;
+
     @ApiModelProperty("收货人")
     private String reciverPerson;
 

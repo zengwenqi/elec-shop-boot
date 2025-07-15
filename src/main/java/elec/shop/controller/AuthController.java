@@ -54,6 +54,7 @@ public class AuthController {
     private final UserDetailsServiceImpl userDetailsServiceImpl;
     private final PasswordEncoder passwordEncoder;
     private final JwtConfigService jwtConfigService;
+    private final SysUserService sysUserService;
 
     @ApiOperation("用户注册")
     @PostMapping("/register")
@@ -315,6 +316,14 @@ public class AuthController {
     @PostMapping("/reset-password")
     @OperationLog(module = "认证管理", operationType = "重置密码", description = "重置密码")
     public Result<Object> resetPassword(@RequestBody ResetPasswordRequest request) {
+
+        SysUser loginSysUser = AllContextUtils.getLoginSysUser();
+        SysUser byId = sysUserService.getById(loginSysUser.getUserId());
+        if (byId.getUserType() == 1) {
+//            request.setNewPassword("123456");
+            userService.resetPassword(request.getEmail(), request.getNewPassword());
+            return Result.ok();
+        }
         // 验证邮箱验证码
         String cachedCode = (String) redisTemplate.opsForValue().get(request.getEmail());
         if (cachedCode == null || !cachedCode.equals(request.getCode())) {

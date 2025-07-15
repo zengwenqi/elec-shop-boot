@@ -22,11 +22,17 @@ import elec.shop.utils.MinioUtil;
 import elec.shop.utils.Result;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+import org.apache.commons.collections4.CollectionUtils;
 
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 
@@ -44,42 +50,83 @@ public class ShopInfoServiceImpl extends ServiceImpl<ShopInfoMapper, ShopInfo>
     private final AccountBalanceMapper accountBalanceMapper;
     private final FinanceAccountMapper financeAccountMapper;
     private final ExchangeRateService exchangeRateService;
-    private final PurchaseOrderMapper  purchaseOrderMapper;
+    private final PurchaseOrderMapper purchaseOrderMapper;
     private final MinioUtil minioUtil;
 
+    // 创建线程池用于并行处理
+    private final ExecutorService executorService = Executors.newFixedThreadPool(5);
+
     @Override
+   @Cacheable(value = "shop_info", key = "#shopInfoQueryDTO.toString()", unless = "#result == null")
     public IPage<ShopInfo> queryShopInfo(ShopInfoQueryDTO shopInfoQueryDTO) {
-        SysUser loginSysUser = AllContextUtils.getLoginSysUser();
-        LambdaQueryWrapper<ShopInfo> queryWrapper = new LambdaQueryWrapper<ShopInfo>()
-                .eq(ShopInfo::getUserId, loginSysUser.getUserId());
-        if (shopInfoQueryDTO.getShopName()!=null&&!(shopInfoQueryDTO.getShopName().isEmpty())) {
-            queryWrapper.eq(ShopInfo::getShopName, shopInfoQueryDTO.getShopName());
-        }
-        if (shopInfoQueryDTO.getShopCode()!=null) {
-            queryWrapper.eq(ShopInfo::getShopCode, shopInfoQueryDTO.getShopCode());
-        }
-        if (shopInfoQueryDTO.getShopType()!=null) {
-            queryWrapper.eq(ShopInfo::getShopType, shopInfoQueryDTO.getShopType());
-        }
-        IPage page = new Page(shopInfoQueryDTO.getPageNum(), shopInfoQueryDTO.getPageSize());
-        IPage<ShopInfo> page1 = shopInfoMapper.selectPage(page, queryWrapper);
-
-        // 提取所有需要处理的 shopLogo
-        List<String> shopLogos = page1.getRecords().stream()
-                .map(ShopInfo::getShopLogo)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList());
-
-        // 批量获取 URL (假设 minioUtil 支持批量处理)
-        Map<String, String> logoUrlMap = minioUtil.getObjectUrls(shopLogos);
-
-        // 更新记录
-        page1.getRecords().forEach(shopInfo -> {
-            if (shopInfo.getShopLogo() != null) {
-                shopInfo.setShopLogo(logoUrlMap.getOrDefault(shopInfo.getShopLogo(), shopInfo.getShopLogo()));
+        try {
+            // 1. 参数校验和默认值处理
+            if (shopInfoQueryDTO.getPageNum() == null || shopInfoQueryDTO.getPageNum() < 1) {
+                shopInfoQueryDTO.setPageNum(1);
             }
-        });
-        return page1;
+            if (shopInfoQueryDTO.getPageSize() == null || shopInfoQueryDTO.getPageSize() < 1) {
+                shopInfoQueryDTO.setPageSize(10);
+            }
+            // 限制每页最大条数
+            if (shopInfoQueryDTO.getPageSize() > 100) {
+                shopInfoQueryDTO.setPageSize(100);
+            }
+
+            // 2. 构建查询条件
+            SysUser loginSysUser = AllContextUtils.getLoginSysUser();
+            LambdaQueryWrapper<ShopInfo> queryWrapper = new LambdaQueryWrapper<ShopInfo>()
+                    .eq(ShopInfo::getUserId, loginSysUser.getUserId())
+                    .eq(ShopInfo::getIsDeleted, 0)
+                    .orderByDesc(ShopInfo::getCreatedAt);
+
+            // 3. 添加动态查询条件
+            if (StringUtils.hasText(shopInfoQueryDTO.getShopName())) {
+                queryWrapper.like(ShopInfo::getShopName, shopInfoQueryDTO.getShopName());
+            }
+            if (StringUtils.hasText(shopInfoQueryDTO.getShopCode())) {
+                queryWrapper.eq(ShopInfo::getShopCode, shopInfoQueryDTO.getShopCode());
+            }
+            if (shopInfoQueryDTO.getShopType() != null) {
+                queryWrapper.eq(ShopInfo::getShopType, shopInfoQueryDTO.getShopType());
+            }
+
+            // 4. 执行分页查询
+            IPage<ShopInfo> page = new Page<>(shopInfoQueryDTO.getPageNum(), shopInfoQueryDTO.getPageSize());
+            IPage<ShopInfo> pageResult = shopInfoMapper.selectPage(page, queryWrapper);
+
+            // 5. 处理店铺Logo
+            if (CollectionUtils.isNotEmpty(pageResult.getRecords())) {
+                // 过滤出有效的Logo路径
+                List<String> validLogos = pageResult.getRecords().stream()
+                        .map(ShopInfo::getShopLogo)
+                        .filter(logo -> logo != null && !logo.trim().isEmpty())
+                        .distinct() // 去重
+                        .collect(Collectors.toList());
+
+                // 只有存在有效的Logo才进行MinIO操作
+                if (!validLogos.isEmpty()) {
+                    Map<String, String> logoUrlMap = minioUtil.getObjectUrls(validLogos);
+
+                    // 更新店铺Logo URL
+                    pageResult.getRecords().forEach(shopInfo -> {
+                        String logo = shopInfo.getShopLogo();
+                        if (logo != null && !logo.trim().isEmpty()) {
+                            shopInfo.setShopLogo(logoUrlMap.getOrDefault(logo, logo));
+                        } else {
+                            shopInfo.setShopLogo(""); // 统一将null和空串设置为空串
+                        }
+                    });
+                } else {
+                    // 如果没有有效的Logo，将所有Logo设置为空串
+                    pageResult.getRecords().forEach(shopInfo -> shopInfo.setShopLogo(""));
+                }
+            }
+
+            return pageResult;
+        } catch (Exception e) {
+            log.error("查询店铺信息异常", e);
+            throw new RuntimeException("查询店铺信息失败");
+        }
     }
 
     @Override
@@ -127,6 +174,7 @@ public class ShopInfoServiceImpl extends ServiceImpl<ShopInfoMapper, ShopInfo>
         SysUser loginSysUser = AllContextUtils.getLoginSysUser();
         ShopInfo shopInfo = new ShopInfo();
         BeanUtils.copyProperties(shopInfoDTO, shopInfo);
+        if (shopInfo.getShopLogo().equals("")) shopInfo.setShopLogo(null);
         shopInfo.setUserId(loginSysUser.getUserId());
         shopInfo.setShopCode(AllContextUtils.generateUniqueShopNumber(loginSysUser.getUserId()));
         int insert = shopInfoMapper.insert(shopInfo);
@@ -197,15 +245,59 @@ public class ShopInfoServiceImpl extends ServiceImpl<ShopInfoMapper, ShopInfo>
     }
 
     @Override
+    @Cacheable(value = "shop_info_list", key = "#root.methodName + '_' + #root.target.getLoginUserId()", unless = "#result == null")
     public List<ShopInfo> queryShopInfoList() {
-        SysUser loginSysUser = AllContextUtils.getLoginSysUser();
-        LambdaQueryWrapper<ShopInfo> queryWrapper = new LambdaQueryWrapper<ShopInfo>()
-                .eq(ShopInfo::getUserId, loginSysUser.getUserId());
-        List<ShopInfo> shopInfoList = shopInfoMapper.selectList(queryWrapper);
-        shopInfoList.forEach(shopInfo -> {
-            shopInfo.setShopLogo(minioUtil.getPreviewUrl(shopInfo.getShopLogo()));
-        });
-        return shopInfoList;
+        try {
+            // 1. 获取当前登录用户
+            SysUser loginSysUser = AllContextUtils.getLoginSysUser();
+
+            // 2. 构建查询条件
+            LambdaQueryWrapper<ShopInfo> queryWrapper = new LambdaQueryWrapper<ShopInfo>()
+                    .eq(ShopInfo::getUserId, loginSysUser.getUserId())
+                    .eq(ShopInfo::getIsDeleted, 0)
+                    .orderByDesc(ShopInfo::getCreatedAt)
+                    .select(ShopInfo::getShopId,
+                           ShopInfo::getShopName,
+                           ShopInfo::getShopCode,
+                           ShopInfo::getShopType,
+                           ShopInfo::getShopLogo);
+
+            // 3. 执行查询
+            List<ShopInfo> shopInfoList = shopInfoMapper.selectList(queryWrapper);
+
+            // 4. 处理店铺Logo
+            if (CollectionUtils.isNotEmpty(shopInfoList)) {
+                // 过滤出有效的Logo路径
+                List<String> validLogos = shopInfoList.stream()
+                        .map(ShopInfo::getShopLogo)
+                        .filter(logo -> logo != null && !logo.trim().isEmpty())
+                        .distinct() // 去重
+                        .collect(Collectors.toList());
+
+                // 只有存在有效的Logo才进行MinIO操作
+                if (!validLogos.isEmpty()) {
+                    Map<String, String> logoUrlMap = minioUtil.getObjectUrls(validLogos);
+
+                    // 更新店铺Logo URL
+                    shopInfoList.forEach(shopInfo -> {
+                        String logo = shopInfo.getShopLogo();
+                        if (logo != null && !logo.trim().isEmpty()) {
+                            shopInfo.setShopLogo(logoUrlMap.getOrDefault(logo, logo));
+                        } else {
+                            shopInfo.setShopLogo(""); // 统一将null和空串设置为空串
+                        }
+                    });
+                } else {
+                    // 如果没有有效的Logo，将所有Logo设置为空串
+                    shopInfoList.forEach(shopInfo -> shopInfo.setShopLogo(""));
+                }
+            }
+
+            return shopInfoList;
+        } catch (Exception e) {
+            log.error("查询店铺列表异常", e);
+            throw new RuntimeException("查询店铺列表失败");
+        }
     }
 
     /**
@@ -264,6 +356,11 @@ public class ShopInfoServiceImpl extends ServiceImpl<ShopInfoMapper, ShopInfo>
         // 设置最后更新时间
         balance.setLastUpdated(new Date());
         return balance;
+    }
+
+    // 获取当前登录用户ID的方法（用于缓存key）
+    private Long getLoginUserId() {
+        return AllContextUtils.getLoginSysUser().getUserId();
     }
 }
 

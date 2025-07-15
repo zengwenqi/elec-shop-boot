@@ -35,6 +35,9 @@ public class PurchaserOrderDTO {
     @ApiModelProperty("收货地址")
     private String infoAddress;
 
+    @ApiModelProperty("详细地址二")
+    private String infoAddressBei;
+
     @ApiModelProperty("收货人")
     private String reciverPerson;
 

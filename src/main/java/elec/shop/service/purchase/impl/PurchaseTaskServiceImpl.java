@@ -306,70 +306,77 @@ public class PurchaseTaskServiceImpl extends ServiceImpl<PurchaseTaskMapper, Pur
         }
 
         // 5. 校验状态变更合法性
-        if (!isValidStatusChange(task.getTaskStatus(), dto.getNewStatus())) {
-            throw new BusinessException("不允许的状态变更");
-        }
+//        if (!isValidStatusChange(task.getTaskStatus(), dto.getNewStatus())) {
+//            throw new BusinessException("不允许的状态变更");
+//        }
 
         // 6. 校验价格是否存在变化
         PurchaseOrder purchaseOrder = purchaseOrderMapper.selectOne(new LambdaQueryWrapper<PurchaseOrder>()
                 .eq(PurchaseOrder::getOrderNo, task.getTitle())
         );
-        purchaseOrder.setServiceCharge(dto.getServiceCharge());
-        if (dto.getRealTotalAmount() != null && !dto.getRealTotalAmount().equals(purchaseOrder.getTotalAmount())) {
-            int i = dto.getRealTotalAmount().compareTo(purchaseOrder.getTotalAmount());
-            SysUser byId = sysUserService.getById(purchaseOrder.getUserId());
-            if (i>0){
-                purchaseOrder.setRealTotalAmount(dto.getRealTotalAmount());
-                purchaseOrder.setPaymentStatus(0);
-                emailUtil.sendCustomEmail(
-                        byId.getEmail(),
-                        "价格偏差",
-                        "订单差额，快去补齐差额和手续费以方便订单正常运作"
-                );
-                purchaseOrderMapper.updateById(purchaseOrder);
-                task.setTaskStatus(5);
-            } else if (i<0){
-                purchaseOrder.setTotalAmount(dto.getRealTotalAmount());
-                purchaseOrder.setRealTotalAmount(dto.getRealTotalAmount());
+        task.setTaskStatus(dto.getNewStatus());
+        if (dto.getNewStatus()==0||dto.getNewStatus()==1) {
+            purchaseOrder.setServiceCharge(dto.getServiceCharge());
+            if (dto.getRealTotalAmount() != null && !dto.getRealTotalAmount().equals(purchaseOrder.getTotalAmount())) {
+                int i = dto.getRealTotalAmount().compareTo(purchaseOrder.getTotalAmount());
+                SysUser byId = sysUserService.getById(purchaseOrder.getUserId());
+                if (i>0){
+                    purchaseOrder.setRealTotalAmount(dto.getRealTotalAmount());
+                    purchaseOrder.setPaymentStatus(0);
+                    emailUtil.sendCustomEmail(
+                            byId.getEmail(),
+                            "价格偏差",
+                            "订单差额，快去补齐差额和手续费以方便订单正常运作"
+                    );
+                    purchaseOrderMapper.updateById(purchaseOrder);
+                    task.setTaskStatus(8);
+                } else {
+                    purchaseOrder.setTotalAmount(dto.getRealTotalAmount());
+                    purchaseOrder.setRealTotalAmount(dto.getRealTotalAmount());
+                    emailUtil.sendCustomEmail(
+                            sysUserService.getById(purchaseOrder.getUserId()).getEmail(),
+                            "价格偏差",
+                            "订单金额偏多，差价已给你补齐，快去补齐手续费以方便后续工作"
+                    );
+                    purchaseOrderMapper.updateById(purchaseOrder);
+                    purchaseOrder.setPaymentStatus(0);
+    //                task.setTaskStatus(2);
+                    task.setTaskStatus(8);
+
+                    String currency = purchaseOrder.getCurrency();
+                    FinanceAccount financeAccount = financeAccountMapper.selectOne(new LambdaQueryWrapper<FinanceAccount>()
+                            .eq(FinanceAccount::getUserId, byId.getUserId()));
+
+                    AccountBalance accountBalance = accountBalanceMapper.selectOne(new LambdaQueryWrapper<AccountBalance>()
+                            .eq(AccountBalance::getAccountId, financeAccount.getAccountId())
+                            .eq(AccountBalance::getCurrency, currency));
+                    accountBalance.setAccountId(financeAccount.getAccountId());
+                    accountBalance.setBalance(accountBalance.getBalance().add(BigDecimal.valueOf(i)));
+                    accountBalanceMapper.updateById(accountBalance);
+                }
+            }else {
+                // 7. 更新任务状态
                 emailUtil.sendCustomEmail(
                         sysUserService.getById(purchaseOrder.getUserId()).getEmail(),
-                        "价格偏差",
-                        "订单金额偏多，差价已给你补齐，快去补齐手续费以方便后续工作"
+                        "后续补充",
+                        "订单金额没有问题，快去补齐手续费以方便后续操作"
                 );
-                purchaseOrderMapper.updateById(purchaseOrder);
+                purchaseOrder.setRealTotalAmount(dto.getRealTotalAmount());
                 purchaseOrder.setPaymentStatus(0);
-//                task.setTaskStatus(2);
-                task.setTaskStatus(5);
-
-                String currency = purchaseOrder.getCurrency();
-                FinanceAccount financeAccount = financeAccountMapper.selectOne(new LambdaQueryWrapper<FinanceAccount>()
-                        .eq(FinanceAccount::getUserId, byId.getUserId()));
-
-                AccountBalance accountBalance = accountBalanceMapper.selectOne(new LambdaQueryWrapper<AccountBalance>()
-                        .eq(AccountBalance::getAccountId, financeAccount.getAccountId())
-                        .eq(AccountBalance::getCurrency, currency));
-                accountBalance.setAccountId(financeAccount.getAccountId());
-                accountBalance.setBalance(accountBalance.getBalance().add(BigDecimal.valueOf(i)));
-                accountBalanceMapper.updateById(accountBalance);
+    //            task.setTaskStatus(dto.getNewStatus());
+                task.setTaskStatus(8);
             }
-        }else {
-            // 7. 更新任务状态
-            emailUtil.sendCustomEmail(
-                    sysUserService.getById(purchaseOrder.getUserId()).getEmail(),
-                    "后续补充",
-                    "订单金额没有问题，快去补齐手续费以方便后续操作"
-            );
-            purchaseOrder.setRealTotalAmount(dto.getRealTotalAmount());
-            purchaseOrder.setPaymentStatus(0);
-//            task.setTaskStatus(dto.getNewStatus());
-            task.setTaskStatus(5);
         }
 
         boolean success = this.updateById(task);
 
         // 8. 触发关联操作（如果有）
-        if (success && dto.getNewStatus() == 3) { // 任务完成状态
-            updateRelatedOrderStatus(task.getTaskId(), 4); // 更新关联订单为已完成
+//        if (success && dto.getNewStatus() == 6) { // 任务完成状态
+//            purchaseOrderService.updateById(order);
+//            updateRelatedOrderStatus(task.getTaskId(), 6); // 更新关联订单为已完成
+//        }
+        if (success && dto.getNewStatus() == 6) { // 任务完成状态
+            updateRelatedOrderStatus(task.getTaskId(), 6); // 更新关联订单为已完成
         }
 
         // 9. 更新回填单号和采购备注，如果有

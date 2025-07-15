@@ -520,10 +520,14 @@ public class MinioUtil {
     }
 
     public Map<String, String> getObjectUrls(List<String> objectNames) {
+        // 新增：如果输入的列表为null，直接返回null
+        if (objectNames == null || objectNames.equals("")) {
+            return null;
+        }
         return objectNames.stream()
                 .collect(Collectors.toMap(
                         name -> name,
-                        name -> getObjectUrl("elec-shop",name),
+                        name -> getObjectUrl("elec-shop", name),
                         (existing, replacement) -> existing
                 ));
     }

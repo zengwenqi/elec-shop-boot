@@ -56,7 +56,7 @@ public class PurchaseOrder extends BaseEntity implements Serializable {
     private Integer orderType;
 
     /**
-     * 订单状态：0-待分配 1-待确认 2-已确认 3-采购中 4-已完成 5-已取消
+     * 订单状态：0-待分配 1-待确认 2-已确认 3-采购中 4-已下单 5-已出面单 6-已完成 7-已取消
      */
     private Integer orderStatus;
 
@@ -94,6 +94,11 @@ public class PurchaseOrder extends BaseEntity implements Serializable {
      * 收货地址
      */
     private String infoAddress;
+
+    /**
+     * 详细地址二
+     */
+    private String infoAddressBei;
 
     /**
      * 收货人
