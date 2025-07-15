@@ -23,8 +23,7 @@ spring:
           - data-id: elec-shop.yaml
             group: DEFAULT_GROUP
             refresh: true
-#      username: nacos
-#      password: nacos
+
   config:
     import:
       - optional:nacos:${spring.application.name}-dev.${spring.cloud.nacos.config.file-extension}

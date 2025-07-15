@@ -5,8 +5,8 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import elec.shop.mapper.purchase.PurchaserInfoMapper;
-import elec.shop.pojo.purchase.PurchaserInfo;
+import elec.shop.mapper.purchase.*;
+import elec.shop.pojo.purchase.*;
 import elec.shop.pojo.sys.dto.RegisterRequest;
 import elec.shop.pojo.sys.dto.UserDetailVO;
 import elec.shop.exception.BusinessException;
@@ -20,9 +20,7 @@ import elec.shop.pojo.sys.enums.UserType;
 import elec.shop.service.purchase.ShopInfoService;
 import elec.shop.service.sys.SysPermissionService;
 import elec.shop.service.sys.SysUserService;
-import elec.shop.utils.MinioUtil;
-import elec.shop.utils.ResultCodeEnum;
-import elec.shop.utils.RsaDecryptUtil;
+import elec.shop.utils.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -30,14 +28,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import elec.shop.utils.AllContextUtils;
 import elec.shop.pojo.sys.dto.AssignRoleDTO;
 import elec.shop.pojo.sys.dto.UpdateProfileDTO;
 
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -47,8 +41,7 @@ import java.util.stream.Collectors;
 */
 @Service
 @RequiredArgsConstructor
-public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser>
-    implements SysUserService {
+public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> implements SysUserService {
 
     private final SysUserMapper userMapper;
     private final SysUserRoleMapper userRoleMapper;
@@ -58,6 +51,10 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser>
     private final PurchaserInfoMapper purchaserInfoMapper;
     private final ShopInfoService shopInfoService;
     private final MinioUtil minioUtil;
+    private final FinanceAccountMapper financeAccountMapper;
+    private final AccountBalanceMapper accountBalanceMapper;
+    private final ShopInfoMapper shopInfoMapper;
+    private final PurchaseOrderMapper purchaseOrderMapper;
 
     @Override
     public SysUser getUserByUsername(String username) {
@@ -517,6 +514,27 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser>
         user.setPaymentPassword(encodedPassword);
         updateById(user);
     }
+
+    @Override
+    public Map<String, Object> merchantProfile(SysUser one) {
+        Long userId = one.getUserId();
+        FinanceAccount financeAccount = financeAccountMapper.selectOne(new LambdaQueryWrapper<FinanceAccount>()
+                .eq(FinanceAccount::getUserId, userId));
+        List<AccountBalance> accountBalances = accountBalanceMapper.selectList(new LambdaQueryWrapper<AccountBalance>()
+                .eq(AccountBalance::getAccountId, financeAccount.getAccountId()));
+        Long l = shopInfoMapper.selectCount(new LambdaQueryWrapper<ShopInfo>().eq(ShopInfo::getUserId, userId));
+        Long l1 = purchaseOrderMapper.selectCount(new LambdaQueryWrapper<PurchaseOrder>().eq(PurchaseOrder::getUserId, userId));
+        Map<String, Object> map = new HashMap<>();
+        map.put("shopCount", l);
+        map.put("orderCount", l1);
+        map.put("CNY", financeAccount.getBanlance());
+        for (AccountBalance accountBalance : accountBalances) {
+            map.put(accountBalance.getCurrency(), accountBalance.getBalance());
+            map.put(accountBalance.getCurrency() + "Rate", accountBalance.getExchangeRate());
+        }
+        return map;
+    }
+
 }
 
 

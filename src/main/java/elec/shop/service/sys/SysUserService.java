@@ -9,6 +9,7 @@ import elec.shop.pojo.sys.dto.AssignRoleDTO;
 import elec.shop.pojo.sys.dto.UpdateProfileDTO;
 
 import java.util.List;
+import java.util.Map;
 
 /**
 * @author Lenovo
@@ -128,4 +129,11 @@ public interface SysUserService extends IService<SysUser> {
      * @param paymentPassword 支付密码
      */
     void setPaymentPassword(String paymentPassword);
+
+    /**
+     * 获取商户基本信息
+     * @param one 商户信息
+     * @return 商户基本信息
+     */
+    Map<String, Object> merchantProfile(SysUser one);
 }

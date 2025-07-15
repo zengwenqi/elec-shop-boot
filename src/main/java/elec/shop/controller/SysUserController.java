@@ -1,5 +1,6 @@
 package elec.shop.controller;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import elec.shop.exception.BusinessException;
 import elec.shop.pojo.sys.SysUser;
@@ -22,6 +23,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @Api(tags = "用户管理")
 @RestController
@@ -122,4 +124,21 @@ public class SysUserController {
         userService.updateProfile(loginSysUser.getUserId(), profileDTO);
         return Result.ok();
     }
+
+    @ApiOperation("获取当前商户基本信息")
+    @GetMapping("/merchant/profile")
+    @PreAuthorize("hasPermission(null, 'merchant')")
+    public Result<Object> merchantProfile() {
+        // 获取当前用户
+        SysUser loginSysUser = AllContextUtils.getLoginSysUser();
+
+        SysUser one = userService.getOne(new LambdaQueryWrapper<SysUser>().eq(SysUser::getUserId, loginSysUser.getUserId()));
+        if (one == null) {
+            return Result.fail().message("异常状态");
+        }
+
+        // 调用service层更新用户信息
+        return Result.ok(userService.merchantProfile(one));
+    }
+
 }

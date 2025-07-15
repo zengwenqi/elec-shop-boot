@@ -2,7 +2,9 @@ package elec.shop.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import elec.shop.annotation.DataSource;
 import elec.shop.annotation.OperationLog;
+import elec.shop.config.DataSourceType;
 import elec.shop.pojo.purchase.*;
 import elec.shop.pojo.purchase.dto.PurchaserOrderDTO;
 import elec.shop.pojo.purchase.dto.PurchaserOrderQueryDTO;
@@ -46,6 +48,7 @@ public class PurchaseController {
 
     @PostMapping("/createOrder")
     @ApiOperation("创建采购订单")
+    @DataSource(DataSourceType.MASTER)
 //    @OperationLog(
 //        module = "采购管理",
 //        operationType = "创建订单",
@@ -60,6 +63,7 @@ public class PurchaseController {
     @PostMapping("/orders")
     @ApiOperation("查询当前用户下的采购订单")
     @OperationLog(module = "采购管理", operationType = "查询订单", description = "查询当前用户下的采购订单")
+    @DataSource(DataSourceType.SLAVE)
     public Result queryOrders(
             @ApiParam("查询参数") @RequestBody PurchaserOrderQueryDTO query
     ) {
@@ -107,6 +111,7 @@ public class PurchaseController {
     @PostMapping("/orderInfo")
     @ApiOperation("查询采购订单详情")
     @OperationLog(module = "采购管理", operationType = "查询订单", description = "查询采购订单详情")
+    @DataSource(DataSourceType.SLAVE)
     public Result<Object> orderInfo(
             @RequestParam("orderId") Long orderId
     ) {
@@ -116,6 +121,7 @@ public class PurchaseController {
     @PostMapping("/cancelOrder")
     @ApiOperation("取消订单")
     @OperationLog(module = "采购管理", operationType = "取消订单", description = "取消订单")
+    @DataSource(DataSourceType.MASTER)
     public Result cancelOrder(
             @RequestParam("orderId") Long orderId,
             @RequestParam("cancelReason") String cancelReason
@@ -127,6 +133,7 @@ public class PurchaseController {
     @ApiOperation("导出订单EXCEL")
     // @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     // @OperationLog(module = "采购管理", operationType = "导出订单EXCEL", description = "导出订单EXCEL")
+    @DataSource(DataSourceType.SLAVE)
     public void exportOrders(
             @ApiParam("店铺ID") @RequestParam(required = false) Long shopId,
             @ApiParam("开始时间") @RequestParam(required = false) String startTime,
@@ -139,6 +146,7 @@ public class PurchaseController {
     @GetMapping("/purchasers")
     @ApiOperation("查询采购员列表")
     @OperationLog(module = "采购管理", operationType = "查询采购员", description = "查询采购员列表")
+    @DataSource(DataSourceType.SLAVE)
     public Result<Page<PurchaserInfo>> queryPurchasers(
             @ApiParam("查询参数") @RequestBody PurchaserQueryDTO purchaserQueryDTO
     ) {
@@ -149,6 +157,7 @@ public class PurchaseController {
     @GetMapping("/purchasersAll")
     @ApiOperation("查询所有采购员")
     @OperationLog(module = "采购管理", operationType = "查询采购员", description = "查询所有采购员")
+    @DataSource(DataSourceType.SLAVE)
     public Result<Object> purchasersAll() {
         SysUser loginSysUser = AllContextUtils.getLoginSysUser();
         loginSysUser.setUserType(sysUserService.getById(loginSysUser.getUserId()).getUserType());
@@ -160,6 +169,7 @@ public class PurchaseController {
     @PostMapping("/purchaser/add")
     @ApiOperation("新增采购员")
     @OperationLog(module = "采购管理", operationType = "新增采购员", description = "新增采购员")
+    @DataSource(DataSourceType.MASTER)
     public Result<Object> addPurchaser(@ApiParam("用户ID") @RequestParam Long userId) {
         PurchaserInfo purchaserInfo = purchaserInfoService.addPurchaser(userId);
         return Result.ok(purchaserInfo);
@@ -168,6 +178,7 @@ public class PurchaseController {
     @GetMapping("/tasks")
     @ApiOperation("查询采购任务列表")
     @OperationLog(module = "采购管理", operationType = "查询任务", description = "查询采购任务列表")
+    @DataSource(DataSourceType.SLAVE)
     public Result<Page<PurchaseTask>> queryTasks(
             @ApiParam("查询参数") @RequestBody PurchaserTaskQueryDTO query
     ) {
@@ -178,6 +189,7 @@ public class PurchaseController {
     @PostMapping("/task/assign")
     @ApiOperation("分配采购任务")
     @OperationLog(module = "采购管理", operationType = "分配任务", description = "分配采购任务")
+    @DataSource(DataSourceType.MASTER)
     public Result<Object> assignTask(
             @ApiParam("任务ID") @RequestParam Long taskId,
             @ApiParam("采购员ID") @RequestParam Long purchaserId

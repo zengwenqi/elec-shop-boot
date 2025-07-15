@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import elec.shop.annotation.DataSource;
+import elec.shop.config.DataSourceType;
 import elec.shop.mapper.purchase.AccountBalanceMapper;
 import elec.shop.mapper.purchase.FinanceAccountMapper;
 import elec.shop.mapper.purchase.PurchaseOrderMapper;
@@ -57,7 +59,7 @@ public class ShopInfoServiceImpl extends ServiceImpl<ShopInfoMapper, ShopInfo>
     private final ExecutorService executorService = Executors.newFixedThreadPool(5);
 
     @Override
-   @Cacheable(value = "shop_info", key = "#shopInfoQueryDTO.toString()", unless = "#result == null")
+    @Cacheable(value = "shop_info", key = "#shopInfoQueryDTO.toString()", unless = "#result == null")
     public IPage<ShopInfo> queryShopInfo(ShopInfoQueryDTO shopInfoQueryDTO) {
         try {
             // 1. 参数校验和默认值处理
