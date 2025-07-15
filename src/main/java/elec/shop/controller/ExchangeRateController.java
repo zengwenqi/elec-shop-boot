@@ -2,6 +2,8 @@ package elec.shop.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import elec.shop.annotation.DataSource;
+import elec.shop.config.DataSourceType;
 import elec.shop.pojo.purchase.dto.CurrencyAccountBalanceDTO;
 import elec.shop.pojo.purchase.dto.ExchangeRateDTO;
 import elec.shop.service.purchase.AccountBalanceService;
@@ -29,6 +31,7 @@ public class ExchangeRateController {
 
     @GetMapping("/real-time-rates")
     @ApiOperation("获取实时汇率")
+    @DataSource(DataSourceType.SLAVE)
     public Result<Object> getRealTimeRates() {
         try {
             Map<String, Object> rates = exchangeRateService.getMainCurrencyRates();
@@ -40,6 +43,7 @@ public class ExchangeRateController {
 
     @GetMapping("/currency-history/{currency}")
     @ApiOperation("获取指定货币的历史汇率")
+    @DataSource(DataSourceType.SLAVE)
     public Result<Object> getCurrencyHistory(
             @ApiParam(value = "货币代码", required = true, example = "USD")
             @PathVariable String currency) {
@@ -56,6 +60,7 @@ public class ExchangeRateController {
 
     @GetMapping("/accounts/{currency}")
     @ApiOperation("获取指定货币的所有账户信息")
+    @DataSource(DataSourceType.SLAVE)
     public Result<Object> getCurrencyAccounts(
             @ApiParam(value = "货币代码", required = true, example = "USD")
             @PathVariable String currency,
@@ -77,6 +82,7 @@ public class ExchangeRateController {
 
     @PostMapping("/accounts/change/exchange-rate")
     @ApiOperation("更新指定账户的指定汇率信息")
+    @DataSource(DataSourceType.MASTER)
     public Result<Object> changeCurrencyAccounts(@RequestBody ExchangeRateDTO exchangeRateDTO) {
         try {
             if (!Arrays.asList("USD", "EUR", "GBP", "JPY", "CNY").contains(exchangeRateDTO.getCurrency())) {
@@ -91,6 +97,7 @@ public class ExchangeRateController {
 
     @PostMapping("/accounts/change")
     @ApiOperation("更新指定账户的指定货币的余额")
+    @DataSource(DataSourceType.MASTER)
     public Result<Object> changeCurrencyAccountBalance(@RequestBody CurrencyAccountBalanceDTO currencyAccountBalanceDTO) {
         try {
             if (!Arrays.asList("USD", "EUR", "GBP", "JPY", "CNY").contains(currencyAccountBalanceDTO.getCurrency())) {
@@ -105,6 +112,7 @@ public class ExchangeRateController {
 
     @PostMapping("/accounts/CNY/change")
     @ApiOperation("账户的指定货币和人民币的转换(基于汇率)")
+    @DataSource(DataSourceType.MASTER)
     public Result<Object> changeCurrencyCNYAccountBalance(@RequestBody CurrencyAccountBalanceDTO currencyAccountBalanceDTO) {
         try {
             if (!Arrays.asList("USD", "EUR", "GBP", "JPY", "CNY").contains(currencyAccountBalanceDTO.getCurrency())) {

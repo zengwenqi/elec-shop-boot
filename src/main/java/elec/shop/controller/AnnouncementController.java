@@ -1,6 +1,8 @@
 package elec.shop.controller;
 
+import elec.shop.annotation.DataSource;
 import elec.shop.annotation.OperationLog;
+import elec.shop.config.DataSourceType;
 import elec.shop.pojo.announcement.MessageRecord;
 import elec.shop.pojo.announcement.dto.MessageRequest;
 import elec.shop.pojo.announcement.enums.MessageTypeEnum;
@@ -96,6 +98,7 @@ public class AnnouncementController {
 
     @ApiOperation("获取用户消息列表")
     @GetMapping("/messages")
+    @DataSource(DataSourceType.SLAVE)
     public Result<Object> getUserMessages(
             @RequestParam(required = false) Integer messageType,
             @RequestParam(required = false) String startDate,
@@ -117,6 +120,7 @@ public class AnnouncementController {
 
     @ApiOperation("标记消息已读")
     @PutMapping("/read/{recordId}")
+    @DataSource(DataSourceType.MASTER)
     public Result<Object> markMessageAsRead(@PathVariable Long recordId) {
         try {
             SysUser loginUser = AllContextUtils.getLoginSysUser();

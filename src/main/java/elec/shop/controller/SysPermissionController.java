@@ -1,5 +1,7 @@
 package elec.shop.controller;
 
+import elec.shop.annotation.DataSource;
+import elec.shop.config.DataSourceType;
 import elec.shop.pojo.sys.SysPermission;
 import elec.shop.pojo.sys.SysUser;
 import elec.shop.service.sys.SysPermissionService;
@@ -23,6 +25,7 @@ public class SysPermissionController {
     @ApiOperation("添加权限")
     @PostMapping
     @PreAuthorize("hasAuthority('sys:permission:add')")
+    @DataSource(DataSourceType.MASTER)
     public Result<Void> addPermission(@RequestBody SysPermission permission) {
         permissionService.savePermission(permission);
         return Result.ok();
@@ -31,6 +34,7 @@ public class SysPermissionController {
     @ApiOperation("更新权限")
     @PutMapping
     @PreAuthorize("hasAuthority('sys:permission:update')")
+    @DataSource(DataSourceType.MASTER)
     public Result<Void> updatePermission(@RequestBody SysPermission permission) {
         permissionService.updatePermission(permission);
         return Result.ok();
@@ -39,6 +43,7 @@ public class SysPermissionController {
     @ApiOperation("删除权限")
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('sys:permission:delete')")
+    @DataSource(DataSourceType.MASTER)
     public Result<Void> deletePermission(
             @ApiParam(value = "权限ID", required = true) @PathVariable("id") Long permissionId) {
         permissionService.deletePermission(permissionId);
@@ -47,6 +52,7 @@ public class SysPermissionController {
 
     @ApiOperation("获取当前用户权限")
     @GetMapping("/user")
+    @DataSource(DataSourceType.SLAVE)
     public Result<String[]> getCurrentUserPermissions() {
         SysUser loginSysUser = AllContextUtils.getLoginSysUser();
         return Result.ok(new String[0]);

@@ -2,6 +2,8 @@ package elec.shop.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import elec.shop.annotation.DataSource;
+import elec.shop.config.DataSourceType;
 import elec.shop.exception.BusinessException;
 import elec.shop.pojo.sys.SysUser;
 import elec.shop.pojo.sys.dto.AssignRoleDTO;
@@ -35,6 +37,7 @@ public class SysUserController {
 
     @ApiOperation("获取当前用户信息")
     @GetMapping("/current")
+    @DataSource(DataSourceType.SLAVE)
     public Result<UserDetailVO> getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
@@ -45,6 +48,7 @@ public class SysUserController {
     @ApiOperation("根据ID获取用户信息")
     @GetMapping("/{id}")
     @PreAuthorize("hasPermission(null, 'superadmin:role:query')")
+    @DataSource(DataSourceType.SLAVE)
     public Result<UserDetailVO> getUserById(
             @ApiParam(value = "用户ID", required = true) @PathVariable("id") Long userId) {
         UserDetailVO userDetail = userService.getUserDetailById(userId);
@@ -54,6 +58,7 @@ public class SysUserController {
     @ApiOperation("更新用户状态")
     @PutMapping("/status")
     @PreAuthorize("hasPermission(null, 'superadmin:role:update')")
+    @DataSource(DataSourceType.MASTER)
     public Result<Void> updateUserStatus(
             @ApiParam(value = "用户ID", required = true) @RequestParam("userId") Long userId,
             @ApiParam(value = "状态：0-禁用 1-启用", required = true) @RequestParam("status") Integer status) {
@@ -66,6 +71,7 @@ public class SysUserController {
     @PreAuthorize("hasPermission(null, 'superadmin:role:query') || " +
                   "hasPermission(null, 'superadmin:dashboard:query') || " +
                   "hasPermission(null, 'superadmin:announcement:query')")
+    @DataSource(DataSourceType.SLAVE)
     public Result<IPage<UserDetailVO>> getUserList(
             @ApiParam(value = "页码", required = true) @RequestParam(defaultValue = "1") Integer pageNum,
             @ApiParam(value = "每页大小", required = true) @RequestParam(defaultValue = "10") Integer pageSize,
@@ -77,6 +83,7 @@ public class SysUserController {
     @ApiOperation("分配用户角色")
     @PostMapping("/assign-roles")
     @PreAuthorize("hasPermission(null, 'superadmin:role:update')")
+    @DataSource(DataSourceType.MASTER)
     public Result<Void> assignUserRoles(@Validated @RequestBody AssignRoleDTO assignRoleDTO) {
         userService.assignUserRoles(assignRoleDTO);
         return Result.ok();
@@ -84,6 +91,7 @@ public class SysUserController {
 
     @ApiOperation("查询全部用户")
     @GetMapping("/all-user")
+    @DataSource(DataSourceType.SLAVE)
     @PreAuthorize("hasPermission(null, 'superadmin:role:query')")
     public Result<List<UserDetailVO>> allUsersDetail() {
         List<UserDetailVO> userDetailVOS = userService.getAllUserList();
@@ -92,6 +100,7 @@ public class SysUserController {
 
     @ApiOperation("修改当前用户密码")
     @PutMapping("/password")
+    @DataSource(DataSourceType.MASTER)
     public Result updatePassword(@Validated @RequestBody UpdatePasswordDTO passwordDTO) {
         // 获取当前用户
         SysUser loginSysUser = AllContextUtils.getLoginSysUser();
@@ -116,6 +125,7 @@ public class SysUserController {
 
     @ApiOperation("更新当前用户信息")
     @PutMapping("/profile")
+    @DataSource(DataSourceType.MASTER)
     public Result<Object> updateProfile(@Validated @RequestBody UpdateProfileDTO profileDTO) {
         // 获取当前用户
         SysUser loginSysUser = AllContextUtils.getLoginSysUser();
@@ -127,6 +137,7 @@ public class SysUserController {
 
     @ApiOperation("获取当前商户基本信息")
     @GetMapping("/merchant/profile")
+    @DataSource(DataSourceType.SLAVE)
     @PreAuthorize("hasPermission(null, 'merchant')")
     public Result<Object> merchantProfile() {
         // 获取当前用户

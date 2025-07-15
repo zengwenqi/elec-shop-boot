@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import elec.shop.annotation.DataSource;
+import elec.shop.config.DataSourceType;
 import elec.shop.pojo.sys.dto.*;
 import elec.shop.pojo.sys.SysUser;
 import elec.shop.security.TokenManager;
@@ -59,6 +61,7 @@ public class AuthController {
     @ApiOperation("用户注册")
     @PostMapping("/register")
     @OperationLog(module = "认证管理", operationType = "注册", description = "用户注册")
+    @DataSource(DataSourceType.MASTER)
     public Result<Object> register(@RequestBody RegisterRequest request) {
         if (!(request.getEmailCode().equals(redisTemplate.opsForValue().get(request.getEmail()))))
             return Result.fail().message("邮箱验证码错误");
@@ -72,6 +75,7 @@ public class AuthController {
     @ApiOperation("用户登录")
     @PostMapping("/login")
     @OperationLog(module = "认证管理", operationType = "登录", description = "用户登录", isLogin = true)
+    @DataSource(DataSourceType.SLAVE)
     public Result<Object> login(@RequestBody LoginRequest request, HttpServletRequest servletRequest, HttpServletResponse response) {
         try {
             // 检查是否被锁定
@@ -146,6 +150,7 @@ public class AuthController {
 
     @ApiOperation("刷新Token")
     @PostMapping("/refresh")
+    @DataSource(DataSourceType.SLAVE)
     public Result<Object> refreshToken(HttpServletRequest request, HttpServletResponse response) {
         // 从cookie中获取refresh token
         Cookie[] cookies = request.getCookies();
@@ -208,6 +213,7 @@ public class AuthController {
     @ApiOperation("退出登录")
     @PostMapping("/logout")
     @OperationLog(module = "认证管理", operationType = "退出", description = "退出登录", saveRequestData = false)
+    @DataSource(DataSourceType.SLAVE)
     public Result<Object> logout(HttpServletRequest request, HttpServletResponse response) {
         try {
             // 获取当前用户名
@@ -250,6 +256,7 @@ public class AuthController {
     @ApiOperation("获取用户菜单和权限信息")
     @GetMapping("/menu")
     @OperationLog(module = "认证管理", operationType = "动态菜单", description = "获取动态菜单数据", saveResponseData = false)
+    @DataSource(DataSourceType.SLAVE)
     public Result<Map<String, Object>> getUserMenu() throws JsonProcessingException {
         SysUser loginSysUser = AllContextUtils.getLoginSysUser();
         String cacheKey = "user:menu:" + loginSysUser.getUserId();
@@ -278,6 +285,7 @@ public class AuthController {
 
     @ApiOperation("获取邮箱验证码")
     @GetMapping("/email/code")
+    @DataSource(DataSourceType.SLAVE)
     public Result<Object> getEmailCode(@RequestParam("email") String email) {
         long count = userService.count(new LambdaQueryWrapper<SysUser>()
                 .eq(SysUser::getEmail, email));
@@ -290,6 +298,7 @@ public class AuthController {
 
     @ApiOperation("验证邮箱验证码")
     @PostMapping("/email/verify")
+    @DataSource(DataSourceType.SLAVE)
     public Result<Object> verifyEmailCode(@RequestBody EmailVerifyRequest request) {
         // 验证码校验
         String cachedCode = (String) redisTemplate.opsForValue().get(request.getEmail());
@@ -315,6 +324,7 @@ public class AuthController {
     @ApiOperation("重置密码")
     @PostMapping("/reset-password")
     @OperationLog(module = "认证管理", operationType = "重置密码", description = "重置密码")
+    @DataSource(DataSourceType.MASTER)
     public Result<Object> resetPassword(@RequestBody ResetPasswordRequest request) {
 
         SysUser loginSysUser = AllContextUtils.getLoginSysUser();

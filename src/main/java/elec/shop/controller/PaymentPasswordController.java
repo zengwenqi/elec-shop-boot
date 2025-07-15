@@ -1,5 +1,7 @@
 package elec.shop.controller;
 
+import elec.shop.annotation.DataSource;
+import elec.shop.config.DataSourceType;
 import elec.shop.utils.Result;
 import elec.shop.utils.RsaDecryptUtil;
 import io.swagger.annotations.Api;
@@ -20,6 +22,7 @@ public class PaymentPasswordController {
 
     @ApiOperation("检查是否设置支付密码")
     @GetMapping("/check-exists")
+    @DataSource(DataSourceType.SLAVE)
     public Result<Boolean> checkPaymentPasswordExists() {
         boolean exists = sysUserService.checkPaymentPasswordExists();
         return Result.ok(exists);
@@ -27,6 +30,7 @@ public class PaymentPasswordController {
 
     @ApiOperation("验证支付密码")
     @PostMapping("/verify")
+    @DataSource(DataSourceType.SLAVE)
     public Result<Object> verifyPaymentPassword(@RequestBody String encryptedPassword) {
         try {
             String decryptedPassword = RsaDecryptUtil.decryptPayPassword(encryptedPassword);
@@ -39,6 +43,7 @@ public class PaymentPasswordController {
 
     @ApiOperation("设置支付密码")
     @PostMapping("/set")
+    @DataSource(DataSourceType.MASTER)
     public Result<Object> setPaymentPassword(@RequestBody String encryptedPassword) {
         try {
             String decryptedPassword = RsaDecryptUtil.decryptPayPassword(encryptedPassword);

@@ -1,6 +1,8 @@
 package elec.shop.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import elec.shop.annotation.DataSource;
+import elec.shop.config.DataSourceType;
 import elec.shop.pojo.purchase.ShopInfo;
 import elec.shop.pojo.purchase.dto.ShopInfoDTO;
 import elec.shop.pojo.purchase.dto.ShopInfoQueryDTO;
@@ -28,6 +30,7 @@ public class ShopController {
 
     @PostMapping("/shopInfo")
     @ApiOperation("查询我的店铺信息")
+    @DataSource(DataSourceType.SLAVE)
     public Result<Object> queryShopInfo(@RequestBody ShopInfoQueryDTO shopInfoQueryDTO) {
         IPage<ShopInfo> shopInfoIPage = shopInfoService.queryShopInfo(shopInfoQueryDTO);
         return Result.ok(shopInfoIPage);
@@ -35,6 +38,7 @@ public class ShopController {
 
     @PostMapping("/shopInfoList")
     @ApiOperation("查询我的所有店铺信息")
+    @DataSource(DataSourceType.SLAVE)
     public Result<Object> queryShopInfo() {
         List<ShopInfo> shopInfoList = shopInfoService.queryShopInfoList();
         return Result.ok(shopInfoList);
@@ -42,12 +46,14 @@ public class ShopController {
 
     @PostMapping("/updateShopInfo")
     @ApiOperation("更新我的店铺信息")
+    @DataSource(DataSourceType.MASTER)
     public Result<Object> updateShopInfo(@RequestBody ShopInfoDTO shopInfoDTO) {
         return shopInfoService.updateShopInfo(shopInfoDTO);
     }
 
     @PostMapping("/shopInfoStatistic")
     @ApiOperation("我的店铺信息采购订单统计")
+    @DataSource(DataSourceType.SLAVE)
     public Result<Object> shopInfoStatistic(@RequestParam("shopId") Long shopId) {
         Map<String, Object> statistics = shopInfoService.getShopOrderStatistics(shopId);
         return Result.ok(statistics);
@@ -55,6 +61,7 @@ public class ShopController {
 
     @PostMapping("/shopInfoPurchaseOrder")
     @ApiOperation("查询我的店铺下的采购订单")
+    @DataSource(DataSourceType.SLAVE)
     public Result<Object> shopInfoPurchaseOrder(@RequestBody PurchaserOrderQueryDTO queryDTO) {
         if (queryDTO.getShopId() == null) {
             return Result.fail().message("店铺ID不能为空");
@@ -65,12 +72,14 @@ public class ShopController {
 
     @PostMapping("/deleteShop")
     @ApiOperation("删除店铺")
+    @DataSource(DataSourceType.MASTER)
     public Result<Object> deleteShop(@RequestParam("shopId") Long shopId) {
         return shopInfoService.deleteShop(shopId);
     }
 
     @PostMapping("/addShop")
     @ApiOperation("新增店铺")
+    @DataSource(DataSourceType.MASTER)
     public Result<Object> addShop(@RequestBody ShopInfoDTO shopInfoDTO) {
         return shopInfoService.addShop(shopInfoDTO);
     }

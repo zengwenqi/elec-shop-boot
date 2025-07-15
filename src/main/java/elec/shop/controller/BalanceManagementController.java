@@ -1,5 +1,7 @@
 package elec.shop.controller;
 
+import elec.shop.annotation.DataSource;
+import elec.shop.config.DataSourceType;
 import elec.shop.pojo.balance.dto.AccountBalanceDTO;
 import elec.shop.pojo.balance.dto.BuQiDTO;
 import elec.shop.pojo.purchase.FinanceAccount;
@@ -28,6 +30,7 @@ public class BalanceManagementController {
 
     @GetMapping("/my")
     @ApiOperation("查询我的所有币种余额")
+    @DataSource(DataSourceType.SLAVE)
     public Result<Object> my() {
         // 获取当前登录用户
         Long userId = AllContextUtils.getLoginSysUser().getUserId();
@@ -49,6 +52,7 @@ public class BalanceManagementController {
 
     @PostMapping("/recharge")
     @ApiOperation("充值")
+    @DataSource(DataSourceType.MASTER)
     public Result<Object> recharge(
             @ApiParam(value = "充值金额", required = true) @RequestParam BigDecimal amount,
             @ApiParam(value = "币种", required = true) @RequestParam String currency) {
@@ -81,6 +85,7 @@ public class BalanceManagementController {
 
     @GetMapping("/exchange-rates")
     @ApiOperation("获取当前汇率")
+    @DataSource(DataSourceType.SLAVE)
     public Result<Object> getExchangeRates() {
         // 获取当前登录用户
         Long userId = AllContextUtils.getLoginSysUser().getUserId();
@@ -98,6 +103,7 @@ public class BalanceManagementController {
 
     @PostMapping("/convert")
     @ApiOperation("币种转换")
+    @DataSource(DataSourceType.MASTER)
     public Result<Object> convertCurrency(
             @ApiParam(value = "转出币种", required = true) @RequestParam String fromCurrency,
             @ApiParam(value = "转入币种", required = true) @RequestParam String toCurrency,
@@ -157,6 +163,7 @@ public class BalanceManagementController {
     @PostMapping("/increase/account")
     @ApiOperation("给指定账户充值")
     @PreAuthorize("hasPermission(null ,'superadmin')")
+    @DataSource(DataSourceType.MASTER)
     public Result<Object> increaseAccount(@RequestBody AccountBalanceDTO dto) throws Exception {
         boolean update = accountBalanceService.increaseAccount(dto);
         if (update) return Result.ok();
@@ -165,6 +172,7 @@ public class BalanceManagementController {
 
     @PostMapping("/buqi/account")
     @ApiOperation("订单补齐差价")
+    @DataSource(DataSourceType.MASTER)
 //    @PreAuthorize("hasPermission(null ,'superadmin')")
     public Result<Object> buqiAccount(@RequestBody BuQiDTO dto) {
         return accountBalanceService.buqiAccount(dto);

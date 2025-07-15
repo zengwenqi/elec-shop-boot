@@ -2,6 +2,8 @@ package elec.shop.controller;
 
 import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import elec.shop.annotation.DataSource;
+import elec.shop.config.DataSourceType;
 import elec.shop.pojo.announcement.CrossBorderService;
 import elec.shop.pojo.announcement.dto.CrossBorderDTO;
 import elec.shop.pojo.announcement.vo.CrossBorderVO;
@@ -28,6 +30,7 @@ public class BorderServiceController {
 
     @GetMapping("/list")
     @ApiOperation("查询所有跨境服务超市")
+    @DataSource(DataSourceType.SLAVE)
     public Result<Object> list() {
         // 1. 查询原始数据
         List<CrossBorderService> list = crossBorderServiceService.list();
@@ -61,6 +64,7 @@ public class BorderServiceController {
     @PostMapping("/add")
     @ApiOperation("新增跨境服务超市")
     @PreAuthorize("hasPermission(null ,'superadmin')")
+    @DataSource(DataSourceType.MASTER)
     public Result<Object> add(@RequestBody CrossBorderDTO crossBorderDTO) {
         CrossBorderService crossBorderService = new CrossBorderService();
         BeanUtil.copyProperties(crossBorderDTO, crossBorderService);
@@ -72,6 +76,7 @@ public class BorderServiceController {
     @PostMapping("/edit")
     @ApiOperation("编辑跨境服务超市")
     @PreAuthorize("hasPermission(null ,'superadmin')")
+    @DataSource(DataSourceType.MASTER)
     public Result<Object> edit(@RequestBody CrossBorderDTO crossBorderDTO) {
         CrossBorderService crossBorderService = new CrossBorderService();
         BeanUtil.copyProperties(crossBorderDTO, crossBorderService);
@@ -87,6 +92,7 @@ public class BorderServiceController {
     @DeleteMapping("/delete")
     @ApiOperation("删除跨境服务超市")
     @PreAuthorize("hasPermission(null ,'superadmin')")
+    @DataSource(DataSourceType.MASTER)
     public Result<Object> delete(@RequestParam String serviceCode) {
         boolean remove = crossBorderServiceService.remove(
                 new LambdaQueryWrapper<CrossBorderService>()

@@ -1,5 +1,7 @@
 package elec.shop.controller;
 
+import elec.shop.annotation.DataSource;
+import elec.shop.config.DataSourceType;
 import elec.shop.pojo.sys.dto.UpdateProfileDTO;
 import elec.shop.service.sys.SysUserService;
 import elec.shop.utils.AllContextUtils;
@@ -59,6 +61,7 @@ public class FileController {
      */
     @ApiOperation("更新当前用户头像")
     @PostMapping("/avatar")
+    @DataSource(DataSourceType.MASTER)
     public Result<Object> updateAvatar(@RequestParam("file") MultipartFile file) {
         try {
             // 验证文件类型

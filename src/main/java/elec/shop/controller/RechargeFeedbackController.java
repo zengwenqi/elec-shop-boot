@@ -3,6 +3,8 @@ package elec.shop.controller;
 import com.alibaba.excel.EasyExcel;
 import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import elec.shop.annotation.DataSource;
+import elec.shop.config.DataSourceType;
 import elec.shop.pojo.balance.RechargeFeedback;
 import elec.shop.pojo.balance.dto.RechargeFeedbackDTO;
 import elec.shop.pojo.balance.vo.RechargeFeedbackVO;
@@ -39,6 +41,7 @@ public class RechargeFeedbackController {
 
     @PostMapping
     @ApiOperation("新增充值反馈")
+    @DataSource(DataSourceType.MASTER)
     public Result<Object> save(@RequestBody RechargeFeedbackDTO dto) {
         try {
             SysUser sys = AllContextUtils.getLoginSysUser();
@@ -63,6 +66,7 @@ public class RechargeFeedbackController {
     @ApiOperation("删除充值反馈")
     @DeleteMapping("/{id}")
     @Transactional
+    @DataSource(DataSourceType.MASTER)
     public Result<Object> delete(@PathVariable Long id) {
         return Result.ok(rechargeFeedbackService.removeById(id));
     }
@@ -70,6 +74,7 @@ public class RechargeFeedbackController {
     @ApiOperation("批量删除充值反馈（逻辑删除）")
     @DeleteMapping("/batch")
     @Transactional
+    @DataSource(DataSourceType.MASTER)
     public Result<Object> deleteBatch(@RequestBody List<Long> ids) {
         return Result.ok(rechargeFeedbackService.removeByIds(ids));
     }
@@ -77,6 +82,7 @@ public class RechargeFeedbackController {
     @ApiOperation("更新充值反馈")
     @PutMapping
     @Transactional
+    @DataSource(DataSourceType.MASTER)
     public Result<Object> update(@RequestBody RechargeFeedbackDTO dto) {
         RechargeFeedback entity = new RechargeFeedback();
         BeanUtils.copyProperties(dto, entity);
@@ -85,6 +91,7 @@ public class RechargeFeedbackController {
 
     @ApiOperation("更新反馈状态")
     @PutMapping("/status/{id}")
+    @DataSource(DataSourceType.MASTER)
     public Result<Object> updateStatus(@PathVariable Long id,
                                @RequestParam String status,
                                @RequestParam Long handlerId,
@@ -94,6 +101,7 @@ public class RechargeFeedbackController {
 
     @ApiOperation("根据ID查询充值反馈")
     @GetMapping("/{id}")
+    @DataSource(DataSourceType.SLAVE)
     public Result<Object> getById(@PathVariable Long id) {
         RechargeFeedback feedback = rechargeFeedbackService.getById(id);
         List<String> images = feedback.getImages();
@@ -109,6 +117,7 @@ public class RechargeFeedbackController {
 
     @ApiOperation("查询所有充值反馈")
     @GetMapping("/list")
+    @DataSource(DataSourceType.SLAVE)
     public Result<List<RechargeFeedbackVO>> list() {
         List<RechargeFeedback> list = rechargeFeedbackService.list();
         List<RechargeFeedbackVO> listVO = list.stream().map(e -> {
@@ -121,18 +130,21 @@ public class RechargeFeedbackController {
 
     @ApiOperation("根据用户ID查询充值反馈列表")
     @GetMapping("/user/{userId}")
+    @DataSource(DataSourceType.SLAVE)
     public Result<List<RechargeFeedbackVO>> listByUserId(@PathVariable Long userId) {
         return Result.ok(rechargeFeedbackService.listByUserId(userId));
     }
 
     @ApiOperation("根据状态查询充值反馈列表")
     @GetMapping("/status/{status}")
+    @DataSource(DataSourceType.SLAVE)
     public Result<List<RechargeFeedbackVO>> listByStatus(@PathVariable String status) {
         return Result.ok(rechargeFeedbackService.listByStatus(status));
     }
 
     @ApiOperation("分页查询充值反馈")
     @GetMapping("/page")
+    @DataSource(DataSourceType.SLAVE)
     public Result<IPage<RechargeFeedbackVO>> page(
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "10") Integer pageSize,
@@ -144,6 +156,7 @@ public class RechargeFeedbackController {
 
     @ApiOperation("导出充值反馈数据")
     @GetMapping("/export")
+    @DataSource(DataSourceType.SLAVE)
     public void exportFeedback(
             @ApiParam(value = "开始时间", example = "2024-01-01") @RequestParam(required = false) String startTime,
             @ApiParam(value = "结束时间", example = "2024-12-31") @RequestParam(required = false) String endTime,

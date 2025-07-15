@@ -1,6 +1,8 @@
 package elec.shop.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import elec.shop.annotation.DataSource;
+import elec.shop.config.DataSourceType;
 import elec.shop.pojo.purchase.dto.PurchaserTaskQueryDTO;
 import elec.shop.pojo.purchase.dto.TaskStatusChangeDTO;
 import elec.shop.pojo.purchase.vo.PurchaserTaskVO;
@@ -25,6 +27,7 @@ public class PurchaseTaskController {
     // 如果分页可能会存在分页不准确的问题
     @ApiOperation("查询我的采购任务(分页/搜索)")
     @PostMapping("/query")
+    @DataSource(DataSourceType.SLAVE)
     public Result<Object> queryMyPurchaseTask(@RequestBody PurchaserTaskQueryDTO query) {
         IPage<PurchaserTaskVO> taskPage = purchaseTaskService.queryMyPurchaseTask(query);
         return Result.ok(taskPage);
@@ -32,6 +35,7 @@ public class PurchaseTaskController {
 
     @ApiOperation("采购任务状态变化")
     @PostMapping("/status/change")
+    @DataSource(DataSourceType.MASTER)
     public Result<Object> taskStatusChange(@RequestBody TaskStatusChangeDTO dto) {
         Boolean result = purchaseTaskService.taskStatusChange(dto);
         if (result)
@@ -41,6 +45,7 @@ public class PurchaseTaskController {
 
     @ApiOperation("采购任务详情")
     @PostMapping("/info")
+    @DataSource(DataSourceType.SLAVE)
     public Result<Object> taskInfo(@RequestBody PurchaserTaskQueryDTO dto) {
         // 调用服务层获取任务详情
         PurchaserTaskVO taskVO = purchaseTaskService.getTaskInfo(dto.getTaskId());
