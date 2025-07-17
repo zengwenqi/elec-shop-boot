@@ -8,6 +8,7 @@ import elec.shop.pojo.balance.dto.BuQiDTO;
 import elec.shop.pojo.purchase.AccountBalance;
 import elec.shop.pojo.purchase.dto.CurrencyAccountBalanceDTO;
 import elec.shop.pojo.purchase.dto.ExchangeRateDTO;
+import elec.shop.pojo.purchase.dto.ExchangeRateIdsDTO;
 import elec.shop.pojo.purchase.vo.CurrencyAccountVO;
 import elec.shop.utils.Result;
 
@@ -74,4 +75,9 @@ public interface AccountBalanceService extends IService<AccountBalance> {
      * 补齐差价
      */
     Result buqiAccount(BuQiDTO dto);
+
+    /**
+     * 批量更新指定账户的指定汇率信息
+     */
+    Boolean changeIdsCurrencyAccounts(ExchangeRateIdsDTO exchangeRateIdsDTO);
 }

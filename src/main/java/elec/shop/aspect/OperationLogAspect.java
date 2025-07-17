@@ -2,6 +2,8 @@ package elec.shop.aspect;
 
 import com.alibaba.fastjson.JSON;
 import elec.shop.annotation.OperationLog;
+import elec.shop.config.DataSourceType;
+import elec.shop.config.DynamicDataSourceContextHolder;
 import elec.shop.pojo.purchase.PurchaseOrderLog;
 import elec.shop.pojo.sys.SysLoginLog;
 import elec.shop.pojo.sys.SysOperationLog;
@@ -46,6 +48,11 @@ public class OperationLogAspect {
 
     @Around("logPointCut()")
     public Object around(ProceedingJoinPoint point) throws Throwable {
+        // 保存原有数据源
+        String originalDataSource = DynamicDataSourceContextHolder.getDataSourceType();
+        // 强制切换到主库
+        DynamicDataSourceContextHolder.setDataSourceType(DataSourceType.MASTER.name());
+        
         long beginTime = System.currentTimeMillis();
         Object result = null;
         Exception exception = null;
@@ -61,6 +68,12 @@ public class OperationLogAspect {
             long time = System.currentTimeMillis() - beginTime;
             // 保存日志
             saveLog(point, time, result, exception);
+            // 恢复原有数据源
+            if (originalDataSource != null) {
+                DynamicDataSourceContextHolder.setDataSourceType(originalDataSource);
+            } else {
+                DynamicDataSourceContextHolder.clearDataSourceType();
+            }
         }
     }
 

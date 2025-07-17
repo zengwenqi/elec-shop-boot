@@ -14,6 +14,7 @@ import elec.shop.pojo.balance.dto.BuQiDTO;
 import elec.shop.pojo.purchase.*;
 import elec.shop.pojo.purchase.dto.CurrencyAccountBalanceDTO;
 import elec.shop.pojo.purchase.dto.ExchangeRateDTO;
+import elec.shop.pojo.purchase.dto.ExchangeRateIdsDTO;
 import elec.shop.pojo.purchase.enums.AccountStatusEnum;
 import elec.shop.pojo.sys.SysUser;
 import elec.shop.service.purchase.AccountBalanceService;
@@ -412,6 +413,25 @@ public class AccountBalanceServiceImpl extends ServiceImpl<AccountBalanceMapper,
         SysUser sysUser = sysUserMapper.selectOne(new LambdaQueryWrapper<SysUser>().eq(SysUser::getUserId, purchaserInfo.getUserId()));
         emailUtil.sendCustomEmail(sysUser.getEmail(),"采购订单通知", "您有一个采购订单"+purchaseOrder.getOrderNo()+"差价已补齐，请即使处理!!!。");
         return Result.ok();
+    }
+
+    @Override
+    @Transactional
+    public Boolean changeIdsCurrencyAccounts(ExchangeRateIdsDTO exchangeRateIdsDTO) {
+        List<String> accountIds = exchangeRateIdsDTO.getAccountIds();
+        if (accountIds == null || accountIds.isEmpty()) {
+            return false;
+        }
+
+        AccountBalance accountBalance = new AccountBalance();
+        BeanUtils.copyProperties(exchangeRateIdsDTO, accountBalance);
+
+        LambdaQueryWrapper<AccountBalance> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.in(AccountBalance::getAccountId, accountIds)
+                .eq(AccountBalance::getCurrency, exchangeRateIdsDTO.getCurrency());
+
+        int update = accountBalanceMapper.update(accountBalance, queryWrapper);
+        return update > 0;
     }
 
     /**

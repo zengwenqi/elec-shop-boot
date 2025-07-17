@@ -6,6 +6,7 @@ import elec.shop.annotation.DataSource;
 import elec.shop.config.DataSourceType;
 import elec.shop.pojo.purchase.dto.CurrencyAccountBalanceDTO;
 import elec.shop.pojo.purchase.dto.ExchangeRateDTO;
+import elec.shop.pojo.purchase.dto.ExchangeRateIdsDTO;
 import elec.shop.service.purchase.AccountBalanceService;
 import elec.shop.sms.ExchangeRateService;
 import elec.shop.utils.Result;
@@ -89,6 +90,21 @@ public class ExchangeRateController {
                 return Result.fail().message("不支持的货币类型");
             }
             Boolean result = accountBalanceService.changeCurrencyAccounts(exchangeRateDTO);
+            return Result.ok(result);
+        } catch (Exception e) {
+            return Result.fail().message("获取账户信息失败：" + e.getMessage());
+        }
+    }
+
+    @PostMapping("/accounts/changeIds/exchange-rate")
+    @ApiOperation("批量更新指定账户的指定汇率信息")
+    @DataSource(DataSourceType.MASTER)
+    public Result<Object> changeIdsCurrencyAccounts(@RequestBody ExchangeRateIdsDTO exchangeRateIdsDTO) {
+        try {
+            if (!Arrays.asList("USD", "EUR", "GBP", "JPY", "CNY").contains(exchangeRateIdsDTO.getCurrency())) {
+                return Result.fail().message("不支持的货币类型");
+            }
+            Boolean result = accountBalanceService.changeIdsCurrencyAccounts(exchangeRateIdsDTO);
             return Result.ok(result);
         } catch (Exception e) {
             return Result.fail().message("获取账户信息失败：" + e.getMessage());
