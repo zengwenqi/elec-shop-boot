@@ -2,7 +2,7 @@ package elec.shop.service.sys;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import elec.shop.pojo.sys.dto.RegisterRequest;
-import elec.shop.pojo.sys.dto.UserDetailVO;
+import elec.shop.pojo.sys.vo.UserDetailVO;
 import elec.shop.pojo.sys.SysUser;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import elec.shop.pojo.sys.dto.AssignRoleDTO;

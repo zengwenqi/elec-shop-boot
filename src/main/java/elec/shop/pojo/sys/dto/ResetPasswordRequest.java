@@ -15,4 +15,7 @@ public class ResetPasswordRequest {
 
     @ApiModelProperty("新密码")
     private String newPassword;
-} 
+
+    @ApiModelProperty("新密码")
+    private Integer root;
+}

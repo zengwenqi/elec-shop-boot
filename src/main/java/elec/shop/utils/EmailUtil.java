@@ -31,11 +31,11 @@ public class EmailUtil {
 
         try{
             String subjectName = messageHeader;
-            String contentTemplate = "您正在执行"+ messageHeader +"操作，验证码是%s，1分钟内有效";
+            String contentTemplate = "您正在执行"+ messageHeader +"操作，验证码是%s，10分钟内有效";
             String verifyCode = RandomStringUtils.random(6, "0123456789");
             String content = String.format(contentTemplate, verifyCode);
 
-            redisTemplate.opsForValue().set(receiver,verifyCode, 60, TimeUnit.SECONDS);
+            redisTemplate.opsForValue().set(receiver,verifyCode, 10, TimeUnit.MINUTES);
             //定义email信息格式
             SimpleMailMessage message = new SimpleMailMessage();
             //设置发件人

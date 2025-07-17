@@ -8,6 +8,7 @@ import elec.shop.annotation.DataSource;
 import elec.shop.config.DataSourceType;
 import elec.shop.pojo.sys.dto.*;
 import elec.shop.pojo.sys.SysUser;
+import elec.shop.pojo.sys.vo.EmailVerifyResponse;
 import elec.shop.security.TokenManager;
 import elec.shop.security.CustomUserDetails;
 import elec.shop.security.AuthResponse;
@@ -75,7 +76,7 @@ public class AuthController {
     @ApiOperation("用户登录")
     @PostMapping("/login")
     @OperationLog(module = "认证管理", operationType = "登录", description = "用户登录", isLogin = true)
-    @DataSource(DataSourceType.SLAVE)
+    @DataSource(DataSourceType.MASTER)
     public Result<Object> login(@RequestBody LoginRequest request, HttpServletRequest servletRequest, HttpServletResponse response) {
         try {
             // 检查是否被锁定
@@ -286,7 +287,12 @@ public class AuthController {
     @ApiOperation("获取邮箱验证码")
     @GetMapping("/email/code")
     @DataSource(DataSourceType.SLAVE)
-    public Result<Object> getEmailCode(@RequestParam("email") String email) {
+    public Result<Object> getEmailCode(@RequestParam("email") String email,
+                                       @RequestParam(value = "type",required = false) Integer type) {
+        if (type==1) {
+            emailUtil.sendEmail("忘记密码",email);
+            return Result.ok();
+        }
         long count = userService.count(new LambdaQueryWrapper<SysUser>()
                 .eq(SysUser::getEmail, email));
         if (count==1){
@@ -327,9 +333,14 @@ public class AuthController {
     @DataSource(DataSourceType.MASTER)
     public Result<Object> resetPassword(@RequestBody ResetPasswordRequest request) {
 
-        SysUser loginSysUser = AllContextUtils.getLoginSysUser();
-        SysUser byId = sysUserService.getById(loginSysUser.getUserId());
-        if (byId.getUserType() == 1) {
+        SysUser byid = null;
+        if (request.getRoot()==1){
+            byid = sysUserService.getUserByEmail(request.getEmail());
+        }else {
+            SysUser loginSysUser = AllContextUtils.getLoginSysUser();
+            byid = sysUserService.getById(loginSysUser.getUserId());
+        }
+        if (byid.getUserType() == 1) {
 //            request.setNewPassword("123456");
             userService.resetPassword(request.getEmail(), request.getNewPassword());
             return Result.ok();

@@ -1,4 +1,4 @@
-package elec.shop.pojo.sys.dto;
+package elec.shop.pojo.sys.vo;
 
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
@@ -17,4 +17,4 @@ public class EmailVerifyResponse {
 
     @ApiModelProperty("邮箱")
     private String email;
-} 
+}

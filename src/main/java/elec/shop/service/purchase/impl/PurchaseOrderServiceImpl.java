@@ -116,6 +116,7 @@ public class PurchaseOrderServiceImpl extends ServiceImpl<PurchaseOrderMapper, P
                     .eq(query.getShopId() != null, PurchaseOrder::getShopId, query.getShopId())
                     .eq(query.getOrderStatus() != null, PurchaseOrder::getOrderStatus, query.getOrderStatus())
                     .eq(query.getPaymentStatus() != null, PurchaseOrder::getPaymentStatus, query.getPaymentStatus())
+                    .eq(AllContextUtils.getLoginSysUser().getUserId() != null, PurchaseOrder::getUserId, AllContextUtils.getLoginSysUser().getUserId())
                     .ge(StringUtils.isNotBlank(query.getStartTime()), PurchaseOrder::getCreatedAt, query.getStartTime())
                     .le(StringUtils.isNotBlank(query.getEndTime()), PurchaseOrder::getUpdatedAt, query.getEndTime())
                     .like(query.getKey() != null, PurchaseOrder::getOrderNo, query.getKey())

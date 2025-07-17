@@ -1,4 +1,4 @@
-package elec.shop.pojo.sys.dto;
+package elec.shop.pojo.sys.vo;
 
 import lombok.Data;
 

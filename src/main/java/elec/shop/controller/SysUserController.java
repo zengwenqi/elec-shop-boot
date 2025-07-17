@@ -8,7 +8,7 @@ import elec.shop.exception.BusinessException;
 import elec.shop.pojo.sys.SysUser;
 import elec.shop.pojo.sys.dto.AssignRoleDTO;
 import elec.shop.pojo.sys.dto.UpdatePasswordDTO;
-import elec.shop.pojo.sys.dto.UserDetailVO;
+import elec.shop.pojo.sys.vo.UserDetailVO;
 import elec.shop.pojo.sys.dto.UpdateProfileDTO;
 import elec.shop.service.sys.SysUserService;
 import elec.shop.utils.AllContextUtils;
@@ -25,7 +25,6 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 @Api(tags = "用户管理")
 @RestController

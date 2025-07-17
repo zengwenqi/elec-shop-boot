@@ -8,7 +8,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import elec.shop.mapper.purchase.*;
 import elec.shop.pojo.purchase.*;
 import elec.shop.pojo.sys.dto.RegisterRequest;
-import elec.shop.pojo.sys.dto.UserDetailVO;
+import elec.shop.pojo.sys.vo.UserDetailVO;
 import elec.shop.exception.BusinessException;
 import elec.shop.mapper.sys.SysRoleMapper;
 import elec.shop.mapper.sys.SysUserMapper;
@@ -16,7 +16,6 @@ import elec.shop.mapper.sys.SysUserRoleMapper;
 import elec.shop.pojo.sys.SysRole;
 import elec.shop.pojo.sys.SysUser;
 import elec.shop.pojo.sys.SysUserRole;
-import elec.shop.pojo.sys.enums.UserType;
 import elec.shop.service.purchase.ShopInfoService;
 import elec.shop.service.sys.SysPermissionService;
 import elec.shop.service.sys.SysUserService;
@@ -518,6 +517,9 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     @Override
     public Map<String, Object> merchantProfile(SysUser one) {
         Long userId = one.getUserId();
+        UserDetailVO userDetailVO = new UserDetailVO();
+        BeanUtils.copyProperties(one, userDetailVO);
+        userDetailVO.setAvatar(minioUtil.getPreviewUrl(userDetailVO.getAvatar()));
         FinanceAccount financeAccount = financeAccountMapper.selectOne(new LambdaQueryWrapper<FinanceAccount>()
                 .eq(FinanceAccount::getUserId, userId));
         List<AccountBalance> accountBalances = accountBalanceMapper.selectList(new LambdaQueryWrapper<AccountBalance>()
@@ -525,13 +527,16 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
         Long l = shopInfoMapper.selectCount(new LambdaQueryWrapper<ShopInfo>().eq(ShopInfo::getUserId, userId));
         Long l1 = purchaseOrderMapper.selectCount(new LambdaQueryWrapper<PurchaseOrder>().eq(PurchaseOrder::getUserId, userId));
         Map<String, Object> map = new HashMap<>();
+        Map<String, Object> map1 = new HashMap<>();
         map.put("shopCount", l);
         map.put("orderCount", l1);
-        map.put("CNY", financeAccount.getBanlance());
+        map1.put("CNY", financeAccount.getBanlance());
         for (AccountBalance accountBalance : accountBalances) {
-            map.put(accountBalance.getCurrency(), accountBalance.getBalance());
-            map.put(accountBalance.getCurrency() + "Rate", accountBalance.getExchangeRate());
+            map1.put(accountBalance.getCurrency(), accountBalance.getBalance());
+            map1.put(accountBalance.getCurrency() + "Rate", accountBalance.getExchangeRate());
         }
+        map.put("balance", map1);
+        map.put("user", userDetailVO);
         return map;
     }
 
