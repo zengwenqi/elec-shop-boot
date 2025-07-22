@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="elec.shop.mapper.purchase.PurchaseOrderDraftMapper">
+
+    <resultMap id="BaseResultMap" type="elec.shop.pojo.purchase.PurchaseOrderDraft">
+        <id property="id" column="id" />
+        <result property="userId" column="user_id" />
+        <result property="shopId" column="shop_id" />
+        <result property="crossService" column="cross_service" />
+        <result property="contactPhone" column="contact_phone" />
+        <result property="infoAddress" column="info_address" />
+        <result property="infoAddressBei" column="info_address_bei" />
+        <result property="reciverPerson" column="reciver_person" />
+        <result property="currency" column="currency" />
+        <result property="goodsOrderNo" column="goods_order_no" />
+        <result property="remark" column="remark" />
+        <result property="draftData" column="draft_data" typeHandler="elec.shop.handler.JsonNodeTypeHandler"/>
+        <result property="createdAt" column="created_at" />
+        <result property="updatedAt" column="updated_at" />
+        <result property="expireTime" column="expire_time" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,user_id,shop_id,cross_service,contact_phone,info_address,
+        info_address_bei,reciver_person,currency,goods_order_no,remark,
+        draft_data,created_at,updated_at,expire_time
+    </sql>
+</mapper>

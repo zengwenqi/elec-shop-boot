@@ -64,13 +64,13 @@
             <option name="needSerializable" value="true" />
             <option name="needsComment" value="true" />
             <option name="needsModel" value="true" />
-            <option name="relativePackage" value="pojo.balance" />
+            <option name="relativePackage" value="pojo.purchase" />
             <option name="superClass" value="" />
             <option name="tableUIInfoList">
               <list>
                 <TableUIInfo>
-                  <option name="className" value="RechargeFeedback" />
-                  <option name="tableName" value="recharge_feedback" />
+                  <option name="className" value="PurchaseOrderDraft" />
+                  <option name="tableName" value="purchase_order_draft" />
                 </TableUIInfo>
               </list>
             </option>

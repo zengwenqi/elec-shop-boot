@@ -10,6 +10,9 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 @Configuration
 public class RedisConfig {
 
+    public static final String PURCHASE_ORDER_DRAFT_KEY = "PURCHASE_ORDER_DRAFT:";
+    public static final long CACHE_EXPIRE_HOURS = 1; // 缓存1小时
+
     @Bean
     public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory connectionFactory) {
         RedisTemplate<String, Object> template = new RedisTemplate<>();
