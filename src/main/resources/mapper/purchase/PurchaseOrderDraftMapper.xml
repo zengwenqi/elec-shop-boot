@@ -27,4 +27,15 @@
         info_address_bei,reciver_person,currency,goods_order_no,remark,
         draft_data,created_at,updated_at,expire_time
     </sql>
+
+    <select id="selectDraftByUserId" resultMap="BaseResultMap">
+        SELECT 
+            id, user_id, shop_id, cross_service, contact_phone, 
+            info_address, info_address_bei, reciver_person, currency, 
+            goods_order_no, remark, draft_data, created_at, updated_at, expire_time
+        FROM purchase_order_draft
+        WHERE user_id = #{userId}
+        ORDER BY created_at DESC
+        LIMIT 1
+    </select>
 </mapper>

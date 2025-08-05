@@ -435,7 +435,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     }
 
     @Override
-    public Boolean resetPassword(String email, String newPassword) {
+    public String resetPassword(String email, String newPassword) {
         // 根据邮箱查找用户
         SysUser user = baseMapper.selectOne(
             new LambdaQueryWrapper<SysUser>()
@@ -449,9 +449,10 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
         try {
             // 更新密码
             user.setPassword(passwordEncoder.encode(RsaDecryptUtil.decryptString(newPassword)));
-            return baseMapper.updateById(user) > 0;
+            baseMapper.updateById(user);
+            return user.getEmail();
         }catch (Exception e){
-            return false;
+            return null;
         }
     }
 

@@ -32,17 +32,22 @@ public class ServiceTicket implements Serializable {
     private Long userId;
 
     /**
+     * 采购员ID
+     */
+    private Long purchaseId;
+
+    /**
      * 关联订单ID
      */
     private Long orderId;
 
     /**
-     * 工单类型
+     * 工单类型(0-其他问题 1-技术支持 2-功能建议 3-问题反馈 4-账户问题)
      */
     private Integer ticketType;
 
     /**
-     * 优先级：0-普通 1-急需 2-紧急
+     * 优先级：0-低 1-中 2-高 3-紧急
      */
     private Integer priority;
 

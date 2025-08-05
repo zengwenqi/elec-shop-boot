@@ -31,6 +31,11 @@ public class PurchaseOrderLog implements Serializable {
     private Integer orderStatus;
 
     /**
+     * 执行时长(毫秒)
+     */
+    private Long time;
+
+    /**
      * 操作类型
      */
     private String operationType;

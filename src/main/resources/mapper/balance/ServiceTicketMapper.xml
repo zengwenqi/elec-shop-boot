@@ -31,4 +31,94 @@
         first_reply_time,last_reply_time,close_time,created_at,updated_at,
         tenant_id,is_deleted
     </sql>
+
+    <!-- 导出数据专用的ResultMap -->
+    <resultMap id="ExportResultMap" type="elec.shop.pojo.balance.vo.ServiceTicketExportVO">
+        <result property="ticketNo" column="ticket_no" />
+        <result property="title" column="title" />
+        <result property="content" column="content" />
+        <result property="imagesStr" column="images_str" />
+        <result property="type" column="type_text" />
+        <result property="status" column="status_text" />
+        <result property="priority" column="priority_text" />
+        <result property="username" column="username" />
+        <result property="mobile" column="mobile" />
+        <result property="purchaserCode" column="purchaser_code" />
+        <result property="createTime" column="create_time" />
+        <result property="closeTime" column="close_time" />
+    </resultMap>
+
+    <!-- 导出工单数据的多表查询 -->
+    <select id="selectTicketsForExport" resultMap="ExportResultMap">
+        SELECT 
+            st.ticket_no,
+            st.title,
+            st.content,
+            st.images as images_str,
+            CASE st.ticket_type 
+                WHEN 0 THEN '售后服务'
+                WHEN 1 THEN '技术支持'
+                WHEN 2 THEN '投诉建议'
+                WHEN 3 THEN '退换货'
+                ELSE '其他'
+            END as type_text,
+            CASE st.status 
+                WHEN 0 THEN '待处理'
+                WHEN 1 THEN '处理中'
+                WHEN 2 THEN '已解决'
+                WHEN 3 THEN '已关闭'
+                ELSE '未知'
+            END as status_text,
+            CASE st.priority 
+                WHEN 0 THEN '低'
+                WHEN 1 THEN '普通'
+                WHEN 2 THEN '高'
+                WHEN 3 THEN '紧急'
+                ELSE '普通'
+            END as priority_text,
+            su.username,
+            su.mobile,
+            pi.purchaser_code,
+            DATE_FORMAT(st.created_at, '%Y-%m-%d %H:%i:%s') as create_time,
+            DATE_FORMAT(st.close_time, '%Y-%m-%d %H:%i:%s') as close_time
+        FROM service_ticket st
+        LEFT JOIN sys_user su ON st.user_id = su.user_id
+        LEFT JOIN purchaser_info pi ON st.purchase_id = pi.purchaser_id
+        WHERE st.is_deleted = 0
+        <if test="userType == 3 and purchaserId != null">
+            AND st.purchase_id = #{purchaserId}
+        </if>
+        <if test="userType == 4 and userId != null">
+            AND st.user_id = #{userId}
+        </if>
+        <if test="queryType == 'PURCHASER'">
+            AND st.purchase_id IS NOT NULL
+        </if>
+        <if test="queryType == 'MERCHANT'">
+            AND st.purchase_id IS NULL
+        </if>
+        <if test="type != null and type != ''">
+            AND st.ticket_type = #{typeInt}
+        </if>
+        <if test="status != null and status != ''">
+            AND st.status = #{statusInt}
+        </if>
+        <if test="keyword != null and keyword != ''">
+            AND (
+                st.title LIKE CONCAT('%', #{keyword}, '%')
+                OR st.content LIKE CONCAT('%', #{keyword}, '%')
+                OR st.ticket_no LIKE CONCAT('%', #{keyword}, '%')
+            )
+        </if>
+        <if test="priority != null and priority != -1">
+            AND st.priority = #{priority}
+        </if>
+        <if test="filterUserId != null">
+            AND st.user_id = #{filterUserId}
+        </if>
+        <if test="filterPurchaseId != null">
+            AND st.purchase_id = #{filterPurchaseId}
+        </if>
+        ORDER BY st.created_at DESC
+    </select>
 </mapper>

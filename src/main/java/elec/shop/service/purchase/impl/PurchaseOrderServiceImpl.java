@@ -16,6 +16,7 @@ import elec.shop.pojo.purchase.vo.PurchaserOrderExportVO;
 import elec.shop.pojo.purchase.vo.PurchaserOrderItemVO;
 import elec.shop.pojo.purchase.vo.PurchaserOrderVO;
 import elec.shop.pojo.sys.SysUser;
+import elec.shop.pojo.sys.vo.UserDetailVO;
 import elec.shop.service.purchase.PurchaseOrderItemService;
 import elec.shop.service.purchase.PurchaseOrderService;
 import elec.shop.service.purchase.PurchaserInfoService;
@@ -110,18 +111,22 @@ public class PurchaseOrderServiceImpl extends ServiceImpl<PurchaseOrderMapper, P
     @Override
     public IPage<PurchaserOrderVO> queryUserOrders(PurchaserOrderQueryDTO query) {
         try {
+            SysUser loginSysUser = AllContextUtils.getLoginSysUser();
+            SysUser byId = sysUserService.getById(loginSysUser.getUserId());
             // 1. 构建主表查询条件，使用索引优化
             LambdaQueryWrapper<PurchaseOrder> wrapper = new LambdaQueryWrapper<PurchaseOrder>()
                     .eq(PurchaseOrder::getIsDeleted, 0)
                     .eq(query.getShopId() != null, PurchaseOrder::getShopId, query.getShopId())
                     .eq(query.getOrderStatus() != null, PurchaseOrder::getOrderStatus, query.getOrderStatus())
                     .eq(query.getPaymentStatus() != null, PurchaseOrder::getPaymentStatus, query.getPaymentStatus())
-                    .eq(AllContextUtils.getLoginSysUser().getUserId() != null, PurchaseOrder::getUserId, AllContextUtils.getLoginSysUser().getUserId())
                     .ge(StringUtils.isNotBlank(query.getStartTime()), PurchaseOrder::getCreatedAt, query.getStartTime())
                     .le(StringUtils.isNotBlank(query.getEndTime()), PurchaseOrder::getUpdatedAt, query.getEndTime())
                     .like(query.getKey() != null, PurchaseOrder::getOrderNo, query.getKey())
                     .eq(StringUtils.isNotBlank(query.getOrderNo()), PurchaseOrder::getOrderNo, query.getOrderNo())
                     .last("ORDER BY CASE WHEN order_status = 5 THEN 1 ELSE 0 END, created_at DESC");
+            if (byId.getUserType()==3||byId.getUserType()==4) {
+                wrapper.eq(loginSysUser.getUserId() != null, PurchaseOrder::getUserId, loginSysUser.getUserId());
+            }
 
             // 2. 主表分页查询
             Page<PurchaseOrder> page = new Page<>(query.getPage(), query.getSize());

@@ -20,6 +20,9 @@
         <result column="total_amount" property="totalAmount" />
         <result column="currency" property="currency" />
         <result column="contact_phone" property="contactPhone" />
+        <result column="state" property="state" />
+        <result column="city" property="city" />
+        <result column="postal_code" property="postalCode" />
         <result column="info_address" property="infoAddress" />
         <result column="info_address_bei" property="infoAddressBei" />
         <result column="reciver_person" property="reciverPerson" />
@@ -101,7 +104,11 @@
                 ELSE '未知'
             END as order_type,
             po.contact_phone,
+            po.state,
+            po.city,
+            po.postal_code,
             po.info_address,
+            po.info_address_bei,
             po.reciver_person,
             CASE po.order_status
                 WHEN 0 THEN '待确认'

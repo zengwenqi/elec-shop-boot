@@ -32,6 +32,15 @@ public class PurchaserOrderDTO {
     @ApiModelProperty("联系电话")
     private String contactPhone;
 
+    @ApiModelProperty("州")
+    private String state;
+
+    @ApiModelProperty("城市")
+    private String city;
+
+    @ApiModelProperty("邮政编码")
+    private String postalCode;
+
     @ApiModelProperty("收货地址")
     private String infoAddress;
 

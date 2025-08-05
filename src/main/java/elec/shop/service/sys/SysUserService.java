@@ -99,7 +99,7 @@ public interface SysUserService extends IService<SysUser> {
      * @param newPassword 新密码
      * @return 是否成功
      */
-    Boolean resetPassword(String email, String newPassword);
+    String resetPassword(String email, String newPassword);
 
     /**
      * 根据邮箱获取用户信息

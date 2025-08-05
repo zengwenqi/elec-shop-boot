@@ -91,6 +91,21 @@ public class PurchaseOrder extends BaseEntity implements Serializable {
     private String contactPhone;
 
     /**
+     * 州
+     */
+    private String state;
+
+    /**
+     * 城市
+     */
+    private String city;
+
+    /**
+     * 邮政编码
+     */
+    private String postalCode;
+
+    /**
      * 收货地址
      */
     private String infoAddress;

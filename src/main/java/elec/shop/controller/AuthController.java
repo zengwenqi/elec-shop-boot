@@ -341,8 +341,10 @@ public class AuthController {
             byid = sysUserService.getById(loginSysUser.getUserId());
         }
         if (byid.getUserType() == 1) {
-//            request.setNewPassword("123456");
-            userService.resetPassword(request.getEmail(), request.getNewPassword());
+            String s1 = userService.resetPassword(request.getEmail(), request.getNewPassword());
+            if (s1==null) return Result.fail().message("该邮箱未绑定任何账户");
+            String s = RsaDecryptUtil.decryptString(request.getNewPassword());
+            emailUtil.sendCustomEmail(s1,"重置密码成功","您的密码变更为"+s+"请妥善保管");
             return Result.ok();
         }
         // 验证邮箱验证码
@@ -352,8 +354,8 @@ public class AuthController {
         }
 
         // 重置密码
-        Boolean result = userService.resetPassword(request.getEmail(), request.getNewPassword());
-        if (result) {
+        String result = userService.resetPassword(request.getEmail(), request.getNewPassword());
+        if (result!=null) {
             // 删除验证码缓存
             redisTemplate.delete(request.getEmail());
             return Result.ok();

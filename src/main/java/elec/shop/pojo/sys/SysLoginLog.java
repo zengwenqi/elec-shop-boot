@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import java.io.Serializable;
 import java.util.Date;
 import lombok.Data;
+import org.springframework.format.annotation.DateTimeFormat;
 
 /**
  * 登录日志表
@@ -36,6 +37,11 @@ public class SysLoginLog implements Serializable {
     private String ip;
 
     /**
+     * 执行时长(毫秒)
+     */
+    private Long time;
+
+    /**
      * 地理位置
      */
     private String location;
@@ -63,6 +69,7 @@ public class SysLoginLog implements Serializable {
     /**
      * 登录时间
      */
+    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Date loginTime;
 
     /**

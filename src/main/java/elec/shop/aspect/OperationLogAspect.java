@@ -52,7 +52,7 @@ public class OperationLogAspect {
         String originalDataSource = DynamicDataSourceContextHolder.getDataSourceType();
         // 强制切换到主库
         DynamicDataSourceContextHolder.setDataSourceType(DataSourceType.MASTER.name());
-        
+
         long beginTime = System.currentTimeMillis();
         Object result = null;
         Exception exception = null;
@@ -102,8 +102,11 @@ public class OperationLogAspect {
             if (operationLog.isLogin()) {
                 // 处理登录日志
                 SysLoginLog loginLog = new SysLoginLog();
-                loginLog.setLogId(new SnowflakeLogIdGenerator(0L, 0L).generateId()); // 实际项目中建议使用ID生成器
+                loginLog.setLogId(new SnowflakeLogIdGenerator(0L, 0L).generateId());
                 loginLog.setIp(ip);
+                loginLog.setUserId(loginSysUser.getUserId());
+                loginLog.setUsername(loginSysUser.getUsername());
+                loginLog.setTime(time);
                 loginLog.setLocation(location);
                 loginLog.setBrowser(userAgent.getBrowser().getName());
                 loginLog.setOs(userAgent.getOperatingSystem().getName());
@@ -128,6 +131,7 @@ public class OperationLogAspect {
                 orderLog.setLogId(new SnowflakeLogIdGenerator(1L, 1L).generateId());
                 orderLog.setOperatorId(loginSysUser.getUserId());
                 orderLog.setOperatorName(loginSysUser.getUsername());
+                orderLog.setTime(time);
                 orderLog.setOperationType(operationLog.operationType());
                 orderLog.setOperationDesc(operationLog.description());
                 orderLog.setCreatedAt(new Date());

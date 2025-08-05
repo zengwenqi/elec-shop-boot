@@ -229,6 +229,19 @@
             <version>2.15.2</version>
         </dependency>
 
+        <!-- Hibernate Validator（Bean Validation 实现） -->
+        <dependency>
+            <groupId>org.hibernate.validator</groupId>
+            <artifactId>hibernate-validator</artifactId>
+            <version>8.0.1.Final</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.github.oshi</groupId>
+            <artifactId>oshi-core</artifactId>
+            <version>6.4.13</version>
+        </dependency>
+
     </dependencies>
 
     <build>
