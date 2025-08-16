@@ -1,0 +1,281 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="elec.shop.mapper.balance.UserCommissionConfigMapper">
+
+    <resultMap id="BaseResultMap" type="elec.shop.pojo.balance.UserCommissionConfig">
+        <id property="configId" column="config_id" jdbcType="BIGINT"/>
+        <result property="userId" column="user_id" jdbcType="BIGINT"/>
+        <result property="username" column="username" jdbcType="VARCHAR"/>
+        <result property="realName" column="real_name" jdbcType="VARCHAR"/>
+        <result property="userType" column="user_type" jdbcType="INTEGER"/>
+        <result property="commissionType" column="commission_type" jdbcType="INTEGER"/>
+        <result property="commissionValue" column="commission_value" jdbcType="DECIMAL"/>
+        <result property="minCommission" column="min_commission" jdbcType="DECIMAL"/>
+        <result property="maxCommission" column="max_commission" jdbcType="DECIMAL"/>
+        <result property="effectiveTime" column="effective_time" jdbcType="TIMESTAMP"/>
+        <result property="expiryTime" column="expiry_time" jdbcType="TIMESTAMP"/>
+        <result property="status" column="status" jdbcType="INTEGER"/>
+        <result property="remark" column="remark" jdbcType="VARCHAR"/>
+        <result property="createdBy" column="created_by" jdbcType="VARCHAR"/>
+        <result property="createdAt" column="created_at" jdbcType="TIMESTAMP"/>
+        <result property="updatedBy" column="updated_by" jdbcType="VARCHAR"/>
+        <result property="updatedAt" column="updated_at" jdbcType="TIMESTAMP"/>
+        <result property="isDeleted" column="is_deleted" jdbcType="INTEGER"/>
+        <result property="deletedAt" column="deleted_at" jdbcType="TIMESTAMP"/>
+        <result property="version" column="version" jdbcType="INTEGER"/>
+        <result property="tenantId" column="tenant_id" jdbcType="BIGINT"/>
+    </resultMap>
+
+    <resultMap id="UserCommissionConfigVOMap" type="elec.shop.pojo.balance.vo.UserCommissionConfigVO">
+        <id property="configId" column="config_id" jdbcType="BIGINT"/>
+        <result property="userId" column="user_id" jdbcType="BIGINT"/>
+        <result property="username" column="username" jdbcType="VARCHAR"/>
+        <result property="realName" column="real_name" jdbcType="VARCHAR"/>
+        <result property="userType" column="user_type" jdbcType="INTEGER"/>
+        <result property="userTypeName" column="user_type_name" jdbcType="VARCHAR"/>
+        <result property="commissionType" column="commission_type" jdbcType="INTEGER"/>
+        <result property="commissionTypeName" column="commission_type_name" jdbcType="VARCHAR"/>
+        <result property="commissionValue" column="commission_value" jdbcType="DECIMAL"/>
+        <result property="minCommission" column="min_commission" jdbcType="DECIMAL"/>
+        <result property="maxCommission" column="max_commission" jdbcType="DECIMAL"/>
+        <result property="effectiveTime" column="effective_time" jdbcType="TIMESTAMP"/>
+        <result property="expiryTime" column="expiry_time" jdbcType="TIMESTAMP"/>
+        <result property="status" column="status" jdbcType="INTEGER"/>
+        <result property="statusName" column="status_name" jdbcType="VARCHAR"/>
+        <result property="remark" column="remark" jdbcType="VARCHAR"/>
+        <result property="createdBy" column="created_by" jdbcType="VARCHAR"/>
+        <result property="createdAt" column="created_at" jdbcType="TIMESTAMP"/>
+        <result property="updatedBy" column="updated_by" jdbcType="VARCHAR"/>
+        <result property="updatedAt" column="updated_at" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        config_id, user_id, username, real_name, user_type, commission_type, commission_value,
+        min_commission, max_commission, effective_time, expiry_time,
+        status, remark, created_by, created_at, updated_by, updated_at,
+        is_deleted, deleted_at, version, tenant_id
+    </sql>
+
+    <!-- 分页查询用户佣金配置列表 -->
+    <select id="selectUserConfigPage" resultMap="UserCommissionConfigVOMap">
+        SELECT
+            ucc.config_id,
+            ucc.user_id,
+            ucc.username,
+            ucc.real_name,
+            ucc.user_type,
+            CASE ucc.user_type
+                WHEN 1 THEN '采购员'
+                WHEN 2 THEN '管理员'
+                ELSE '未知'
+            END AS user_type_name,
+            ucc.commission_type,
+            CASE ucc.commission_type
+                WHEN 1 THEN '固定金额'
+                WHEN 2 THEN '百分比'
+                ELSE '未知'
+            END AS commission_type_name,
+            ucc.commission_value,
+            ucc.min_commission,
+            ucc.max_commission,
+            ucc.effective_time,
+            ucc.expiry_time,
+            ucc.status,
+            CASE ucc.status
+                WHEN 0 THEN '禁用'
+                WHEN 1 THEN '启用'
+                ELSE '未知'
+            END AS status_name,
+            ucc.remark,
+            ucc.created_by,
+            ucc.created_at,
+            ucc.updated_by,
+            ucc.updated_at
+        FROM user_commission_config ucc
+        WHERE ucc.is_deleted = 0
+        <if test="userType != null">
+            AND ucc.user_type = #{userType}
+        </if>
+        <if test="status != null">
+            AND ucc.status = #{status}
+        </if>
+        <if test="keyword != null and keyword != ''">
+            AND (ucc.username LIKE CONCAT('%', #{keyword}, '%')
+                 OR ucc.real_name LIKE CONCAT('%', #{keyword}, '%')
+                 OR ucc.remark LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        ORDER BY ucc.created_at DESC
+    </select>
+
+    <!-- 查询用户佣金配置列表 -->
+    <select id="selectUserConfigList" resultMap="UserCommissionConfigVOMap">
+        SELECT
+            ucc.config_id,
+            ucc.user_id,
+            ucc.username,
+            ucc.real_name,
+            ucc.user_type,
+            CASE ucc.user_type
+                WHEN 1 THEN '采购员'
+                WHEN 2 THEN '管理员'
+                ELSE '未知'
+            END AS user_type_name,
+            ucc.commission_type,
+            CASE ucc.commission_type
+                WHEN 1 THEN '固定金额'
+                WHEN 2 THEN '百分比'
+                ELSE '未知'
+            END AS commission_type_name,
+            ucc.commission_value,
+            ucc.min_commission,
+            ucc.max_commission,
+            ucc.effective_time,
+            ucc.expiry_time,
+            ucc.status,
+            CASE ucc.status
+                WHEN 0 THEN '禁用'
+                WHEN 1 THEN '启用'
+                ELSE '未知'
+            END AS status_name,
+            ucc.remark,
+            ucc.created_by,
+            ucc.created_at,
+            ucc.updated_by,
+            ucc.updated_at
+        FROM user_commission_config ucc
+        WHERE ucc.is_deleted = 0
+        <if test="userType != null">
+            AND ucc.user_type = #{userType}
+        </if>
+        <if test="status != null">
+            AND ucc.status = #{status}
+        </if>
+        <if test="keyword != null and keyword != ''">
+            AND (ucc.username LIKE CONCAT('%', #{keyword}, '%')
+                 OR ucc.real_name LIKE CONCAT('%', #{keyword}, '%')
+                 OR ucc.remark LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        ORDER BY ucc.created_at DESC
+    </select>
+
+    <!-- 根据用户ID查询有效的佣金配置 -->
+    <select id="selectEffectiveConfigByUserId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM user_commission_config
+        WHERE is_deleted = 0
+          AND status = 1
+          AND user_id = #{userId}
+          AND (effective_time IS NULL OR effective_time &lt;= NOW())
+          AND (expiry_time IS NULL OR expiry_time > NOW())
+        ORDER BY created_at DESC
+        LIMIT 1
+    </select>
+
+    <!-- 查询用户佣金配置详情 -->
+    <select id="selectUserConfigById" resultMap="UserCommissionConfigVOMap">
+        SELECT
+            ucc.config_id,
+            ucc.user_id,
+            ucc.username,
+            ucc.real_name,
+            ucc.user_type,
+            CASE ucc.user_type
+                WHEN 1 THEN '采购员'
+                WHEN 2 THEN '管理员'
+                ELSE '未知'
+            END AS user_type_name,
+            ucc.commission_type,
+            CASE ucc.commission_type
+                WHEN 1 THEN '固定金额'
+                WHEN 2 THEN '百分比'
+                ELSE '未知'
+            END AS commission_type_name,
+            ucc.commission_value,
+            ucc.min_commission,
+            ucc.max_commission,
+            ucc.effective_time,
+            ucc.expiry_time,
+            ucc.status,
+            CASE ucc.status
+                WHEN 0 THEN '禁用'
+                WHEN 1 THEN '启用'
+                ELSE '未知'
+            END AS status_name,
+            ucc.remark,
+            ucc.created_by,
+            ucc.created_at,
+            ucc.updated_by,
+            ucc.updated_at
+        FROM user_commission_config ucc
+        WHERE ucc.is_deleted = 0
+          AND ucc.config_id = #{configId}
+    </select>
+
+    <!-- 根据用户ID查询佣金配置 -->
+    <select id="selectUserConfigByUserId" resultMap="UserCommissionConfigVOMap">
+        SELECT
+            ucc.config_id,
+            ucc.user_id,
+            ucc.username,
+            ucc.real_name,
+            ucc.user_type,
+            CASE ucc.user_type
+                WHEN 1 THEN '采购员'
+                WHEN 2 THEN '管理员'
+                ELSE '未知'
+            END AS user_type_name,
+            ucc.commission_type,
+            CASE ucc.commission_type
+                WHEN 1 THEN '固定金额'
+                WHEN 2 THEN '百分比'
+                ELSE '未知'
+            END AS commission_type_name,
+            ucc.commission_value,
+            ucc.min_commission,
+            ucc.max_commission,
+            ucc.effective_time,
+            ucc.expiry_time,
+            ucc.status,
+            CASE ucc.status
+                WHEN 0 THEN '禁用'
+                WHEN 1 THEN '启用'
+                ELSE '未知'
+            END AS status_name,
+            ucc.remark,
+            ucc.created_by,
+            ucc.created_at,
+            ucc.updated_by,
+            ucc.updated_at
+        FROM user_commission_config ucc
+        WHERE ucc.is_deleted = 0
+          AND ucc.user_id = #{userId}
+        ORDER BY ucc.created_at DESC
+        LIMIT 1
+    </select>
+
+    <!-- 批量查询用户信息用于搜索 -->
+    <select id="searchUsers" resultMap="UserCommissionConfigVOMap">
+        SELECT DISTINCT
+            u.user_id,
+            u.username,
+            u.real_name,
+            u.user_type,
+            CASE u.user_type
+                WHEN 1 THEN '采购员'
+                WHEN 2 THEN '管理员'
+                ELSE '未知'
+            END AS user_type_name
+        FROM sys_user u
+        WHERE u.is_deleted = 0
+        <if test="userType != null">
+            AND u.user_type = #{userType}
+        </if>
+        <if test="keyword != null and keyword != ''">
+            AND (u.username LIKE CONCAT('%', #{keyword}, '%')
+                 OR u.real_name LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        ORDER BY u.created_at DESC
+        LIMIT 50
+    </select>
+
+</mapper>

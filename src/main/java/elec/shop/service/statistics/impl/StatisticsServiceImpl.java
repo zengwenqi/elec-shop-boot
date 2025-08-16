@@ -5,7 +5,11 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import elec.shop.mapper.balance.StatsTradeDailyMapper;
 import elec.shop.mapper.balance.StatsUserBehaviorDailyMapper;
+import elec.shop.mapper.balance.ServiceTicketMapper;
 import elec.shop.mapper.purchase.PurchaseOrderMapper;
+import elec.shop.mapper.purchase.PurchaseOrderItemMapper;
+import elec.shop.mapper.purchase.ShopInfoMapper;
+import elec.shop.mapper.purchase.PurchaserInfoMapper;
 import elec.shop.mapper.sys.SysLoginLogMapper;
 import elec.shop.mapper.sys.SysOperationLogMapper;
 import elec.shop.mapper.sys.SysUserMapper;
@@ -13,6 +17,10 @@ import elec.shop.pojo.statistics.DashboardStatsVO;
 import elec.shop.pojo.statistics.MonitorDataVO;
 import elec.shop.pojo.statistics.AdminDashboardStatsVO;
 import elec.shop.pojo.purchase.PurchaseOrder;
+import elec.shop.pojo.purchase.PurchaseOrderItem;
+import elec.shop.pojo.purchase.ShopInfo;
+import elec.shop.pojo.purchase.PurchaserInfo;
+import elec.shop.pojo.balance.ServiceTicket;
 import elec.shop.pojo.sys.SysLoginLog;
 import elec.shop.pojo.sys.SysOperationLog;
 import elec.shop.pojo.sys.SysUser;
@@ -29,15 +37,12 @@ import org.springframework.util.StringUtils;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.SimpleDateFormat;
-import java.time.DayOfWeek;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
+import java.time.temporal.Temporal;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.Random;
 
 /**
  * 统计服务实现类
@@ -48,6 +53,10 @@ import java.util.Random;
 public class StatisticsServiceImpl implements StatisticsService {
 
     private final PurchaseOrderMapper purchaseOrderMapper;
+    private final PurchaseOrderItemMapper purchaseOrderItemMapper;
+    private final ShopInfoMapper shopInfoMapper;
+    private final PurchaserInfoMapper purchaserInfoMapper;
+    private final ServiceTicketMapper serviceTicketMapper;
     private final SysUserMapper sysUserMapper;
     private final SysLoginLogMapper sysLoginLogMapper;
     private final SysOperationLogMapper sysOperationLogMapper;
@@ -896,16 +905,16 @@ public class StatisticsServiceImpl implements StatisticsService {
     @Override
     public Object getSystemActivities(Integer limit) {
         List<Map<String, Object>> activities = new ArrayList<>();
-        
+
         try {
             // 获取最近的登录日志
             LambdaQueryWrapper<SysLoginLog> loginQuery = new LambdaQueryWrapper<>();
             loginQuery.eq(SysLoginLog::getStatus, 1) // 只获取成功登录的记录
                     .orderByDesc(SysLoginLog::getLoginTime)
                     .last("LIMIT " + (limit / 2)); // 登录日志占一半
-            
+
             List<SysLoginLog> loginLogs = sysLoginLogMapper.selectList(loginQuery);
-            
+
             for (SysLoginLog loginLog : loginLogs) {
                 Map<String, Object> activity = new HashMap<>();
                 activity.put("content", "用户 " + loginLog.getUsername() + " 登录系统");
@@ -914,23 +923,23 @@ public class StatisticsServiceImpl implements StatisticsService {
                 activity.put("color", "#67C23A");
                 activities.add(activity);
             }
-            
+
             // 获取最近的操作日志
             LambdaQueryWrapper<SysOperationLog> operationQuery = new LambdaQueryWrapper<>();
             operationQuery.eq(SysOperationLog::getStatus, 1) // 只获取成功操作的记录
                     .orderByDesc(SysOperationLog::getCreatedAt)
                     .last("LIMIT " + (limit / 2)); // 操作日志占一半
-            
+
             List<SysOperationLog> operationLogs = sysOperationLogMapper.selectList(operationQuery);
-            
+
             for (SysOperationLog operationLog : operationLogs) {
                 Map<String, Object> activity = new HashMap<>();
                 String operationType = operationLog.getOperationType();
                 String content = "用户 " + operationLog.getUsername() + " 执行了 " + operationType + " 操作";
-                
+
                 activity.put("content", content);
                 activity.put("time", formatDateTime(operationLog.getCreatedAt()));
-                
+
                 // 根据操作类型设置不同的样式
                 if (operationType != null) {
                     if (operationType.contains("新增") || operationType.contains("创建")) {
@@ -950,22 +959,22 @@ public class StatisticsServiceImpl implements StatisticsService {
                     activity.put("type", "info");
                     activity.put("color", "#909399");
                 }
-                
+
                 activities.add(activity);
             }
-            
+
             // 按时间倒序排序
             activities.sort((a, b) -> {
                 String timeA = (String) a.get("time");
                 String timeB = (String) b.get("time");
                 return timeB.compareTo(timeA);
             });
-            
+
             // 限制返回数量
             if (activities.size() > limit) {
                 activities = activities.subList(0, limit);
             }
-            
+
         } catch (Exception e) {
             log.error("获取系统动态数据失败", e);
             // 返回默认数据
@@ -976,10 +985,10 @@ public class StatisticsServiceImpl implements StatisticsService {
             defaultActivity.put("color", "#909399");
             activities.add(defaultActivity);
         }
-        
+
         return activities;
     }
-    
+
     /**
      * 格式化日期时间
      */
@@ -989,5 +998,694 @@ public class StatisticsServiceImpl implements StatisticsService {
         }
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm");
         return sdf.format(date);
+    }
+
+    // ==================== 采购报表相关方法实现 ====================
+
+    @Override
+    public Object getPurchaseCards() {
+        Map<String, Object> cards = new HashMap<>();
+
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime todayStart = now.toLocalDate().atStartOfDay();
+        Date todayStartDate = Date.from(todayStart.atZone(ZoneId.systemDefault()).toInstant());
+        Date nowDate = Date.from(now.atZone(ZoneId.systemDefault()).toInstant());
+
+        // 今日采购金额
+        LambdaQueryWrapper<PurchaseOrder> todayAmountQuery = new LambdaQueryWrapper<>();
+        todayAmountQuery.between(PurchaseOrder::getCreatedAt, todayStartDate, nowDate)
+                       .eq(PurchaseOrder::getPaymentStatus, 1);
+        List<PurchaseOrder> todayOrders = purchaseOrderMapper.selectList(todayAmountQuery);
+        BigDecimal todayAmount = todayOrders.stream()
+                .map(PurchaseOrder::getTotalAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        // 今日采购订单数
+        Long todayOrderCount = (long) todayOrders.size();
+
+        // 活跃店铺数（今日有订单的店铺）
+        Long activeShops = todayOrders.stream()
+                .map(PurchaseOrder::getShopId)
+                .distinct()
+                .count();
+
+        // 待处理订单数
+        LambdaQueryWrapper<PurchaseOrder> pendingQuery = new LambdaQueryWrapper<>();
+        pendingQuery.in(PurchaseOrder::getOrderStatus, Arrays.asList(0, 1));
+        Long pendingOrders = purchaseOrderMapper.selectCount(pendingQuery);
+
+        cards.put("todayAmount", todayAmount);
+        cards.put("todayOrderCount", todayOrderCount);
+        cards.put("activeShops", activeShops);
+        cards.put("pendingOrders", pendingOrders);
+
+        return cards;
+    }
+
+    @Override
+    public Object getPurchaseTrend(String period) {
+        List<Map<String, Object>> trendData = new ArrayList<>();
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime startTime;
+
+        switch (period) {
+            case "week":
+                startTime = now.minusDays(7);
+                break;
+            case "year":
+                startTime = now.minusYears(1);
+                break;
+            default: // month
+                startTime = now.minusMonths(1);
+                break;
+        }
+
+        Date startDate = Date.from(startTime.atZone(ZoneId.systemDefault()).toInstant());
+        Date endDate = Date.from(now.atZone(ZoneId.systemDefault()).toInstant());
+
+        LambdaQueryWrapper<PurchaseOrder> query = new LambdaQueryWrapper<>();
+        query.between(PurchaseOrder::getCreatedAt, startDate, endDate)
+             .eq(PurchaseOrder::getPaymentStatus, 1)
+             .orderByAsc(PurchaseOrder::getCreatedAt);
+
+        List<PurchaseOrder> orders = purchaseOrderMapper.selectList(query);
+
+        // 按日期分组统计
+        Map<String, List<PurchaseOrder>> groupedOrders = orders.stream()
+                .collect(Collectors.groupingBy(order -> {
+                    LocalDate date = order.getCreatedAt().toInstant()
+                            .atZone(ZoneId.systemDefault()).toLocalDate();
+                    return date.toString();
+                }));
+
+        for (Map.Entry<String, List<PurchaseOrder>> entry : groupedOrders.entrySet()) {
+            Map<String, Object> data = new HashMap<>();
+            data.put("date", entry.getKey());
+            data.put("amount", entry.getValue().stream()
+                    .map(PurchaseOrder::getTotalAmount)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add));
+            data.put("count", entry.getValue().size());
+            trendData.add(data);
+        }
+
+        return trendData;
+    }
+
+    @Override
+    public Object getOrderStatusDistribution() {
+        List<Map<String, Object>> distribution = new ArrayList<>();
+
+        // 统计各状态订单数量
+        Integer[] statuses = {0, 1, 2, 3, 4, 5, 6, 7};
+        String[] statusNames = {"待分配","待确认","已确认","采购中","已下单","已出面单","已完成","已取消"};
+
+        for (int i = 0; i < statuses.length; i++) {
+            LambdaQueryWrapper<PurchaseOrder> query = new LambdaQueryWrapper<>();
+            query.eq(PurchaseOrder::getOrderStatus, statuses[i]);
+            Long count = purchaseOrderMapper.selectCount(query);
+
+            Map<String, Object> data = new HashMap<>();
+            data.put("name", statusNames[i]);
+            data.put("value", count);
+            distribution.add(data);
+        }
+
+        return distribution;
+    }
+
+    @Override
+    public Object getProductCategoryDistribution() {
+        // 从订单项表统计商品分类数据
+        List<Map<String, Object>> distribution = new ArrayList<>();
+
+        // 查询所有订单项的商品名称
+        LambdaQueryWrapper<PurchaseOrderItem> query = new LambdaQueryWrapper<>();
+        query.select(PurchaseOrderItem::getProductName);
+        List<PurchaseOrderItem> items = purchaseOrderItemMapper.selectList(query);
+
+        // 根据商品名称关键词进行分类统计
+        Map<String, Integer> categoryCount = new HashMap<>();
+        categoryCount.put("电子产品", 0);
+        categoryCount.put("服装鞋帽", 0);
+        categoryCount.put("家居用品", 0);
+        categoryCount.put("食品饮料", 0);
+        categoryCount.put("图书文具", 0);
+        categoryCount.put("其他", 0);
+
+        for (PurchaseOrderItem item : items) {
+            String productName = item.getProductName();
+            if (productName != null) {
+                productName = productName.toLowerCase();
+                if (productName.contains("手机") || productName.contains("电脑") || productName.contains("数码") || productName.contains("电子")) {
+                    categoryCount.put("电子产品", categoryCount.get("电子产品") + 1);
+                } else if (productName.contains("服装") || productName.contains("鞋") || productName.contains("帽") || productName.contains("衣")) {
+                    categoryCount.put("服装鞋帽", categoryCount.get("服装鞋帽") + 1);
+                } else if (productName.contains("家居") || productName.contains("家具") || productName.contains("装饰")) {
+                    categoryCount.put("家居用品", categoryCount.get("家居用品") + 1);
+                } else if (productName.contains("食品") || productName.contains("饮料") || productName.contains("零食")) {
+                    categoryCount.put("食品饮料", categoryCount.get("食品饮料") + 1);
+                } else if (productName.contains("图书") || productName.contains("文具") || productName.contains("笔")) {
+                    categoryCount.put("图书文具", categoryCount.get("图书文具") + 1);
+                } else {
+                    categoryCount.put("其他", categoryCount.get("其他") + 1);
+                }
+            }
+        }
+
+        for (Map.Entry<String, Integer> entry : categoryCount.entrySet()) {
+            Map<String, Object> data = new HashMap<>();
+            data.put("name", entry.getKey());
+            data.put("value", entry.getValue());
+            distribution.add(data);
+        }
+
+        return distribution;
+    }
+
+    @Override
+    public Object getPurchasePlatformDistribution() {
+        // 从采购订单表统计平台分布数据
+        List<Map<String, Object>> distribution = new ArrayList<>();
+
+        // 查询所有订单的跨境采购平台
+        LambdaQueryWrapper<PurchaseOrder> query = new LambdaQueryWrapper<>();
+        query.select(PurchaseOrder::getCrossService);
+        List<PurchaseOrder> orders = purchaseOrderMapper.selectList(query);
+
+        // 统计各平台的订单数量
+        Map<String, Integer> platformCount = new HashMap<>();
+        for (PurchaseOrder order : orders) {
+            String platform = order.getCrossService();
+            if (platform != null && !platform.trim().isEmpty()) {
+                platformCount.put(platform, platformCount.getOrDefault(platform, 0) + 1);
+            } else {
+                platformCount.put("其他", platformCount.getOrDefault("其他", 0) + 1);
+            }
+        }
+
+        for (Map.Entry<String, Integer> entry : platformCount.entrySet()) {
+            Map<String, Object> data = new HashMap<>();
+            data.put("name", entry.getKey());
+            data.put("value", entry.getValue());
+            distribution.add(data);
+        }
+
+        return distribution;
+    }
+
+    // ==================== 采购员个人报表相关方法实现 ====================
+
+    @Override
+    public Object getPurchaserCards(Long purchaserId) {
+        Map<String, Object> cards = new HashMap<>();
+        
+        // 获取今日时间范围
+        LocalDate today = LocalDate.now();
+        Date todayStart = Date.from(today.atStartOfDay(ZoneId.systemDefault()).toInstant());
+        Date todayEnd = Date.from(today.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant());
+        
+        // 获取本周时间范围
+        LocalDate weekStart = today.with(DayOfWeek.MONDAY);
+        Date weekStartDate = Date.from(weekStart.atStartOfDay(ZoneId.systemDefault()).toInstant());
+        
+        // 获取上周时间范围用于计算变化
+        LocalDate lastWeekStart = weekStart.minusWeeks(1);
+        LocalDate lastWeekEnd = weekStart.minusDays(1);
+        Date lastWeekStartDate = Date.from(lastWeekStart.atStartOfDay(ZoneId.systemDefault()).toInstant());
+        Date lastWeekEndDate = Date.from(lastWeekEnd.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant());
+        
+        // 1. 今日采购订单数
+        LambdaQueryWrapper<PurchaseOrder> todayOrderQuery = new LambdaQueryWrapper<>();
+        todayOrderQuery.eq(PurchaseOrder::getPurchaserId, purchaserId)
+                      .between(PurchaseOrder::getCreatedAt, todayStart, todayEnd);
+        Long todayOrders = purchaseOrderMapper.selectCount(todayOrderQuery);
+        cards.put("todayOrders", todayOrders);
+        
+        // 计算今日订单变化（与昨日对比）
+        Date yesterdayStart = Date.from(today.minusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant());
+        LambdaQueryWrapper<PurchaseOrder> yesterdayOrderQuery = new LambdaQueryWrapper<>();
+        yesterdayOrderQuery.eq(PurchaseOrder::getPurchaserId, purchaserId)
+                          .between(PurchaseOrder::getCreatedAt, yesterdayStart, todayStart);
+        Long yesterdayOrders = purchaseOrderMapper.selectCount(yesterdayOrderQuery);
+        String todayOrdersChange = calculateChangePercentage(yesterdayOrders, todayOrders);
+        cards.put("todayOrdersChange", todayOrdersChange);
+        
+        // 2. 待处理订单数（状态为待处理的订单）
+        LambdaQueryWrapper<PurchaseOrder> pendingQuery = new LambdaQueryWrapper<>();
+        pendingQuery.eq(PurchaseOrder::getPurchaserId, purchaserId)
+                   .eq(PurchaseOrder::getOrderStatus, 1); // 假设1为待处理状态
+        Long pendingOrders = purchaseOrderMapper.selectCount(pendingQuery);
+        cards.put("pendingOrders", pendingOrders);
+        
+        // 计算待处理订单变化（与上周对比）
+        LambdaQueryWrapper<PurchaseOrder> lastWeekPendingQuery = new LambdaQueryWrapper<>();
+        lastWeekPendingQuery.eq(PurchaseOrder::getPurchaserId, purchaserId)
+                           .eq(PurchaseOrder::getOrderStatus, 1)
+                           .between(PurchaseOrder::getCreatedAt, lastWeekStartDate, lastWeekEndDate);
+        Long lastWeekPending = purchaseOrderMapper.selectCount(lastWeekPendingQuery);
+        
+        LambdaQueryWrapper<PurchaseOrder> thisWeekPendingQuery = new LambdaQueryWrapper<>();
+        thisWeekPendingQuery.eq(PurchaseOrder::getPurchaserId, purchaserId)
+                           .eq(PurchaseOrder::getOrderStatus, 1)
+                           .between(PurchaseOrder::getCreatedAt, weekStartDate, todayEnd);
+        Long thisWeekPending = purchaseOrderMapper.selectCount(thisWeekPendingQuery);
+        String pendingOrdersChange = calculateChangePercentage(lastWeekPending, thisWeekPending);
+        cards.put("pendingOrdersChange", pendingOrdersChange);
+        
+        // 3. 本周采购总额
+        LambdaQueryWrapper<PurchaseOrder> weekAmountQuery = new LambdaQueryWrapper<>();
+        weekAmountQuery.eq(PurchaseOrder::getPurchaserId, purchaserId)
+                      .eq(PurchaseOrder::getPaymentStatus, 1) // 已支付
+                      .between(PurchaseOrder::getCreatedAt, weekStartDate, todayEnd);
+        List<PurchaseOrder> weekOrders = purchaseOrderMapper.selectList(weekAmountQuery);
+        BigDecimal weekTotalAmount = weekOrders.stream()
+                .map(order -> order.getRealTotalAmount() != null ? order.getRealTotalAmount() : BigDecimal.ZERO)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        cards.put("weekTotalAmount", weekTotalAmount);
+        
+        // 计算采购总额变化（与上周对比）
+        LambdaQueryWrapper<PurchaseOrder> lastWeekAmountQuery = new LambdaQueryWrapper<>();
+        lastWeekAmountQuery.eq(PurchaseOrder::getPurchaserId, purchaserId)
+                          .eq(PurchaseOrder::getPaymentStatus, 1)
+                          .between(PurchaseOrder::getCreatedAt, lastWeekStartDate, lastWeekEndDate);
+        List<PurchaseOrder> lastWeekOrders = purchaseOrderMapper.selectList(lastWeekAmountQuery);
+        BigDecimal lastWeekTotalAmount = lastWeekOrders.stream()
+                .map(order -> order.getRealTotalAmount() != null ? order.getRealTotalAmount() : BigDecimal.ZERO)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        String weekTotalAmountChange = calculateChangePercentage(lastWeekTotalAmount, weekTotalAmount);
+        cards.put("weekTotalAmountChange", weekTotalAmountChange);
+        
+        // 4. 采购效率（本周完成订单数/本周总订单数）
+        LambdaQueryWrapper<PurchaseOrder> weekCompletedQuery = new LambdaQueryWrapper<>();
+        weekCompletedQuery.eq(PurchaseOrder::getPurchaserId, purchaserId)
+                         .eq(PurchaseOrder::getOrderStatus, 3) // 假设3为已完成状态
+                         .between(PurchaseOrder::getCreatedAt, weekStartDate, todayEnd);
+        Long weekCompletedOrders = purchaseOrderMapper.selectCount(weekCompletedQuery);
+        
+        LambdaQueryWrapper<PurchaseOrder> weekTotalQuery = new LambdaQueryWrapper<>();
+        weekTotalQuery.eq(PurchaseOrder::getPurchaserId, purchaserId)
+                     .between(PurchaseOrder::getCreatedAt, weekStartDate, todayEnd);
+        Long weekTotalOrders = purchaseOrderMapper.selectCount(weekTotalQuery);
+        
+        BigDecimal efficiency = BigDecimal.ZERO;
+        if (weekTotalOrders > 0) {
+            efficiency = BigDecimal.valueOf(weekCompletedOrders)
+                    .divide(BigDecimal.valueOf(weekTotalOrders), 4, RoundingMode.HALF_UP)
+                    .multiply(BigDecimal.valueOf(100));
+        }
+        cards.put("efficiency", efficiency);
+        
+        // 计算效率变化（与上周对比）
+        LambdaQueryWrapper<PurchaseOrder> lastWeekCompletedQuery = new LambdaQueryWrapper<>();
+        lastWeekCompletedQuery.eq(PurchaseOrder::getPurchaserId, purchaserId)
+                             .eq(PurchaseOrder::getOrderStatus, 3)
+                             .between(PurchaseOrder::getCreatedAt, lastWeekStartDate, lastWeekEndDate);
+        Long lastWeekCompletedOrders = purchaseOrderMapper.selectCount(lastWeekCompletedQuery);
+        
+        LambdaQueryWrapper<PurchaseOrder> lastWeekTotalOrdersQuery = new LambdaQueryWrapper<>();
+        lastWeekTotalOrdersQuery.eq(PurchaseOrder::getPurchaserId, purchaserId)
+                               .between(PurchaseOrder::getCreatedAt, lastWeekStartDate, lastWeekEndDate);
+        Long lastWeekTotalOrdersCount = purchaseOrderMapper.selectCount(lastWeekTotalOrdersQuery);
+        
+        BigDecimal lastWeekEfficiency = BigDecimal.ZERO;
+        if (lastWeekTotalOrdersCount > 0) {
+            lastWeekEfficiency = BigDecimal.valueOf(lastWeekCompletedOrders)
+                    .divide(BigDecimal.valueOf(lastWeekTotalOrdersCount), 4, RoundingMode.HALF_UP)
+                    .multiply(BigDecimal.valueOf(100));
+        }
+        String efficiencyChange = calculateChangePercentage(lastWeekEfficiency, efficiency);
+        cards.put("efficiencyChange", efficiencyChange);
+        
+        return cards;
+    }
+    
+    @Override
+    public Object getPurchaserOrderTrend(Long purchaserId, String period) {
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime startTime;
+        String timeFormat;
+        
+        // 根据时间周期设置查询起始时间和时间格式
+        switch (period) {
+            case "week":
+                startTime = now.with(DayOfWeek.MONDAY).withHour(0).withMinute(0).withSecond(0).withNano(0);
+                timeFormat = "MM-dd";
+                break;
+            case "month":
+                startTime = now.withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0).withNano(0);
+                timeFormat = "MM-dd";
+                break;
+            case "year":
+                startTime = now.withDayOfYear(1).withHour(0).withMinute(0).withSecond(0).withNano(0);
+                timeFormat = "yyyy-MM";
+                break;
+            default:
+                startTime = now.with(DayOfWeek.MONDAY).withHour(0).withMinute(0).withSecond(0).withNano(0);
+                timeFormat = "MM-dd";
+                break;
+        }
+        
+        // 转换为Date类型用于MyBatis查询
+        Date startDate = Date.from(startTime.atZone(ZoneId.systemDefault()).toInstant());
+        Date endDate = Date.from(now.atZone(ZoneId.systemDefault()).toInstant());
+        
+        // 查询指定采购员在指定时间段内的订单
+        LambdaQueryWrapper<PurchaseOrder> orderWrapper = new LambdaQueryWrapper<>();
+        orderWrapper.eq(PurchaseOrder::getPurchaserId, purchaserId)
+                   .between(PurchaseOrder::getCreatedAt, startDate, endDate)
+                   .orderByAsc(PurchaseOrder::getCreatedAt);
+        List<PurchaseOrder> orders = purchaseOrderMapper.selectList(orderWrapper);
+        
+        // 按日期分组统计
+        Map<String, List<PurchaseOrder>> ordersByDate = orders.stream()
+                .collect(Collectors.groupingBy(order -> {
+                    LocalDateTime orderTime = order.getCreatedAt().toInstant()
+                            .atZone(ZoneId.systemDefault())
+                            .toLocalDateTime();
+                    return orderTime.format(DateTimeFormatter.ofPattern(timeFormat));
+                }));
+        
+        // 准备返回数据
+        Map<String, Object> trendData = new HashMap<>();
+        List<String> timeLabels = new ArrayList<>();
+        List<Integer> orderCountData = new ArrayList<>();
+        List<BigDecimal> orderAmountData = new ArrayList<>();
+        
+        // 生成完整的时间序列
+        LocalDateTime current = startTime;
+        while (!current.isAfter(now)) {
+            String timeLabel = current.format(DateTimeFormatter.ofPattern(timeFormat));
+            timeLabels.add(timeLabel);
+            
+            // 获取当前时间点的订单数据
+            List<PurchaseOrder> currentOrders = ordersByDate.getOrDefault(timeLabel, new ArrayList<>());
+            orderCountData.add(currentOrders.size());
+            
+            // 计算当前时间点的订单金额
+            BigDecimal currentAmount = currentOrders.stream()
+                    .filter(order -> order.getPaymentStatus() != null && order.getPaymentStatus() == 1) // 已支付
+                    .map(order -> order.getRealTotalAmount() != null ? order.getRealTotalAmount() : BigDecimal.ZERO)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            orderAmountData.add(currentAmount);
+            
+            // 根据周期递增时间
+            if ("year".equals(period)) {
+                current = current.plusMonths(1);
+            } else {
+                current = current.plusDays(1);
+            }
+        }
+        
+        trendData.put("timeLabels", timeLabels);
+        trendData.put("orderCountData", orderCountData);
+        trendData.put("orderAmountData", orderAmountData);
+        
+        return trendData;
+    }
+    
+    @Override
+    public Object getPurchaserPlatformDistribution(Long purchaserId) {
+        // 查询指定采购员的所有订单
+        LambdaQueryWrapper<PurchaseOrder> orderWrapper = new LambdaQueryWrapper<>();
+        orderWrapper.eq(PurchaseOrder::getPurchaserId, purchaserId)
+                   .isNotNull(PurchaseOrder::getCrossService);
+        List<PurchaseOrder> orders = purchaseOrderMapper.selectList(orderWrapper);
+        
+        // 统计各平台的订单数量
+        Map<String, Integer> platformCount = new HashMap<>();
+        for (PurchaseOrder order : orders) {
+            String platform = order.getCrossService();
+            if (platform != null && !platform.trim().isEmpty()) {
+                platformCount.put(platform, platformCount.getOrDefault(platform, 0) + 1);
+            }
+        }
+        
+        // 转换为前端需要的格式
+        List<Map<String, Object>> distribution = new ArrayList<>();
+        for (Map.Entry<String, Integer> entry : platformCount.entrySet()) {
+            Map<String, Object> data = new HashMap<>();
+            data.put("name", entry.getKey());
+            data.put("value", entry.getValue());
+            distribution.add(data);
+        }
+        
+        return distribution;
+    }
+    
+    // 计算变化百分比的辅助方法（支持BigDecimal）
+    private String calculateChangePercentage(BigDecimal oldValue, BigDecimal newValue) {
+        if (oldValue == null || oldValue.compareTo(BigDecimal.ZERO) == 0) {
+            return newValue != null && newValue.compareTo(BigDecimal.ZERO) > 0 ? "+100%" : "0%";
+        }
+        
+        BigDecimal change = newValue.subtract(oldValue)
+                .divide(oldValue, 4, RoundingMode.HALF_UP)
+                .multiply(BigDecimal.valueOf(100));
+        
+        String sign = change.compareTo(BigDecimal.ZERO) >= 0 ? "+" : "";
+        return sign + change.setScale(1, RoundingMode.HALF_UP) + "%";
+    }
+
+    @Override
+    public Object getTopPurchaseProducts(String period, Integer limit) {
+        List<Map<String, Object>> products = new ArrayList<>();
+
+        // 根据时间周期计算查询条件
+        LocalDateTime startTime = null;
+        LocalDateTime endTime = LocalDateTime.now();
+
+        if ("week".equals(period)) {
+            startTime = endTime.minusWeeks(1);
+        } else if ("month".equals(period)) {
+            startTime = endTime.minusMonths(1);
+        } else if ("year".equals(period)) {
+            startTime = endTime.minusYears(1);
+        }
+
+        // 查询订单项数据
+        LambdaQueryWrapper<PurchaseOrderItem> query = new LambdaQueryWrapper<>();
+        query.select(PurchaseOrderItem::getProductName, PurchaseOrderItem::getPurchaseQuantity, PurchaseOrderItem::getUnitPrice);
+
+        if (startTime != null) {
+            // 需要关联订单表来获取创建时间
+            query.exists("SELECT 1 FROM purchase_order po WHERE po.id = purchase_order_item.purchase_order_id AND po.create_time >= {0} AND po.create_time <= {1}", startTime, endTime);
+        }
+
+        List<PurchaseOrderItem> items = purchaseOrderItemMapper.selectList(query);
+
+        // 按商品名称分组统计
+        Map<String, Map<String, Object>> productStats = new HashMap<>();
+
+        for (PurchaseOrderItem item : items) {
+            String productName = item.getProductName();
+            if (productName != null && !productName.trim().isEmpty()) {
+                Map<String, Object> stats = productStats.getOrDefault(productName, new HashMap<>());
+
+                Integer quantity = (Integer) stats.getOrDefault("quantity", 0);
+                BigDecimal amount = (BigDecimal) stats.getOrDefault("amount", BigDecimal.ZERO);
+
+                quantity += item.getPurchaseQuantity();
+                amount = amount.add(item.getUnitPrice().multiply(new BigDecimal(item.getPurchaseQuantity())));
+
+                stats.put("name", productName);
+                stats.put("quantity", quantity);
+                stats.put("amount", amount);
+
+                productStats.put(productName, stats);
+            }
+        }
+
+        // 按采购金额排序并取前N个
+        products = productStats.values().stream()
+                .sorted((a, b) -> ((BigDecimal) b.get("amount")).compareTo((BigDecimal) a.get("amount")))
+                .limit(limit)
+                .collect(Collectors.toList());
+
+        return products;
+    }
+
+    @Override
+    public Object getTopPurchaseShops(String period, Integer limit) {
+        List<Map<String, Object>> shops = new ArrayList<>();
+
+        // 根据时间周期计算查询条件
+        LocalDateTime startTime = null;
+        LocalDateTime endTime = LocalDateTime.now();
+
+        if ("week".equals(period)) {
+            startTime = endTime.minusWeeks(1);
+        } else if ("month".equals(period)) {
+            startTime = endTime.minusMonths(1);
+        } else if ("year".equals(period)) {
+            startTime = endTime.minusYears(1);
+        }
+
+        // 查询采购订单数据
+        LambdaQueryWrapper<PurchaseOrder> query = new LambdaQueryWrapper<>();
+        query.select(PurchaseOrder::getShopId, PurchaseOrder::getTotalAmount);
+
+        if (startTime != null) {
+            query.between(PurchaseOrder::getCreatedAt, startTime, endTime);
+        }
+
+        List<PurchaseOrder> orders = purchaseOrderMapper.selectList(query);
+
+        // 按店铺ID分组统计
+        Map<Long, Map<String, Object>> shopStats = new HashMap<>();
+
+        for (PurchaseOrder order : orders) {
+            Long shopId = order.getShopId();
+            if (shopId != null) {
+                Map<String, Object> stats = shopStats.getOrDefault(shopId, new HashMap<>());
+
+                Integer orderCount = (Integer) stats.getOrDefault("orderCount", 0);
+                BigDecimal amount = (BigDecimal) stats.getOrDefault("amount", BigDecimal.ZERO);
+
+                orderCount++;
+                amount = amount.add(order.getTotalAmount() != null ? order.getTotalAmount() : BigDecimal.ZERO);
+
+                stats.put("shopId", shopId);
+                stats.put("orderCount", orderCount);
+                stats.put("amount", amount);
+
+                shopStats.put(shopId, stats);
+            }
+        }
+
+        // 获取店铺名称并排序
+        for (Map<String, Object> stats : shopStats.values()) {
+            Long shopId = (Long) stats.get("shopId");
+            ShopInfo shopInfo = shopInfoMapper.selectById(shopId);
+            String shopName = shopInfo != null ? shopInfo.getShopName() : "未知店铺";
+            stats.put("name", shopName);
+        }
+
+        // 按采购金额排序并取前N个
+        shops = shopStats.values().stream()
+                .sorted((a, b) -> ((BigDecimal) b.get("amount")).compareTo((BigDecimal) a.get("amount")))
+                .limit(limit)
+                .collect(Collectors.toList());
+
+        return shops;
+    }
+
+    @Override
+    public Object getTopPurchasers(String period, Integer limit) {
+        List<Map<String, Object>> purchasers = new ArrayList<>();
+
+        // 根据时间周期计算查询条件
+        LocalDateTime startTime = null;
+        LocalDateTime endTime = LocalDateTime.now();
+
+        if ("week".equals(period)) {
+            startTime = endTime.minusWeeks(1);
+        } else if ("month".equals(period)) {
+            startTime = endTime.minusMonths(1);
+        } else if ("year".equals(period)) {
+            startTime = endTime.minusYears(1);
+        }
+
+        // 查询采购订单数据
+        LambdaQueryWrapper<PurchaseOrder> query = new LambdaQueryWrapper<>();
+        query.select(PurchaseOrder::getPurchaserId, PurchaseOrder::getTotalAmount, PurchaseOrder::getCreatedAt, PurchaseOrder::getUpdatedAt);
+
+        if (startTime != null) {
+            query.between(PurchaseOrder::getCreatedAt, startTime, endTime);
+        }
+
+        List<PurchaseOrder> orders = purchaseOrderMapper.selectList(query);
+
+        // 按采购员ID分组统计
+        Map<Long, Map<String, Object>> purchaserStats = new HashMap<>();
+
+        for (PurchaseOrder order : orders) {
+            Long purchaserId = order.getPurchaserId();
+            if (purchaserId != null) {
+                Map<String, Object> stats = purchaserStats.getOrDefault(purchaserId, new HashMap<>());
+
+                Integer completedOrders = (Integer) stats.getOrDefault("completedOrders", 0);
+                BigDecimal totalAmount = (BigDecimal) stats.getOrDefault("totalAmount", BigDecimal.ZERO);
+                List<Long> processTimes = (List<Long>) stats.getOrDefault("processTimes", new ArrayList<>());
+
+                completedOrders++;
+                totalAmount = totalAmount.add(order.getTotalAmount() != null ? order.getTotalAmount() : BigDecimal.ZERO);
+
+                // 先将Date转换为Instant，避免ChronoUnit可能出现的问题
+                Instant createdAt = order.getCreatedAt() != null ? order.getCreatedAt().toInstant() : null;
+                Instant updatedAt = order.getUpdatedAt() != null ? order.getUpdatedAt().toInstant() : null;
+                // 计算处理时间（创建时间到更新时间的差值）
+                if (order.getCreatedAt() != null && order.getUpdatedAt() != null) {
+                    long processTime = ChronoUnit.HOURS.between(createdAt, updatedAt);
+                    processTimes.add(processTime);
+                }
+
+                stats.put("purchaserId", purchaserId);
+                stats.put("completedOrders", completedOrders);
+                stats.put("totalAmount", totalAmount);
+                stats.put("processTimes", processTimes);
+
+                purchaserStats.put(purchaserId, stats);
+            }
+        }
+
+        // 获取采购员名称并计算平均处理时间
+        for (Map<String, Object> stats : purchaserStats.values()) {
+            Long purchaserId = (Long) stats.get("purchaserId");
+            PurchaserInfo purchaserInfo = purchaserInfoMapper.selectById(purchaserId);
+            String purchaserName = "未知采购员";
+
+            if (purchaserInfo != null && purchaserInfo.getUserId() != null) {
+                SysUser user = sysUserMapper.selectById(purchaserInfo.getUserId());
+                if (user != null) {
+                    purchaserName = user.getRealName() != null ? user.getRealName() : user.getUsername();
+                }
+            }
+
+            List<Long> processTimes = (List<Long>) stats.get("processTimes");
+            String avgProcessTime = "0小时";
+            if (!processTimes.isEmpty()) {
+                long avgTime = processTimes.stream().mapToLong(Long::longValue).sum() / processTimes.size();
+                avgProcessTime = avgTime + "小时";
+            }
+
+            stats.put("name", purchaserName);
+            stats.put("avgProcessTime", avgProcessTime);
+            stats.remove("purchaserId");
+            stats.remove("processTimes");
+        }
+
+        // 按完成订单数排序并取前N个
+        purchasers = purchaserStats.values().stream()
+                .sorted((a, b) -> ((Integer) b.get("completedOrders")).compareTo((Integer) a.get("completedOrders")))
+                .limit(limit)
+                .collect(Collectors.toList());
+
+        return purchasers;
+    }
+
+    @Override
+    public Object getTicketStats() {
+        Map<String, Object> stats = new HashMap<>();
+
+        // 统计待处理工单数量
+        LambdaQueryWrapper<ServiceTicket> pendingQuery = new LambdaQueryWrapper<>();
+        pendingQuery.eq(ServiceTicket::getStatus, 0); // 假设0表示待处理
+        Long pendingCount = serviceTicketMapper.selectCount(pendingQuery);
+
+        // 统计处理中工单数量
+        LambdaQueryWrapper<ServiceTicket> processingQuery = new LambdaQueryWrapper<>();
+        processingQuery.eq(ServiceTicket::getStatus, 1); // 假设1表示处理中
+        Long processingCount = serviceTicketMapper.selectCount(processingQuery);
+
+        // 统计已解决工单数量
+        LambdaQueryWrapper<ServiceTicket> resolvedQuery = new LambdaQueryWrapper<>();
+        resolvedQuery.eq(ServiceTicket::getStatus, 2); // 假设2表示已解决
+        Long resolvedCount = serviceTicketMapper.selectCount(resolvedQuery);
+
+        stats.put("pending", pendingCount);
+        stats.put("processing", processingCount);
+        stats.put("resolved", resolvedCount);
+
+        return stats;
     }
 }

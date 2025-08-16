@@ -6,27 +6,32 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import elec.shop.exception.BusinessException;
 import elec.shop.mapper.purchase.*;
+import elec.shop.pojo.balance.GlobalCommissionConfig;
 import elec.shop.pojo.purchase.*;
 import elec.shop.pojo.purchase.dto.PurchaserTaskQueryDTO;
 import elec.shop.pojo.purchase.dto.TaskStatusChangeDTO;
 import elec.shop.pojo.purchase.vo.PurchaserOrderItemVO;
 import elec.shop.pojo.purchase.vo.PurchaserTaskVO;
 import elec.shop.pojo.sys.SysUser;
-import elec.shop.service.purchase.PurchaseOrderItemService;
-import elec.shop.service.purchase.PurchaseOrderService;
-import elec.shop.service.purchase.PurchaseTaskService;
-import elec.shop.service.purchase.PurchaserInfoService;
+import elec.shop.service.balance.GlobalCommissionConfigService;
+import elec.shop.service.purchase.*;
 import elec.shop.service.sys.SysUserService;
+import elec.shop.service.sys.SystemLogService;
 import elec.shop.strategy.factory.OrderStatusMessageHandlerFactory;
 import elec.shop.strategy.inter.OrderStatusMessageHandler;
 import elec.shop.utils.AllContextUtils;
 import elec.shop.utils.EmailUtil;
+import elec.shop.utils.RangeSearchUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -53,6 +58,9 @@ public class PurchaseTaskServiceImpl extends ServiceImpl<PurchaseTaskMapper, Pur
     private final PurchaseOrderMapper purchaseOrderMapper;
     private final FinanceAccountMapper financeAccountMapper;
     private final AccountBalanceMapper accountBalanceMapper;
+    private final GlobalCommissionConfigService globalCommissionConfigService;
+    private final FinanceAccountService financeAccountService;
+    private final SystemLogService systemLogService;
 
     @Override
     public Page<PurchaseTask> queryTasks(PurchaserTaskQueryDTO query) {
@@ -323,21 +331,13 @@ public class PurchaseTaskServiceImpl extends ServiceImpl<PurchaseTaskMapper, Pur
                 if (i>0){
                     purchaseOrder.setRealTotalAmount(dto.getRealTotalAmount());
                     purchaseOrder.setPaymentStatus(0);
-                    emailUtil.sendCustomEmail(
-                            byId.getEmail(),
-                            "价格偏差",
-                            "订单差额，快去补齐差额和手续费以方便订单正常运作"
-                    );
+                    sendPriceIncreasedEmail(byId.getEmail());
                     purchaseOrderMapper.updateById(purchaseOrder);
                     task.setTaskStatus(8);
                 } else {
                     purchaseOrder.setTotalAmount(dto.getRealTotalAmount());
                     purchaseOrder.setRealTotalAmount(dto.getRealTotalAmount());
-                    emailUtil.sendCustomEmail(
-                            sysUserService.getById(purchaseOrder.getUserId()).getEmail(),
-                            "价格偏差",
-                            "订单金额偏多，差价已给你补齐，快去补齐手续费以方便后续工作"
-                    );
+                    sendPriceDecreasedEmail(byId.getEmail());
                     purchaseOrderMapper.updateById(purchaseOrder);
                     purchaseOrder.setPaymentStatus(0);
     //                task.setTaskStatus(2);
@@ -356,11 +356,7 @@ public class PurchaseTaskServiceImpl extends ServiceImpl<PurchaseTaskMapper, Pur
                 }
             }else {
                 // 7. 更新任务状态
-                emailUtil.sendCustomEmail(
-                        sysUserService.getById(purchaseOrder.getUserId()).getEmail(),
-                        "后续补充",
-                        "订单金额没有问题，快去补齐手续费以方便后续操作"
-                );
+                sendPriceNormalEmail(loginSysUser.getUserId());
                 purchaseOrder.setRealTotalAmount(dto.getRealTotalAmount());
                 purchaseOrder.setPaymentStatus(0);
     //            task.setTaskStatus(dto.getNewStatus());
@@ -375,8 +371,75 @@ public class PurchaseTaskServiceImpl extends ServiceImpl<PurchaseTaskMapper, Pur
 //            purchaseOrderService.updateById(order);
 //            updateRelatedOrderStatus(task.getTaskId(), 6); // 更新关联订单为已完成
 //        }
-        if (success && dto.getNewStatus() == 6) { // 任务完成状态
+        // 任务完成状态
+        if (success && dto.getNewStatus() == 6) {
             updateRelatedOrderStatus(task.getTaskId(), 6); // 更新关联订单为已完成
+            // 计算佣金并更新账户余额
+            BigDecimal realTotalAmount = purchaseOrder.getRealTotalAmount();
+            String crossService = purchaseOrder.getCrossService();
+
+            // 查询查询佣金配置（增加非空判断，优化查询条件）
+            List<GlobalCommissionConfig> commissionConfigs = globalCommissionConfigService.list(
+                    new LambdaQueryWrapper<GlobalCommissionConfig>()
+                            .eq(GlobalCommissionConfig::getIsDeleted, 0)
+                            .eq(GlobalCommissionConfig::getStatus, 1)
+                            .like(GlobalCommissionConfig::getConfigName, crossService)
+            );
+
+            // 处理配置为空的情况，避免空指针
+            if (CollectionUtils.isEmpty(commissionConfigs)) {
+                // 可根据业务需求添加日志或异常处理
+//                systemLogService.addLog("获取配置失败", "获取配置失败", "获取配置失败");
+            }
+
+            // 查找匹配的佣金配置（优化BigDecimal转Double的方式）
+            RangeSearchUtil<GlobalCommissionConfig> rangeSearchUtil = new RangeSearchUtil<>(commissionConfigs);
+            GlobalCommissionConfig matchingRange = rangeSearchUtil.findMatchingRange(realTotalAmount.doubleValue());
+
+            // 校验匹配结果
+            if (matchingRange == null) {
+                // 可根据业务需求添加日志或异常处理
+//                systemLogService.addLog("获取配置失败", "获取配置失败", "获取配置失败");
+            }
+
+            // 查询用户财务账户（增加非空判断）
+            FinanceAccount financeAccount = financeAccountService.getOne(
+                    new LambdaQueryWrapper<FinanceAccount>()
+                            .eq(FinanceAccount::getUserId, purchaserInfo.getUserId())
+            );
+            if (financeAccount == null) {
+                // 可根据业务需求添加日志或异常处理
+//                systemLogService.addLog("获取配置失败", "获取配置失败", "获取配置失败");
+            }
+
+            // 查询账户余额（增加非空判断）
+            AccountBalance accountBalance = accountBalanceMapper.selectOne(
+                    new LambdaQueryWrapper<AccountBalance>()
+                            .eq(AccountBalance::getAccountId, financeAccount.getAccountId())
+                            .eq(AccountBalance::getCurrency, "USD")
+            );
+            if (accountBalance == null) {
+                // 可根据业务需求添加日志或异常处理
+//                systemLogService.addLog("获取配置失败", "获取配置失败", "获取配置失败");
+            }
+
+            // 计算并更新佣金（合并操作，减少重复计算）
+            BigDecimal currentBalance = accountBalance.getBalance();
+            Integer commissionType = matchingRange.getCommissionType();
+            BigDecimal commissionValue = matchingRange.getCommissionValue();
+
+            // 根据佣金类型计算总佣金
+            BigDecimal totalCommission = BigDecimal.ZERO;
+            if (commissionType == 1) {
+                totalCommission = totalCommission.add(commissionValue);
+            }else {
+                // 累加比例计算的佣金（复用已有变量，减少对象创建）
+                totalCommission = totalCommission.add(multiplyWithPercentage(realTotalAmount, commissionValue, 2));
+            }
+
+            // 更新余额（单次赋值，提高效率）
+            accountBalance.setBalance(currentBalance.add(totalCommission));
+            accountBalanceMapper.updateById(accountBalance);
         }
 
         // 9. 更新回填单号和采购备注，如果有
@@ -388,6 +451,77 @@ public class PurchaseTaskServiceImpl extends ServiceImpl<PurchaseTaskMapper, Pur
         }
         purchaseOrderMapper.updateById(purchaseOrder);
         return success;
+    }
+
+    /**
+     * 异步发送价格正常邮件（非阻塞事务）
+     */
+    @Async
+    protected void sendPriceNormalEmail(Long userId) {
+        try {
+            SysUser user = sysUserService.getById(userId);
+            if (user != null && StringUtils.hasText(user.getEmail())) {
+                emailUtil.sendCustomEmail(
+                        user.getEmail(),
+                        "后续补充",
+                        "订单金额没有问题，快去补齐手续费以方便后续操作"
+                );
+            }
+        } catch (Exception e) {
+            log.error("发送价格正常邮件失败", e);
+            // 邮件发送失败不影响主流程
+        }
+    }
+
+    /**
+     * 异步发送价格上涨邮件（非阻塞事务）
+     */
+    @Async
+    protected void sendPriceIncreasedEmail(String email) {
+        try {
+            if (StringUtils.hasText(email)) {
+                emailUtil.sendCustomEmail(
+                        email,
+                        "价格偏差",
+                        "订单差额，快去补齐差额和手续费以方便订单正常运作"
+                );
+            }
+        } catch (Exception e) {
+            log.error("发送价格上涨邮件失败", e);
+        }
+    }
+
+    /**
+     * 异步发送价格下降邮件（非阻塞事务）
+     */
+    @Async
+    protected void sendPriceDecreasedEmail(String email) {
+        try {
+            if (StringUtils.hasText(email)) {
+                emailUtil.sendCustomEmail(
+                        email,
+                        "价格偏差",
+                        "订单金额偏多，差价已给你补齐，快去补齐手续费以方便后续工作"
+                );
+            }
+        } catch (Exception e) {
+            log.error("发送价格下降邮件失败", e);
+        }
+    }
+
+    /**
+     * 计算数值与百分比的乘积
+     * @param value 原始数值
+     * @param percentage 百分比（如20表示20%）
+     * @param scale 结果保留的小数位数
+     * @return 计算结果
+     */
+    public static BigDecimal multiplyWithPercentage(BigDecimal value, BigDecimal percentage, int scale) {
+        // 1. 百分比转换为小数（除以100）
+        BigDecimal percentageAsDecimal = percentage.divide(new BigDecimal("100"), 10, RoundingMode.HALF_UP);
+
+        // 2. 相乘并设置精度
+        return value.multiply(percentageAsDecimal).setScale(scale, RoundingMode.HALF_UP);
     }
 
     @Override

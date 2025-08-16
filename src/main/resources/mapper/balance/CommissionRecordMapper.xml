@@ -1,0 +1,352 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="elec.shop.mapper.balance.CommissionRecordMapper">
+
+    <resultMap id="BaseResultMap" type="elec.shop.pojo.balance.CommissionRecord">
+        <id property="recordId" column="record_id" jdbcType="BIGINT"/>
+        <result property="commissionNo" column="commission_no" jdbcType="VARCHAR"/>
+        <result property="userId" column="user_id" jdbcType="BIGINT"/>
+        <result property="userType" column="user_type" jdbcType="INTEGER"/>
+        <result property="orderId" column="order_id" jdbcType="BIGINT"/>
+        <result property="orderNo" column="order_no" jdbcType="VARCHAR"/>
+        <result property="orderAmount" column="order_amount" jdbcType="DECIMAL"/>
+        <result property="commissionType" column="commission_type" jdbcType="INTEGER"/>
+        <result property="commissionRate" column="commission_rate" jdbcType="DECIMAL"/>
+        <result property="commissionAmount" column="commission_amount" jdbcType="DECIMAL"/>
+        <result property="commissionStatus" column="commission_status" jdbcType="INTEGER"/>
+        <result property="payoutTime" column="payout_time" jdbcType="TIMESTAMP"/>
+        <result property="settlementPeriod" column="settlement_period" jdbcType="VARCHAR"/>
+        <result property="remark" column="remark" jdbcType="VARCHAR"/>
+        <result property="createdBy" column="created_by" jdbcType="VARCHAR"/>
+        <result property="createdAt" column="created_at" jdbcType="TIMESTAMP"/>
+        <result property="updatedBy" column="updated_by" jdbcType="VARCHAR"/>
+        <result property="updatedAt" column="updated_at" jdbcType="TIMESTAMP"/>
+        <result property="isDeleted" column="is_deleted" jdbcType="INTEGER"/>
+        <result property="deletedAt" column="deleted_at" jdbcType="TIMESTAMP"/>
+        <result property="version" column="version" jdbcType="INTEGER"/>
+        <result property="tenantId" column="tenant_id" jdbcType="BIGINT"/>
+    </resultMap>
+
+    <resultMap id="CommissionRecordVOMap" type="elec.shop.pojo.balance.vo.CommissionRecordVO">
+        <id property="recordId" column="record_id" jdbcType="BIGINT"/>
+        <result property="commissionNo" column="commission_no" jdbcType="VARCHAR"/>
+        <result property="userId" column="user_id" jdbcType="BIGINT"/>
+        <result property="username" column="username" jdbcType="VARCHAR"/>
+        <result property="realName" column="real_name" jdbcType="VARCHAR"/>
+        <result property="userType" column="user_type" jdbcType="INTEGER"/>
+        <result property="userTypeName" column="user_type_name" jdbcType="VARCHAR"/>
+        <result property="orderId" column="order_id" jdbcType="BIGINT"/>
+        <result property="orderNo" column="order_no" jdbcType="VARCHAR"/>
+        <result property="orderAmount" column="order_amount" jdbcType="DECIMAL"/>
+        <result property="commissionType" column="commission_type" jdbcType="INTEGER"/>
+        <result property="commissionTypeName" column="commission_type_name" jdbcType="VARCHAR"/>
+        <result property="commissionRate" column="commission_rate" jdbcType="DECIMAL"/>
+        <result property="commissionAmount" column="commission_amount" jdbcType="DECIMAL"/>
+        <result property="commissionStatus" column="commission_status" jdbcType="INTEGER"/>
+        <result property="commissionStatusName" column="commission_status_name" jdbcType="VARCHAR"/>
+        <result property="payoutTime" column="payout_time" jdbcType="TIMESTAMP"/>
+        <result property="settlementPeriod" column="settlement_period" jdbcType="VARCHAR"/>
+        <result property="remark" column="remark" jdbcType="VARCHAR"/>
+        <result property="createdBy" column="created_by" jdbcType="VARCHAR"/>
+        <result property="createdAt" column="created_at" jdbcType="TIMESTAMP"/>
+        <result property="updatedBy" column="updated_by" jdbcType="VARCHAR"/>
+        <result property="updatedAt" column="updated_at" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        record_id, commission_no, user_id, user_type, order_id, order_no, order_amount,
+        commission_type, commission_rate, commission_amount, commission_status,
+        payout_time, settlement_period, remark, created_by, created_at, updated_by, updated_at,
+        is_deleted, deleted_at, version, tenant_id
+    </sql>
+
+    <!-- 分页查询佣金记录列表 -->
+    <select id="selectCommissionRecordPage" resultMap="CommissionRecordVOMap">
+        SELECT
+            cr.record_id,
+            cr.commission_no,
+            cr.user_id,
+            u.username,
+            u.real_name,
+            cr.user_type,
+            CASE cr.user_type
+                WHEN 1 THEN '采购员'
+                WHEN 2 THEN '管理员'
+                ELSE '未知'
+            END AS user_type_name,
+            cr.order_id,
+            cr.order_no,
+            cr.order_amount,
+            cr.commission_type,
+            CASE cr.commission_type
+                WHEN 1 THEN '固定金额'
+                WHEN 2 THEN '百分比'
+                ELSE '未知'
+            END AS commission_type_name,
+            cr.commission_rate,
+            cr.commission_amount,
+            cr.commission_status,
+            CASE cr.commission_status
+                WHEN 0 THEN '待发放'
+                WHEN 1 THEN '已发放'
+                WHEN 2 THEN '已取消'
+                ELSE '未知'
+            END AS commission_status_name,
+            cr.payout_time,
+            cr.settlement_period,
+            cr.remark,
+            cr.created_by,
+            cr.created_at,
+            cr.updated_by,
+            cr.updated_at
+        FROM commission_record cr
+        LEFT JOIN sys_user u ON cr.user_id = u.user_id AND u.is_deleted = 0
+        WHERE cr.is_deleted = 0
+        <if test="keyword != null and keyword != ''">
+            AND (cr.commission_no LIKE CONCAT('%', #{keyword}, '%')
+                 OR cr.order_no LIKE CONCAT('%', #{keyword}, '%')
+                 OR u.username LIKE CONCAT('%', #{keyword}, '%')
+                 OR u.real_name LIKE CONCAT('%', #{keyword}, '%')
+                 OR cr.remark LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        <if test="userType != null">
+            AND cr.user_type = #{userType}
+        </if>
+        <if test="commissionStatus != null">
+            AND cr.commission_status = #{commissionStatus}
+        </if>
+        <if test="startTime != null">
+            AND cr.created_at &gt;= #{startTime}
+        </if>
+        <if test="endTime != null">
+            AND cr.created_at &lt;= #{endTime}
+        </if>
+        <if test="settlementPeriod != null and settlementPeriod != ''">
+            AND cr.settlement_period = #{settlementPeriod}
+        </if>
+        ORDER BY cr.created_at DESC
+    </select>
+
+    <!-- 查询佣金记录列表 -->
+    <select id="selectCommissionRecordList" resultMap="CommissionRecordVOMap">
+        SELECT
+            cr.record_id,
+            cr.commission_no,
+            cr.user_id,
+            u.username,
+            u.real_name,
+            cr.user_type,
+            CASE cr.user_type
+                WHEN 1 THEN '采购员'
+                WHEN 2 THEN '管理员'
+                ELSE '未知'
+            END AS user_type_name,
+            cr.order_id,
+            cr.order_no,
+            cr.order_amount,
+            cr.commission_type,
+            CASE cr.commission_type
+                WHEN 1 THEN '固定金额'
+                WHEN 2 THEN '百分比'
+                ELSE '未知'
+            END AS commission_type_name,
+            cr.commission_rate,
+            cr.commission_amount,
+            cr.commission_status,
+            CASE cr.commission_status
+                WHEN 0 THEN '待发放'
+                WHEN 1 THEN '已发放'
+                WHEN 2 THEN '已取消'
+                ELSE '未知'
+            END AS commission_status_name,
+            cr.payout_time,
+            cr.settlement_period,
+            cr.remark,
+            cr.created_by,
+            cr.created_at,
+            cr.updated_by,
+            cr.updated_at
+        FROM commission_record cr
+        LEFT JOIN sys_user u ON cr.user_id = u.user_id AND u.is_deleted = 0
+        WHERE cr.is_deleted = 0
+        <if test="keyword != null and keyword != ''">
+            AND (cr.commission_no LIKE CONCAT('%', #{keyword}, '%')
+                 OR cr.order_no LIKE CONCAT('%', #{keyword}, '%')
+                 OR u.username LIKE CONCAT('%', #{keyword}, '%')
+                 OR u.real_name LIKE CONCAT('%', #{keyword}, '%')
+                 OR cr.remark LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        <if test="userType != null">
+            AND cr.user_type = #{userType}
+        </if>
+        <if test="commissionStatus != null">
+            AND cr.commission_status = #{commissionStatus}
+        </if>
+        <if test="startTime != null">
+            AND cr.created_at &gt;= #{startTime}
+        </if>
+        <if test="endTime != null">
+            AND cr.created_at &lt;= #{endTime}
+        </if>
+        <if test="settlementPeriod != null and settlementPeriod != ''">
+            AND cr.settlement_period = #{settlementPeriod}
+        </if>
+        ORDER BY cr.created_at DESC
+    </select>
+
+    <!-- 查询佣金记录详情 -->
+    <select id="selectCommissionRecordById" resultMap="CommissionRecordVOMap">
+        SELECT
+            cr.record_id,
+            cr.commission_no,
+            cr.user_id,
+            u.username,
+            u.real_name,
+            cr.user_type,
+            CASE cr.user_type
+                WHEN 1 THEN '采购员'
+                WHEN 2 THEN '管理员'
+                ELSE '未知'
+            END AS user_type_name,
+            cr.order_id,
+            cr.order_no,
+            cr.order_amount,
+            cr.commission_type,
+            CASE cr.commission_type
+                WHEN 1 THEN '固定金额'
+                WHEN 2 THEN '百分比'
+                ELSE '未知'
+            END AS commission_type_name,
+            cr.commission_rate,
+            cr.commission_amount,
+            cr.commission_status,
+            CASE cr.commission_status
+                WHEN 0 THEN '待发放'
+                WHEN 1 THEN '已发放'
+                WHEN 2 THEN '已取消'
+                ELSE '未知'
+            END AS commission_status_name,
+            cr.payout_time,
+            cr.settlement_period,
+            cr.remark,
+            cr.created_by,
+            cr.created_at,
+            cr.updated_by,
+            cr.updated_at
+        FROM commission_record cr
+        LEFT JOIN sys_user u ON cr.user_id = u.user_id AND u.is_deleted = 0
+        WHERE cr.is_deleted = 0
+          AND cr.record_id = #{recordId}
+    </select>
+
+    <!-- 根据订单ID查询佣金记录 -->
+    <select id="selectByOrderId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM commission_record
+        WHERE is_deleted = 0
+          AND order_id = #{orderId}
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- 根据用户ID查询佣金记录 -->
+    <select id="selectByUserId" resultMap="CommissionRecordVOMap">
+        SELECT
+            cr.record_id,
+            cr.commission_no,
+            cr.user_id,
+            u.username,
+            u.real_name,
+            cr.user_type,
+            CASE cr.user_type
+                WHEN 1 THEN '采购员'
+                WHEN 2 THEN '管理员'
+                ELSE '未知'
+            END AS user_type_name,
+            cr.order_id,
+            cr.order_no,
+            cr.order_amount,
+            cr.commission_type,
+            CASE cr.commission_type
+                WHEN 1 THEN '固定金额'
+                WHEN 2 THEN '百分比'
+                ELSE '未知'
+            END AS commission_type_name,
+            cr.commission_rate,
+            cr.commission_amount,
+            cr.commission_status,
+            CASE cr.commission_status
+                WHEN 0 THEN '待发放'
+                WHEN 1 THEN '已发放'
+                WHEN 2 THEN '已取消'
+                ELSE '未知'
+            END AS commission_status_name,
+            cr.payout_time,
+            cr.settlement_period,
+            cr.remark,
+            cr.created_by,
+            cr.created_at,
+            cr.updated_by,
+            cr.updated_at
+        FROM commission_record cr
+        LEFT JOIN sys_user u ON cr.user_id = u.user_id AND u.is_deleted = 0
+        WHERE cr.is_deleted = 0
+          AND cr.user_id = #{userId}
+        <if test="commissionStatus != null">
+            AND cr.commission_status = #{commissionStatus}
+        </if>
+        ORDER BY cr.created_at DESC
+    </select>
+
+    <!-- 统计用户佣金总额 -->
+    <select id="sumCommissionByUserId" resultType="java.math.BigDecimal">
+        SELECT COALESCE(SUM(commission_amount), 0)
+        FROM commission_record
+        WHERE is_deleted = 0
+          AND user_id = #{userId}
+        <if test="commissionStatus != null">
+            AND commission_status = #{commissionStatus}
+        </if>
+        <if test="startTime != null">
+            AND created_at &gt;= #{startTime}
+        </if>
+        <if test="endTime != null">
+            AND created_at &lt;= #{endTime}
+        </if>
+    </select>
+
+    <!-- 统计佣金记录数量 -->
+    <select id="countCommissionRecord" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM commission_record
+        WHERE is_deleted = 0
+        <if test="userType != null">
+            AND user_type = #{userType}
+        </if>
+        <if test="commissionStatus != null">
+            AND commission_status = #{commissionStatus}
+        </if>
+        <if test="startTime != null">
+            AND created_at &gt;= #{startTime}
+        </if>
+        <if test="endTime != null">
+            AND created_at &lt;= #{endTime}
+        </if>
+    </select>
+
+    <!-- 批量更新佣金状态 -->
+    <update id="batchUpdateStatus">
+        UPDATE commission_record
+        SET commission_status = #{status},
+            updated_by = #{updatedBy},
+            updated_at = NOW()
+        <if test="payoutTime != null">
+            , payout_time = #{payoutTime}
+        </if>
+        WHERE record_id IN
+        <foreach collection="recordIds" item="recordId" open="(" separator="," close=")">
+            #{recordId}
+        </foreach>
+          AND is_deleted = 0
+    </update>
+
+</mapper>
