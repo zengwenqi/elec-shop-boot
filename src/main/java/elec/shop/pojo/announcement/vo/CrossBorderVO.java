@@ -22,6 +22,9 @@ public class CrossBorderVO {
     @ApiModelProperty("服务图标URL")
     private String serviceIcon;
 
+    @ApiModelProperty("汇率")
+    private String exchangeRate;
+
     @ApiModelProperty("服务详情大图URL")
     private String serviceImage;
 

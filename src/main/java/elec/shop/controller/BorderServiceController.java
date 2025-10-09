@@ -33,7 +33,10 @@ public class BorderServiceController {
     @DataSource(DataSourceType.SLAVE)
     public Result<Object> list() {
         // 1. 查询原始数据
-        List<CrossBorderService> list = crossBorderServiceService.list();
+        List<CrossBorderService> list = crossBorderServiceService.list(
+                new LambdaQueryWrapper<CrossBorderService>()
+                        .eq(CrossBorderService::getStatus, 1)
+        );
 
         // 2. 转换为VO对象（修正复制逻辑）
         List<CrossBorderVO> crossBorderVOList = list.stream()
@@ -70,7 +73,7 @@ public class BorderServiceController {
         BeanUtil.copyProperties(crossBorderDTO, crossBorderService);
         boolean insert = crossBorderServiceService.save(crossBorderService);
         if (insert) return Result.ok();
-        return Result.fail().message("更新失败");
+        return Result.fail().message("改跨境服务超市编码已存在");
     }
 
     @PostMapping("/edit")

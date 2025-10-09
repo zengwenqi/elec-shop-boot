@@ -41,6 +41,11 @@ public class CrossBorderService extends BaseEntity implements Serializable {
     private Integer serviceType;
 
     /**
+     * 汇率
+     */
+    private String exchangeRate;
+
+    /**
      * 服务图标URL
      */
     private String serviceIcon;
