@@ -5,6 +5,7 @@ import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Data
 @ApiModel("采购任务状态变更请求")
@@ -26,4 +27,14 @@ public class TaskStatusChangeDTO {
 
     @ApiModelProperty("状态变更备注（可选）")
     private String remark;
+
+    @ApiModelProperty("采购订单回执图片")
+    private List<ReceiptFiles> receiptImages;
+
+    @Data
+    public static class ReceiptFiles {
+    	private String fileName;
+    	private String originalFileName;
+    	private String productImage;
+    }
 }

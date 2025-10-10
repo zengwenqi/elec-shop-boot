@@ -37,6 +37,7 @@
         <result column="updated_at" property="updatedAt" />
         <result column="created_by" property="createdBy" />
         <result column="updated_by" property="updatedBy" />
+        <result column="receipt_images" property="receiptImages" />
 
         <!-- 关联查询订单商品明细 -->
         <collection property="orderItems" ofType="elec.shop.pojo.purchase.vo.PurchaserOrderItemVO">

@@ -160,6 +160,11 @@ public class PurchaseOrder extends BaseEntity implements Serializable {
      */
     private Date completeTime;
 
+    /**
+     * 采购订单回执图片，JSON格式存储多张图片信息
+     */
+    private String receiptImages;
+
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;
 }

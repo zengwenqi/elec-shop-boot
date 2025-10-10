@@ -21,8 +21,10 @@ import elec.shop.strategy.factory.OrderStatusMessageHandlerFactory;
 import elec.shop.strategy.inter.OrderStatusMessageHandler;
 import elec.shop.utils.AllContextUtils;
 import elec.shop.utils.EmailUtil;
+import elec.shop.utils.MinioUtil;
 import elec.shop.utils.RangeSearchUtil;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -32,6 +34,7 @@ import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -45,6 +48,7 @@ import java.util.stream.Collectors;
 */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class PurchaseTaskServiceImpl extends ServiceImpl<PurchaseTaskMapper, PurchaseTask>
         implements PurchaseTaskService {
 
@@ -61,6 +65,7 @@ public class PurchaseTaskServiceImpl extends ServiceImpl<PurchaseTaskMapper, Pur
     private final GlobalCommissionConfigService globalCommissionConfigService;
     private final FinanceAccountService financeAccountService;
     private final SystemLogService systemLogService;
+    private final MinioUtil minioUtil;
 
     @Override
     public Page<PurchaseTask> queryTasks(PurchaserTaskQueryDTO query) {
@@ -364,6 +369,20 @@ public class PurchaseTaskServiceImpl extends ServiceImpl<PurchaseTaskMapper, Pur
             }
         }
 
+        // 10. 更新采购订单回执图片，如果有
+        if (dto.getReceiptImages() != null && dto.getReceiptImages().size() > 0) {
+            // 将图片数组转换为JSON字符串存储
+            StringBuilder imageJson = new StringBuilder("[");
+            for (int i = 0; i < dto.getReceiptImages().size(); i++) {
+                if (i > 0) {
+                    imageJson.append(",");
+                }
+                imageJson.append("\"").append(dto.getReceiptImages().get(i).getFileName()).append("\"");
+            }
+            imageJson.append("]");
+            task.setReceiptImages(imageJson.toString());
+        }
+
         boolean success = this.updateById(task);
 
         // 8. 触发关联操作（如果有）
@@ -467,6 +486,21 @@ public class PurchaseTaskServiceImpl extends ServiceImpl<PurchaseTaskMapper, Pur
         if (dto.getRemark() != null) {
             purchaseOrder.setRemark(dto.getRemark());
         }
+
+        // 10. 更新采购订单回执图片，如果有
+        if (dto.getReceiptImages() != null) {
+            // 将图片数组转换为JSON字符串存储
+            StringBuilder imageJson = new StringBuilder("[");
+            for (int i = 0; i < dto.getReceiptImages().size(); i++) {
+                if (i > 0) {
+                    imageJson.append(",");
+                }
+                imageJson.append("\"").append(dto.getReceiptImages().get(i).getFileName()).append("\"");
+            }
+            imageJson.append("]");
+            purchaseOrder.setReceiptImages(imageJson.toString());
+        }
+
         purchaseOrderMapper.updateById(purchaseOrder);
         return success;
     }
@@ -592,6 +626,47 @@ public class PurchaseTaskServiceImpl extends ServiceImpl<PurchaseTaskMapper, Pur
             BeanUtils.copyProperties(item, itemVO);
             return itemVO;
         }).collect(Collectors.toList()));
+
+        // 6. 处理receiptImages，将文件名数组转换为MinIO访问链接
+        if (order.getReceiptImages() != null && !order.getReceiptImages().isEmpty()) {
+            try {
+                // 解析JSON字符串为文件名数组
+                String[] fileNames = order.getReceiptImages()
+                        .replace("[", "")
+                        .replace("]", "")
+                        .replace("\"", "")
+                        .split(",");
+                
+                // 转换为MinIO预览链接数组
+                List<String> previewUrls = new ArrayList<>();
+                for (String fileName : fileNames) {
+                    if (fileName != null && !fileName.trim().isEmpty()) {
+                        String previewUrl = minioUtil.getPreviewUrl(fileName.trim());
+                        if (previewUrl != null) {
+                            previewUrls.add(previewUrl);
+                        }
+                    }
+                }
+                
+                // 将预览链接数组转换为JSON字符串存储到VO中
+                if (!previewUrls.isEmpty()) {
+                    StringBuilder urlJson = new StringBuilder("[");
+                    for (int i = 0; i < previewUrls.size(); i++) {
+                        if (i > 0) {
+                            urlJson.append(",");
+                        }
+                        urlJson.append("\"").append(previewUrls.get(i)).append("\"");
+                    }
+                    urlJson.append("]");
+                    vo.setReceiptImages(urlJson.toString());
+                }
+            } catch (Exception e) {
+                log.error("处理receiptImages失败:", e);
+                vo.setReceiptImages("[]");
+            }
+        } else {
+            vo.setReceiptImages("[]");
+        }
 
         return vo;
     }

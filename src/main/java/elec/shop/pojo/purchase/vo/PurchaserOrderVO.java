@@ -140,4 +140,7 @@ public class PurchaserOrderVO {
 
     @ApiModelProperty("订单商品明细列表")
     private List<PurchaserOrderItemVO> orderItems;
+
+    @ApiModelProperty("采购凭证图片")
+    private String receiptImages;
 }

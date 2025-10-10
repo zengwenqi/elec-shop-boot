@@ -306,7 +306,7 @@ public class MoneyLogController {
             MoneyLog.OperationType type = MoneyLog.OperationType.valueOf(operationType);
             return type.getDesc();
         } catch (IllegalArgumentException e) {
-            // 如果枚举中没有找到，返回原值
+            // 如果枚举中没有找到，直接返回原值（支持自定义操作类型）
             return operationType;
         }
     }

@@ -65,6 +65,11 @@ public class PurchaseTask extends BaseEntity implements Serializable {
     private String content;
 
     /**
+     * 采购订单回执图片，JSON格式存储多张图片信息
+     */
+    private String receiptImages;
+
+    /**
      * 开始时间
      */
     private Date startTime;

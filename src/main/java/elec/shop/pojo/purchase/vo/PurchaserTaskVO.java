@@ -105,6 +105,9 @@ public class PurchaserTaskVO {
     @ApiModelProperty("订单备注")
     private String remark;
 
+    @ApiModelProperty("采购订单回执图片")
+    private String receiptImages;
+
     @ApiModelProperty("取消原因")
     private String cancelReason;
 

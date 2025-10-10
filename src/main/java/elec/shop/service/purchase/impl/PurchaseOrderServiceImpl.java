@@ -267,6 +267,46 @@ public class PurchaseOrderServiceImpl extends ServiceImpl<PurchaseOrderMapper, P
     @Override
     public PurchaserOrderVO orderInfo(Long orderId) {
         PurchaserOrderVO purchaserOrderVO = purchaseOrderMapper.queryPurchaseOrderOne(orderId);
+        // 处理receiptImages，将文件名数组转换为MinIO访问链接
+        if (purchaserOrderVO.getReceiptImages() != null && !purchaserOrderVO.getReceiptImages().isEmpty()) {
+            try {
+                // 解析JSON字符串为文件名数组
+                String[] fileNames = purchaserOrderVO.getReceiptImages()
+                        .replace("[", "")
+                        .replace("]", "")
+                        .replace("\"", "")
+                        .split(",");
+
+                // 转换为MinIO预览链接数组
+                List<String> previewUrls = new ArrayList<>();
+                for (String fileName : fileNames) {
+                    if (fileName != null && !fileName.trim().isEmpty()) {
+                        String previewUrl = minioUtil.getPreviewUrl(fileName.trim());
+                        if (previewUrl != null) {
+                            previewUrls.add(previewUrl);
+                        }
+                    }
+                }
+
+                // 将预览链接数组转换为JSON字符串存储到VO中
+                if (!previewUrls.isEmpty()) {
+                    StringBuilder urlJson = new StringBuilder("[");
+                    for (int i = 0; i < previewUrls.size(); i++) {
+                        if (i > 0) {
+                            urlJson.append(",");
+                        }
+                        urlJson.append("\"").append(previewUrls.get(i)).append("\"");
+                    }
+                    urlJson.append("]");
+                    purchaserOrderVO.setReceiptImages(urlJson.toString());
+                }
+            } catch (Exception e) {
+                log.error("处理receiptImages失败:", e);
+                purchaserOrderVO.setReceiptImages("[]");
+            }
+        } else {
+            purchaserOrderVO.setReceiptImages("[]");
+        }
         purchaserOrderVO.getOrderItems().forEach(item -> item.setProductImage(minioUtil.getPreviewUrl(item.getProductImage())));
         return purchaserOrderVO;
     }
