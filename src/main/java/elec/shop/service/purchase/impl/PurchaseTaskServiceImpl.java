@@ -442,6 +442,24 @@ public class PurchaseTaskServiceImpl extends ServiceImpl<PurchaseTaskMapper, Pur
             accountBalanceMapper.updateById(accountBalance);
         }
 
+        switch (task.getTaskStatus()) {
+            case 3:
+                purchaseOrder.setOrderStatus(3);
+                break;
+            case 4:
+                purchaseOrder.setOrderStatus(4);
+                break;
+            case 5:
+                purchaseOrder.setOrderStatus(5);
+                break;
+            case 6:
+                purchaseOrder.setOrderStatus(6);
+                break;
+            case 7:
+                purchaseOrder.setOrderStatus(7);
+                break;
+        }
+
         // 9. 更新回填单号和采购备注，如果有
         if (dto.getRemarkOrderNo() != null) {
             purchaseOrder.setRemarkOrderNo(dto.getRemarkOrderNo());

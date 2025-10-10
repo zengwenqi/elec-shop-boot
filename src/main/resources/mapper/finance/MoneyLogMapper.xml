@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="elec.shop.mapper.finance.MoneyLogMapper">
+
+    <!-- 基础结果映射 -->
+    <resultMap id="BaseResultMap" type="elec.shop.pojo.finance.MoneyLog">
+        <id column="log_id" property="logId" />
+        <result column="user_id" property="userId" />
+        <result column="username" property="username" />
+        <result column="user_type" property="userType" />
+        <result column="operation_type" property="operationType" />
+        <result column="amount" property="amount" />
+        <result column="balance_before" property="balanceBefore" />
+        <result column="balance_after" property="balanceAfter" />
+        <result column="currency" property="currency" />
+        <result column="related_order_no" property="relatedOrderNo" />
+        <result column="related_id" property="relatedId" />
+        <result column="description" property="description" />
+        <result column="remark" property="remark" />
+        <result column="operator_id" property="operatorId" />
+        <result column="operator_name" property="operatorName" />
+        <result column="ip_address" property="ipAddress" />
+        <result column="status" property="status" />
+        <result column="created_at" property="createdAt" />
+        <result column="updated_at" property="updatedAt" />
+    </resultMap>
+
+    <!-- 基础字段 -->
+    <sql id="Base_Column_List">
+        log_id, user_id, username, user_type, operation_type, amount, balance_before, 
+        balance_after, currency, related_order_no, related_id, description, remark, 
+        operator_id, operator_name, ip_address, status, created_at, updated_at
+    </sql>
+
+    <!-- 分页查询财务日志 -->
+    <select id="selectMoneyLogPage" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List" />
+        FROM money_log
+        <where>
+            <if test="query.userId != null">
+                AND user_id = #{query.userId}
+            </if>
+            <if test="query.username != null and query.username != ''">
+                AND username LIKE CONCAT('%', #{query.username}, '%')
+            </if>
+            <if test="query.userType != null">
+                AND user_type = #{query.userType}
+            </if>
+            <if test="query.operationType != null and query.operationType != ''">
+                AND operation_type = #{query.operationType}
+            </if>
+            <if test="query.currency != null and query.currency != ''">
+                AND currency = #{query.currency}
+            </if>
+            <if test="query.relatedOrderNo != null and query.relatedOrderNo != ''">
+                AND related_order_no LIKE CONCAT('%', #{query.relatedOrderNo}, '%')
+            </if>
+            <if test="query.status != null">
+                AND status = #{query.status}
+            </if>
+            <if test="query.startTime != null and query.startTime != ''">
+                AND created_at >= #{query.startTime}
+            </if>
+            <if test="query.endTime != null and query.endTime != ''">
+                AND created_at &lt;= #{query.endTime}
+            </if>
+            <if test="query.minAmount != null and query.minAmount != ''">
+                AND ABS(amount) >= #{query.minAmount}
+            </if>
+            <if test="query.maxAmount != null and query.maxAmount != ''">
+                AND ABS(amount) &lt;= #{query.maxAmount}
+            </if>
+            <if test="query.keyword != null and query.keyword != ''">
+                AND (username LIKE CONCAT('%', #{query.keyword}, '%') 
+                     OR description LIKE CONCAT('%', #{query.keyword}, '%')
+                     OR remark LIKE CONCAT('%', #{query.keyword}, '%'))
+            </if>
+        </where>
+        <choose>
+            <when test="query.sortField != null and query.sortField != ''">
+                ORDER BY ${query.sortField}
+                <if test="query.sortOrder != null and query.sortOrder != ''">
+                    ${query.sortOrder}
+                </if>
+            </when>
+            <otherwise>
+                ORDER BY created_at DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <!-- 查询用户余额变动统计 -->
+    <select id="selectUserBalanceStats" resultType="map">
+        SELECT 
+            COUNT(*) as total_count,
+            COALESCE(SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END), 0) as total_income,
+            COALESCE(SUM(CASE WHEN amount &lt; 0 THEN ABS(amount) ELSE 0 END), 0) as total_expense,
+            COALESCE(SUM(amount), 0) as net_amount
+        FROM money_log
+        WHERE user_id = #{userId}
+        <if test="startTime != null and startTime != ''">
+            AND created_at >= #{startTime}
+        </if>
+        <if test="endTime != null and endTime != ''">
+            AND created_at &lt;= #{endTime}
+        </if>
+        AND status = 1
+    </select>
+
+    <!-- 查询操作类型统计 -->
+    <select id="selectOperationTypeStats" resultType="map">
+        SELECT 
+            operation_type,
+            COUNT(*) as count,
+            COALESCE(SUM(ABS(amount)), 0) as total_amount
+        FROM money_log
+        WHERE status = 1
+        <if test="startTime != null and startTime != ''">
+            AND created_at >= #{startTime}
+        </if>
+        <if test="endTime != null and endTime != ''">
+            AND created_at &lt;= #{endTime}
+        </if>
+        GROUP BY operation_type
+        ORDER BY total_amount DESC
+    </select>
+
+    <!-- 查询用户最新余额 -->
+    <select id="selectLatestBalance" resultType="java.math.BigDecimal">
+        SELECT balance_after
+        FROM money_log
+        WHERE user_id = #{userId} AND currency = #{currency} AND status = 1
+        ORDER BY created_at DESC, log_id DESC
+        LIMIT 1
+    </select>
+
+    <!-- 查询日期范围内的交易总额 -->
+    <select id="selectTotalAmountByDateRange" resultType="java.math.BigDecimal">
+        SELECT COALESCE(SUM(ABS(amount)), 0)
+        FROM money_log
+        WHERE status = 1
+        <if test="startTime != null and startTime != ''">
+            AND created_at >= #{startTime}
+        </if>
+        <if test="endTime != null and endTime != ''">
+            AND created_at &lt;= #{endTime}
+        </if>
+        <if test="operationType != null and operationType != ''">
+            AND operation_type = #{operationType}
+        </if>
+    </select>
+
+</mapper>
