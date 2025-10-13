@@ -46,7 +46,7 @@ public class MoneyLogController {
      */
     @GetMapping("/page")
     @ApiOperation("分页查询财务日志")
-    @PreAuthorize("hasPermission(null ,'superadmin')")
+//    @PreAuthorize("hasPermission(null ,'superadmin')")
 //    @OperationLog(module = "财务日志管理", operationType = "查询", description = "分页查询财务日志", isLogin = false)
     @DataSource(DataSourceType.SLAVE)
     public Result<IPage<MoneyLog>> getMoneyLogPage(MoneyLogQueryDTO queryDTO) {
@@ -64,7 +64,7 @@ public class MoneyLogController {
      */
     @GetMapping("/{logId}")
     @ApiOperation("查询财务日志详情")
-    @PreAuthorize("hasPermission(null ,'superadmin')")
+//    @PreAuthorize("hasPermission(null ,'superadmin')")
 //    @OperationLog(module = "财务日志管理", operationType = "查询", description = "查询财务日志详情", isLogin = false)
     @DataSource(DataSourceType.SLAVE)
     public Result<MoneyLog> getMoneyLogDetail(@PathVariable Long logId) {
@@ -85,7 +85,7 @@ public class MoneyLogController {
      */
     @GetMapping("/stats/balance")
     @ApiOperation("查询用户余额变动统计")
-    @PreAuthorize("hasPermission(null ,'superadmin')")
+//    @PreAuthorize("hasPermission(null ,'superadmin')")
 //    @OperationLog(module = "财务日志管理", operationType = "查询", description = "查询用户余额变动统计", isLogin = false)
     @DataSource(DataSourceType.SLAVE)
     public Result<Map<String, Object>> getUserBalanceStats(@RequestParam Long userId,
@@ -105,7 +105,7 @@ public class MoneyLogController {
      */
     @GetMapping("/stats/operation")
     @ApiOperation("查询操作类型统计")
-    @PreAuthorize("hasPermission(null ,'superadmin')")
+//    @PreAuthorize("hasPermission(null ,'superadmin')")
 //    @OperationLog(module = "财务日志管理", operationType = "查询", description = "查询操作类型统计", isLogin = false)
     @DataSource(DataSourceType.SLAVE)
     public Result<List<Map<String, Object>>> getOperationTypeStats(@RequestParam(required = false) String startTime,
@@ -124,7 +124,7 @@ public class MoneyLogController {
      */
     @GetMapping("/balance/latest")
     @ApiOperation("查询用户最新余额")
-    @PreAuthorize("hasAnyAuthority('SUPER_ADMIN', 'ADMIN', 'FINANCE', 'PURCHASER', 'MERCHANT')")
+//    @PreAuthorize("hasAnyAuthority('SUPER_ADMIN', 'ADMIN', 'FINANCE', 'PURCHASER', 'MERCHANT')")
 //    @OperationLog(module = "财务日志管理", operationType = "查询", description = "查询用户最新余额", isLogin = false)
     @DataSource(DataSourceType.SLAVE)
     public Result<BigDecimal> getLatestBalance(@RequestParam Long userId,
@@ -143,7 +143,7 @@ public class MoneyLogController {
      */
     @GetMapping("/stats/total")
     @ApiOperation("查询交易总额统计")
-    @PreAuthorize("hasPermission(null ,'superadmin')")
+//    @PreAuthorize("hasPermission(null ,'superadmin')")
 //    @OperationLog(module = "财务日志管理", operationType = "查询", description = "查询交易总额统计", isLogin = false)
     @DataSource(DataSourceType.SLAVE)
     public Result<Map<String, Object>> getTotalStats(@RequestParam(required = false) String startTime,
@@ -178,7 +178,7 @@ public class MoneyLogController {
      */
     @PostMapping("/export")
     @ApiOperation("导出财务日志")
-    @PreAuthorize("hasPermission(null ,'superadmin')")
+//    @PreAuthorize("hasPermission(null ,'superadmin')")
 //    @OperationLog(module = "财务日志管理", operationType = "导出", description = "导出财务日志", isLogin = false)
     @DataSource(DataSourceType.SLAVE)
     public void exportMoneyLog(@RequestBody MoneyLogQueryDTO queryDTO,
@@ -213,7 +213,7 @@ public class MoneyLogController {
      */
     @GetMapping("/operation-types")
     @ApiOperation("获取操作类型枚举")
-    @PreAuthorize("hasPermission(null ,'superadmin')")
+//    @PreAuthorize("hasPermission(null ,'superadmin')")
     public Result<Map<String, String>> getOperationTypes() {
         try {
             Map<String, String> operationTypes = new HashMap<>();
@@ -232,7 +232,7 @@ public class MoneyLogController {
      */
     @GetMapping("/status-types")
     @ApiOperation("获取状态枚举")
-    @PreAuthorize("hasPermission(null ,'superadmin')")
+//    @PreAuthorize("hasPermission(null ,'superadmin')")
     public Result<Map<Integer, String>> getStatusTypes() {
         try {
             Map<Integer, String> statusTypes = new HashMap<>();

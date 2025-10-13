@@ -230,7 +230,8 @@ public class PurchaseTaskServiceImpl extends ServiceImpl<PurchaseTaskMapper, Pur
         }
 
         // 自定义排序规则
-        wrapper.last("ORDER BY CASE WHEN task_status = 4 THEN 1 ELSE 0 END, created_at DESC");
+//        wrapper.last("ORDER BY CASE WHEN task_status = 4 THEN 1 ELSE 0 END, created_at DESC");
+        wrapper.orderByDesc(PurchaseTask::getCreatedAt);
 
         // 2. 主表分页查询
         Page<PurchaseTask> page = new Page<>(query.getPage(), query.getSize());
@@ -636,7 +637,7 @@ public class PurchaseTaskServiceImpl extends ServiceImpl<PurchaseTaskMapper, Pur
                         .replace("]", "")
                         .replace("\"", "")
                         .split(",");
-                
+
                 // 转换为MinIO预览链接数组
                 List<String> previewUrls = new ArrayList<>();
                 for (String fileName : fileNames) {
@@ -647,7 +648,7 @@ public class PurchaseTaskServiceImpl extends ServiceImpl<PurchaseTaskMapper, Pur
                         }
                     }
                 }
-                
+
                 // 将预览链接数组转换为JSON字符串存储到VO中
                 if (!previewUrls.isEmpty()) {
                     StringBuilder urlJson = new StringBuilder("[");
