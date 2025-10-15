@@ -28,12 +28,54 @@ public class MoneyLogHelper implements ApplicationContextAware {
     }
 
     /**
+     * 记录全自定义日志（完整版本，带操作员信息）
+     * 自动根据变动前后金额判断是扣款还是增款：
+     * - 变动前金额 > 变动后金额：扣款（负数）
+     * - 变动前金额 < 变动后金额：增款（正数）
+     * - 变动前金额 = 变动后金额：默认增款0
+     */
+    public static void zidingyiLogRecharge(Long userId, String username, Integer userType,
+                                          String operationType, BigDecimal amount,
+                                          BigDecimal balanceBefore, BigDecimal balanceAfter,
+                                          String relatedOrderNo, String description,
+                                          String operatorName,
+                                          String source, String currency) {
+        try {
+            // 根据变动前后金额自动计算实际金额变动
+            BigDecimal actualAmount;
+            if (balanceBefore.compareTo(balanceAfter) > 0) {
+                // 变动前 > 变动后：扣款，使用负数
+                actualAmount = balanceAfter.subtract(balanceBefore);
+            } else if (balanceBefore.compareTo(balanceAfter) < 0) {
+                // 变动前 < 变动后：增款，使用正数
+                actualAmount = balanceAfter.subtract(balanceBefore);
+            } else {
+                // 变动前 = 变动后：默认增款0
+                actualAmount = BigDecimal.ZERO;
+            }
+
+            String ipAddress = getCurrentIpAddress();
+
+            MoneyLogEvent event = MoneyLogEvent.zidingyiEvent(
+                    userId, username, userType, operationType, actualAmount,
+                    balanceBefore, balanceAfter, relatedOrderNo, description,
+                    operatorName, ipAddress, source, currency);
+
+            publishEvent(event);
+
+        } catch (Exception e) {
+            log.error("记录自定义日志失败: userId={}, operationType={}, amount={}",
+                     userId, operationType, amount, e);
+        }
+    }
+
+    /**
      * 记录充值日志
      */
     public static void logRecharge(Long userId, String username, Integer userType,
-                                  BigDecimal amount, BigDecimal balanceBefore, 
+                                  BigDecimal amount, BigDecimal balanceBefore,
                                   BigDecimal balanceAfter, String relatedOrderNo) {
-        logRecharge(userId, username, userType, amount, balanceBefore, 
+        logRecharge(userId, username, userType, amount, balanceBefore,
                    balanceAfter, relatedOrderNo, "CNY");
     }
 
@@ -41,18 +83,18 @@ public class MoneyLogHelper implements ApplicationContextAware {
      * 记录充值日志（支持自定义货币）
      */
     public static void logRecharge(Long userId, String username, Integer userType,
-                                  BigDecimal amount, BigDecimal balanceBefore, 
+                                  BigDecimal amount, BigDecimal balanceBefore,
                                   BigDecimal balanceAfter, String relatedOrderNo, String currency) {
         try {
             String operatorName = getCurrentOperatorName();
             String ipAddress = getCurrentIpAddress();
-            
+
             MoneyLogEvent event = MoneyLogEvent.createRechargeEvent(
-                    userId, username, userType, amount, balanceBefore, 
+                    userId, username, userType, amount, balanceBefore,
                     balanceAfter, relatedOrderNo, operatorName, ipAddress, currency);
-            
+
             publishEvent(event);
-            
+
         } catch (Exception e) {
             log.error("记录充值日志失败: userId={}, amount={}", userId, amount, e);
         }
@@ -62,10 +104,10 @@ public class MoneyLogHelper implements ApplicationContextAware {
      * 记录充值日志（带操作员信息）
      */
     public static void logRecharge(Long userId, String username, Integer userType,
-                                  BigDecimal amount, BigDecimal balanceBefore, 
+                                  BigDecimal amount, BigDecimal balanceBefore,
                                   BigDecimal balanceAfter, String relatedOrderNo,
                                   String operatorName, String ipAddress) {
-        logRecharge(userId, username, userType, amount, balanceBefore, 
+        logRecharge(userId, username, userType, amount, balanceBefore,
                    balanceAfter, relatedOrderNo, operatorName, ipAddress, "CNY");
     }
 
@@ -73,16 +115,16 @@ public class MoneyLogHelper implements ApplicationContextAware {
      * 记录充值日志（带操作员信息和自定义货币）
      */
     public static void logRecharge(Long userId, String username, Integer userType,
-                                  BigDecimal amount, BigDecimal balanceBefore, 
+                                  BigDecimal amount, BigDecimal balanceBefore,
                                   BigDecimal balanceAfter, String relatedOrderNo,
                                   String operatorName, String ipAddress, String currency) {
         try {
             MoneyLogEvent event = MoneyLogEvent.createRechargeEvent(
-                    userId, username, userType, amount, balanceBefore, 
+                    userId, username, userType, amount, balanceBefore,
                     balanceAfter, relatedOrderNo, operatorName, ipAddress, currency);
-            
+
             publishEvent(event);
-            
+
         } catch (Exception e) {
             log.error("记录充值日志失败: userId={}, amount={}", userId, amount, e);
         }
@@ -107,13 +149,13 @@ public class MoneyLogHelper implements ApplicationContextAware {
         try {
             String operatorName = getCurrentOperatorName();
             String ipAddress = getCurrentIpAddress();
-            
+
             MoneyLogEvent event = MoneyLogEvent.createPurchaseEvent(
                     userId, username, userType, amount, balanceBefore,
                     balanceAfter, relatedOrderNo, operatorName, ipAddress, currency);
-            
+
             publishEvent(event);
-            
+
         } catch (Exception e) {
             log.error("记录采购日志失败: userId={}, amount={}", userId, amount, e);
         }
@@ -141,9 +183,9 @@ public class MoneyLogHelper implements ApplicationContextAware {
             MoneyLogEvent event = MoneyLogEvent.createPurchaseEvent(
                     userId, username, userType, amount, balanceBefore,
                     balanceAfter, relatedOrderNo, operatorName, ipAddress, currency);
-            
+
             publishEvent(event);
-            
+
         } catch (Exception e) {
             log.error("记录采购日志失败: userId={}, amount={}", userId, amount, e);
         }
@@ -168,13 +210,13 @@ public class MoneyLogHelper implements ApplicationContextAware {
         try {
             String operatorName = getCurrentOperatorName();
             String ipAddress = getCurrentIpAddress();
-            
+
             MoneyLogEvent event = MoneyLogEvent.createRefundEvent(
                     userId, username, userType, amount, balanceBefore,
                     balanceAfter, relatedOrderNo, operatorName, ipAddress, currency);
-            
+
             publishEvent(event);
-            
+
         } catch (Exception e) {
             log.error("记录退款日志失败: userId={}, amount={}", userId, amount, e);
         }
@@ -202,9 +244,9 @@ public class MoneyLogHelper implements ApplicationContextAware {
             MoneyLogEvent event = MoneyLogEvent.createRefundEvent(
                     userId, username, userType, amount, balanceBefore,
                     balanceAfter, relatedOrderNo, operatorName, ipAddress, currency);
-            
+
             publishEvent(event);
-            
+
         } catch (Exception e) {
             log.error("记录退款日志失败: userId={}, amount={}", userId, amount, e);
         }
@@ -229,13 +271,13 @@ public class MoneyLogHelper implements ApplicationContextAware {
         try {
             String operatorName = getCurrentOperatorName();
             String ipAddress = getCurrentIpAddress();
-            
+
             MoneyLogEvent event = MoneyLogEvent.createCommissionEvent(
                     userId, username, userType, amount, balanceBefore,
                     balanceAfter, relatedOrderNo, operatorName, ipAddress, currency);
-            
+
             publishEvent(event);
-            
+
         } catch (Exception e) {
             log.error("记录佣金日志失败: userId={}, amount={}", userId, amount, e);
         }
@@ -263,9 +305,9 @@ public class MoneyLogHelper implements ApplicationContextAware {
             MoneyLogEvent event = MoneyLogEvent.createCommissionEvent(
                     userId, username, userType, amount, balanceBefore,
                     balanceAfter, relatedOrderNo, operatorName, ipAddress, currency);
-            
+
             publishEvent(event);
-            
+
         } catch (Exception e) {
             log.error("记录佣金日志失败: userId={}, amount={}", userId, amount, e);
         }
@@ -290,13 +332,13 @@ public class MoneyLogHelper implements ApplicationContextAware {
         try {
             String operatorName = getCurrentOperatorName();
             String ipAddress = getCurrentIpAddress();
-            
+
             MoneyLogEvent event = MoneyLogEvent.createWithdrawEvent(
                     userId, username, userType, amount, balanceBefore,
                     balanceAfter, relatedOrderNo, operatorName, ipAddress, currency);
-            
+
             publishEvent(event);
-            
+
         } catch (Exception e) {
             log.error("记录提现日志失败: userId={}, amount={}", userId, amount, e);
         }
@@ -324,9 +366,9 @@ public class MoneyLogHelper implements ApplicationContextAware {
             MoneyLogEvent event = MoneyLogEvent.createWithdrawEvent(
                     userId, username, userType, amount, balanceBefore,
                     balanceAfter, relatedOrderNo, operatorName, ipAddress, currency);
-            
+
             publishEvent(event);
-            
+
         } catch (Exception e) {
             log.error("记录提现日志失败: userId={}, amount={}", userId, amount, e);
         }
@@ -351,13 +393,13 @@ public class MoneyLogHelper implements ApplicationContextAware {
         try {
             String operatorName = getCurrentOperatorName();
             String ipAddress = getCurrentIpAddress();
-            
+
             MoneyLogEvent event = MoneyLogEvent.createTransferEvent(
                     userId, username, userType, amount, balanceBefore,
                     balanceAfter, relatedOrderNo, operatorName, ipAddress, isOut, currency);
-            
+
             publishEvent(event);
-            
+
         } catch (Exception e) {
             log.error("记录转账日志失败: userId={}, amount={}", userId, amount, e);
         }
@@ -385,9 +427,9 @@ public class MoneyLogHelper implements ApplicationContextAware {
             MoneyLogEvent event = MoneyLogEvent.createTransferEvent(
                     userId, username, userType, amount, balanceBefore,
                     balanceAfter, relatedOrderNo, operatorName, ipAddress, isOut, currency);
-            
+
             publishEvent(event);
-            
+
         } catch (Exception e) {
             log.error("记录转账日志失败: userId={}, amount={}", userId, amount, e);
         }
@@ -397,22 +439,22 @@ public class MoneyLogHelper implements ApplicationContextAware {
      * 记录自定义日志（完全自定义操作类型和货币）
      */
     public static void logCustom(Long userId, String username, Integer userType,
-                                String operationType, BigDecimal amount, 
+                                String operationType, BigDecimal amount,
                                 BigDecimal balanceBefore, BigDecimal balanceAfter,
                                 String currency, String relatedOrderNo, String description) {
         try {
             String operatorName = getCurrentOperatorName();
             String ipAddress = getCurrentIpAddress();
-            
+
             MoneyLogEvent event = MoneyLogEvent.createCustomEvent(
                     userId, username, userType, operationType, amount,
-                    balanceBefore, balanceAfter, currency, relatedOrderNo, 
+                    balanceBefore, balanceAfter, currency, relatedOrderNo,
                     description, operatorName, ipAddress);
-            
+
             publishEvent(event);
-            
+
         } catch (Exception e) {
-            log.error("记录自定义日志失败: userId={}, operationType={}, amount={}", 
+            log.error("记录自定义日志失败: userId={}, operationType={}, amount={}",
                      userId, operationType, amount, e);
         }
     }
@@ -421,20 +463,20 @@ public class MoneyLogHelper implements ApplicationContextAware {
      * 记录自定义日志（带操作员信息）
      */
     public static void logCustom(Long userId, String username, Integer userType,
-                                String operationType, BigDecimal amount, 
+                                String operationType, BigDecimal amount,
                                 BigDecimal balanceBefore, BigDecimal balanceAfter,
                                 String currency, String relatedOrderNo, String description,
                                 String operatorName, String ipAddress) {
         try {
             MoneyLogEvent event = MoneyLogEvent.createCustomEvent(
                     userId, username, userType, operationType, amount,
-                    balanceBefore, balanceAfter, currency, relatedOrderNo, 
+                    balanceBefore, balanceAfter, currency, relatedOrderNo,
                     description, operatorName, ipAddress);
-            
+
             publishEvent(event);
-            
+
         } catch (Exception e) {
-            log.error("记录自定义日志失败: userId={}, operationType={}, amount={}", 
+            log.error("记录自定义日志失败: userId={}, operationType={}, amount={}",
                      userId, operationType, amount, e);
         }
     }
@@ -480,16 +522,16 @@ public class MoneyLogHelper implements ApplicationContextAware {
      */
     private static String getCurrentIpAddress() {
         try {
-            ServletRequestAttributes attributes = 
+            ServletRequestAttributes attributes =
                     (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-            
+
             if (attributes != null) {
                 HttpServletRequest request = attributes.getRequest();
                 return getClientIpAddress(request);
             }
-            
+
             return "127.0.0.1";
-            
+
         } catch (Exception e) {
             return "未知IP";
         }
@@ -500,32 +542,32 @@ public class MoneyLogHelper implements ApplicationContextAware {
      */
     private static String getClientIpAddress(HttpServletRequest request) {
         String ip = request.getHeader("X-Forwarded-For");
-        
+
         if (ip == null || ip.length() == 0 || "unknown".equalsIgnoreCase(ip)) {
             ip = request.getHeader("Proxy-Client-IP");
         }
-        
+
         if (ip == null || ip.length() == 0 || "unknown".equalsIgnoreCase(ip)) {
             ip = request.getHeader("WL-Proxy-Client-IP");
         }
-        
+
         if (ip == null || ip.length() == 0 || "unknown".equalsIgnoreCase(ip)) {
             ip = request.getHeader("HTTP_CLIENT_IP");
         }
-        
+
         if (ip == null || ip.length() == 0 || "unknown".equalsIgnoreCase(ip)) {
             ip = request.getHeader("HTTP_X_FORWARDED_FOR");
         }
-        
+
         if (ip == null || ip.length() == 0 || "unknown".equalsIgnoreCase(ip)) {
             ip = request.getRemoteAddr();
         }
-        
+
         // 如果是多级代理，取第一个IP
         if (ip != null && ip.contains(",")) {
             ip = ip.split(",")[0].trim();
         }
-        
+
         return ip;
     }
 }

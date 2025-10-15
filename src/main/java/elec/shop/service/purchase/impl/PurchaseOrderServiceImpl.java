@@ -9,6 +9,7 @@ import elec.shop.mapper.purchase.AccountBalanceMapper;
 import elec.shop.mapper.purchase.FinanceAccountMapper;
 import elec.shop.mapper.purchase.PurchaseOrderMapper;
 import elec.shop.mapper.purchase.ShopInfoMapper;
+import elec.shop.mapper.sys.SysUserMapper;
 import elec.shop.pojo.purchase.*;
 import elec.shop.pojo.purchase.dto.PurchaserOrderDTO;
 import elec.shop.pojo.purchase.dto.PurchaserOrderQueryDTO;
@@ -21,10 +22,7 @@ import elec.shop.service.purchase.PurchaseOrderItemService;
 import elec.shop.service.purchase.PurchaseOrderService;
 import elec.shop.service.purchase.PurchaserInfoService;
 import elec.shop.service.sys.SysUserService;
-import elec.shop.utils.AllContextUtils;
-import elec.shop.utils.ExcelUtils;
-import elec.shop.utils.MinioUtil;
-import elec.shop.utils.Result;
+import elec.shop.utils.*;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -62,6 +60,7 @@ public class PurchaseOrderServiceImpl extends ServiceImpl<PurchaseOrderMapper, P
     private final PurchaserInfoService purchaserInfoService;
     private final SysUserService sysUserService;
     private final MinioUtil minioUtil;
+    private final SysUserMapper sysUserMapper;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -79,6 +78,7 @@ public class PurchaseOrderServiceImpl extends ServiceImpl<PurchaseOrderMapper, P
         if (accountBalance.getBalance().compareTo(purchaseOrder.getTotalAmount()) < 0){
             return Result.fail().message("余额不足");
         }
+        BigDecimal balance = accountBalance.getBalance();
 //        accountBalance.setBalance(accountBalance.getBalance().subtract(purchaseOrder.getTotalAmount().add(purchaseOrder.getServiceCharge())));
         accountBalance.setBalance(accountBalance.getBalance().subtract(purchaseOrder.getTotalAmount()));
         accountBalanceMapper.updateById(accountBalance);
@@ -103,6 +103,10 @@ public class PurchaseOrderServiceImpl extends ServiceImpl<PurchaseOrderMapper, P
             purchaseOrderItemList.add(purchaseOrderItem);
         });
         boolean b = purchaseOrderItemService.saveBatch(purchaseOrderItemList);
+        MoneyLogHelper.zidingyiLogRecharge(loginSysUser.getUserId(), loginSysUser.getUsername(), 4,
+                "采购订单支付",purchaseOrder.getTotalAmount(),balance,balance.subtract(purchaseOrder.getTotalAmount()),
+                purchaseOrder.getOrderNo(), "支付采购订单支付账单",
+                AllContextUtils.getLoginSysUser().getUsername(), "系统", accountBalance.getCurrency());
         if (insert <= 0&&b)
             return Result.fail().message("采购订单创建失败");
         return Result.ok();
@@ -118,12 +122,11 @@ public class PurchaseOrderServiceImpl extends ServiceImpl<PurchaseOrderMapper, P
                     .eq(PurchaseOrder::getIsDeleted, 0)
                     .eq(query.getShopId() != null, PurchaseOrder::getShopId, query.getShopId())
                     .eq(query.getOrderStatus() != null, PurchaseOrder::getOrderStatus, query.getOrderStatus())
-                    .eq(query.getPaymentStatus() != null, PurchaseOrder::getPaymentStatus, query.getPaymentStatus())
                     .ge(StringUtils.isNotBlank(query.getStartTime()), PurchaseOrder::getCreatedAt, query.getStartTime())
                     .le(StringUtils.isNotBlank(query.getEndTime()), PurchaseOrder::getUpdatedAt, query.getEndTime())
-                    .like(query.getKey() != null, PurchaseOrder::getOrderNo, query.getKey())
-                    .eq(StringUtils.isNotBlank(query.getOrderNo()), PurchaseOrder::getOrderNo, query.getOrderNo())
-                    .last("ORDER BY CASE WHEN order_status = 5 THEN 1 ELSE 0 END, created_at DESC");
+                    .like(StringUtils.isNotBlank(query.getOrderNo()), PurchaseOrder::getOrderNo, query.getOrderNo())
+                    .like(StringUtils.isNotBlank(query.getGoodsOrderNo()), PurchaseOrder::getGoodsOrderNo, query.getGoodsOrderNo())
+                    .orderByDesc(PurchaseOrder::getCreatedAt);
             if (byId.getUserType()==3||byId.getUserType()==4) {
                 wrapper.eq(loginSysUser.getUserId() != null, PurchaseOrder::getUserId, loginSysUser.getUserId());
             }
@@ -225,7 +228,22 @@ public class PurchaseOrderServiceImpl extends ServiceImpl<PurchaseOrderMapper, P
         order.setOrderStatus(5); // 已取消
         order.setCancelReason(cancelReason);
         order.setCancelTime(new Date());
-        return this.updateById(order);
+        boolean b = this.updateById(order);
+        if (b) {
+            FinanceAccount financeAccount = financeAccountMapper.selectOne(new LambdaQueryWrapper<FinanceAccount>()
+                    .eq(FinanceAccount::getUserId, order.getUserId()));
+            AccountBalance accountBalance = accountBalanceMapper.selectOne(new LambdaQueryWrapper<AccountBalance>()
+                    .eq(AccountBalance::getAccountId, financeAccount.getAccountId()));
+
+            MoneyLogHelper.zidingyiLogRecharge(AllContextUtils.getLoginSysUser().getUserId(), AllContextUtils.getLoginSysUser().getUsername(), 4,
+                    "采购订单取消",order.getTotalAmount(),accountBalance.getBalance(),accountBalance.getBalance().add(order.getTotalAmount()),
+                    order.getOrderNo(), cancelReason,
+                    AllContextUtils.getLoginSysUser().getUsername(), "系统", accountBalance.getCurrency());
+
+            accountBalance.setBalance(accountBalance.getBalance().add(order.getTotalAmount()));
+            accountBalanceMapper.updateById(accountBalance);
+        }
+        return false;
     }
 
     @Override

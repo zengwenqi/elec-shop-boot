@@ -22,10 +22,7 @@ import elec.shop.service.purchase.FinanceAccountService;
 import elec.shop.service.sys.SysUserService;
 import elec.shop.pojo.purchase.vo.CurrencyAccountVO;
 import elec.shop.sms.ExchangeRateService;
-import elec.shop.utils.AllContextUtils;
-import elec.shop.utils.EmailUtil;
-import elec.shop.utils.Result;
-import elec.shop.utils.RsaDecryptUtil;
+import elec.shop.utils.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -89,6 +86,11 @@ public class AccountBalanceServiceImpl extends ServiceImpl<AccountBalanceMapper,
             return false;
         }
 
+        MoneyLogHelper.zidingyiLogRecharge(AllContextUtils.getLoginSysUser().getUserId(), AllContextUtils.getLoginSysUser().getUsername(), 4,
+                "货币转换",amount,accountBalance.getBalance(),accountBalance.getBalance().add(amount),
+                "货币转换", "来自人民币的转换",
+                "来自人民币的转换", "系统", currency);
+
         // 更新余额
         accountBalance.setBalance(accountBalance.getBalance().add(amount));
         return this.updateById(accountBalance);
@@ -135,6 +137,34 @@ public class AccountBalanceServiceImpl extends ServiceImpl<AccountBalanceMapper,
         if (sourceAccount.getBalance().compareTo(amount) < 0) {
             return false;
         }
+
+        MoneyLogHelper.zidingyiLogRecharge(AllContextUtils.getLoginSysUser().getUserId(), AllContextUtils.getLoginSysUser().getUsername(), 4,
+                "货币转换",amount,sourceAccount.getBalance(),sourceAccount.getBalance().subtract(amount),
+                "货币转换", "货币转换",
+                "货币转换", "系统", fromCurrency);
+
+        if (toCurrency.equals("CNY")){
+
+            FinanceAccount one = financeAccountService.lambdaQuery()
+                    .eq(FinanceAccount::getUserId, AllContextUtils.getLoginSysUser().getUserId())
+                    .eq(FinanceAccount::getBaseCurrency, toCurrency).one();
+
+            MoneyLogHelper.zidingyiLogRecharge(AllContextUtils.getLoginSysUser().getUserId(), AllContextUtils.getLoginSysUser().getUsername(), 4,
+                    "货币转换",amount,one.getBanlance(),one.getBanlance().add(convertedAmount),
+                    "货币转换", "货币转换",
+                    "货币转换", "系统", toCurrency);
+            // 执行转换
+            sourceAccount.setBalance(sourceAccount.getBalance().subtract(amount));
+            targetAccount.setBalance(targetAccount.getBalance().add(convertedAmount));
+
+            // 批量更新
+            return this.updateBatchById(List.of(sourceAccount, targetAccount));
+        }
+
+        MoneyLogHelper.zidingyiLogRecharge(AllContextUtils.getLoginSysUser().getUserId(), AllContextUtils.getLoginSysUser().getUsername(), 4,
+                "货币转换",amount,targetAccount.getBalance(),targetAccount.getBalance().add(convertedAmount),
+                "货币转换", "货币转换",
+                "货币转换", "系统", toCurrency);
 
         // 执行转换
         sourceAccount.setBalance(sourceAccount.getBalance().subtract(amount));
@@ -308,8 +338,14 @@ public class AccountBalanceServiceImpl extends ServiceImpl<AccountBalanceMapper,
 
         FinanceAccount updateEntity = new FinanceAccount();
 
+        SysUser sysUser = sysUserMapper.selectById(account.getUserId());
+
         // 增加余额操作
         if (currencyAccountBalanceDTO.getOperationStatus() == 1) {
+            MoneyLogHelper.zidingyiLogRecharge(sysUser.getUserId(), sysUser.getUsername(), 4,
+                    "更新指定账户余额",currencyAccountBalanceDTO.getBalance(),account.getBanlance(),account.getBanlance().add(currencyAccountBalanceDTO.getBalance()),
+                    "更新指定账户余额", "管理员更新指定账户余额",
+                    AllContextUtils.getLoginSysUser().getUsername(), "系统", "CNY");
             updateEntity.setBanlance(account.getBanlance().add(currencyAccountBalanceDTO.getBalance()));
         }
         // 减少余额操作（需要检查余额是否充足）
@@ -317,6 +353,10 @@ public class AccountBalanceServiceImpl extends ServiceImpl<AccountBalanceMapper,
             if (account.getBanlance().compareTo(currencyAccountBalanceDTO.getBalance()) < 0) {
                 throw new BusinessException("余额不足");
             }
+            MoneyLogHelper.zidingyiLogRecharge(sysUser.getUserId(), sysUser.getUsername(), 4,
+                    "更新指定账户余额",currencyAccountBalanceDTO.getBalance(),account.getBanlance(),account.getBanlance().subtract(currencyAccountBalanceDTO.getBalance()),
+                    "更新指定账户余额", "管理员更新指定账户余额",
+                    AllContextUtils.getLoginSysUser().getUsername(), "系统", "CNY");
             updateEntity.setBanlance(account.getBanlance().subtract(currencyAccountBalanceDTO.getBalance()));
         }
 
@@ -381,7 +421,14 @@ public class AccountBalanceServiceImpl extends ServiceImpl<AccountBalanceMapper,
         if (sysUser.getUserType()!=1) return false;
         FinanceAccount mainAccount = financeAccountMapper.selectOne(new LambdaQueryWrapper<FinanceAccount>()
                 .eq(FinanceAccount::getUserId,dto.getUserId()));
+        SysUser sysUser1 = sysUserMapper.selectById(dto.getUserId());
         if (mainAccount!=null) {
+
+            MoneyLogHelper.zidingyiLogRecharge(dto.getUserId(), sysUser1.getUsername(), 4,
+                    "管理员代充值",new BigDecimal(dto.getMoney()),mainAccount.getBanlance(),mainAccount.getBanlance().add(new BigDecimal(dto.getMoney())),
+                    "管理员代充值", "管理员处理充值反馈",
+                    sysUser.getUsername(), "系统", "CNY");
+
             mainAccount.setBanlance(mainAccount.getBanlance().add(RsaDecryptUtil.decryptAmount(dto.getMoney())));
             financeAccountMapper.updateById(mainAccount);
         }
@@ -398,7 +445,13 @@ public class AccountBalanceServiceImpl extends ServiceImpl<AccountBalanceMapper,
                 .eq(AccountBalance::getAccountId, mainAccount.getAccountId())
                 .eq(AccountBalance::getCurrency, dto.getCurrency()));
         if (accountBalance.getBalance().compareTo(dto.getAmount())<0) return Result.fail().message("余额不足");
+
+        MoneyLogHelper.zidingyiLogRecharge(loginSysUser.getUserId(), loginSysUser.getUsername(), 4,
+                "订单补齐差价",dto.getAmount(),accountBalance.getBalance(),accountBalance.getBalance().subtract(dto.getAmount()),
+                dto.getOrderNo(), "补齐订单的差价",
+                loginSysUser.getUsername(), "系统", dto.getCurrency());
         accountBalance.setBalance(accountBalance.getBalance().subtract(dto.getAmount()));
+
         accountBalanceMapper.updateById(accountBalance);
         PurchaseOrder purchaseOrder = purchaseOrderMapper.selectOne(new LambdaQueryWrapper<PurchaseOrder>()
                 .eq(PurchaseOrder::getOrderNo, dto.getOrderNo())
@@ -542,6 +595,18 @@ public class AccountBalanceServiceImpl extends ServiceImpl<AccountBalanceMapper,
 
         int targetRows = accountBalanceMapper.update(targetUpdate, targetUpdateWrapper);
 
+        SysUser sysUser = sysUserMapper.selectById(mainAccount.getUserId());
+
+        MoneyLogHelper.zidingyiLogRecharge(sysUser.getUserId(), sysUser.getUsername(), 4,
+                "货币转换",targetAmount,mainAccount.getBanlance(),mainAccount.getBanlance().subtract(targetAmount),
+                "货币转换", "货币转换",
+                AllContextUtils.getLoginSysUser().getUsername(), "系统", "CNY");
+
+        MoneyLogHelper.zidingyiLogRecharge(sysUser.getUserId(), sysUser.getUsername(), 4,
+                "货币转换",cnyAmount,targetAccount.getBalance(),targetAccount.getBalance().add(cnyAmount),
+                "货币转换", "货币转换",
+                AllContextUtils.getLoginSysUser().getUsername(), "系统",targetAccount.getCurrency());
+
         // 记录交易日志
         recordTransactionLog(mainAccount.getAccountId(),
                 mainAccount.getBaseCurrency(),
@@ -584,6 +649,18 @@ public class AccountBalanceServiceImpl extends ServiceImpl<AccountBalanceMapper,
         mainUpdate.setBanlance(mainAccount.getBanlance().add(cnyAmount));
 
         int mainRows = financeAccountMapper.update(mainUpdate, mainUpdateWrapper);
+
+        SysUser sysUser = sysUserMapper.selectById(mainAccount.getUserId());
+
+        MoneyLogHelper.zidingyiLogRecharge(sysUser.getUserId(), sysUser.getUsername(), 4,
+                "货币转换",targetAmount,mainAccount.getBanlance(),mainAccount.getBanlance().add(cnyAmount),
+                "货币转换", "货币转换",
+                AllContextUtils.getLoginSysUser().getUsername(), "系统", "CNY");
+
+        MoneyLogHelper.zidingyiLogRecharge(sysUser.getUserId(), sysUser.getUsername(), 4,
+                "货币转换",cnyAmount,targetAccount.getBalance(),targetAccount.getBalance().subtract(cnyAmount),
+                "货币转换", "货币转换",
+                AllContextUtils.getLoginSysUser().getUsername(), "系统",targetAccount.getCurrency());
 
         // 记录交易日志
         recordTransactionLog(mainAccount.getAccountId(),

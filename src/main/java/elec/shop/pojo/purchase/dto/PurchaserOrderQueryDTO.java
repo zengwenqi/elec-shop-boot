@@ -39,4 +39,7 @@ public class PurchaserOrderQueryDTO {
     // 订单分配查询字段
     @ApiModelProperty("订单编号")
     private String orderNo;
+
+    @ApiModelProperty("商品订单号")
+    private String goodsOrderNo;
 }

@@ -100,7 +100,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
 
             userRoleMapper.insert(userRole);
 
-            shopInfoService.initUserInfoData(user.getUserId());
+            shopInfoService.initUserInfoData(user.getUserId(),user.getUsername());
             return true;
         } catch (Exception e) {
             log.error("注册用户失败：", e);

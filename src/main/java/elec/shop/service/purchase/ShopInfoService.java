@@ -24,12 +24,6 @@ public interface ShopInfoService extends IService<ShopInfo> {
     IPage<ShopInfo> queryShopInfo(ShopInfoQueryDTO shopInfoQueryDTO);
 
     /**
-     * 测试
-     * @param userId
-     */
-    void test(Long userId);
-
-    /**
      * 更新我的店铺信息
      * @param shopInfoDTO
      * @return
@@ -67,5 +61,5 @@ public interface ShopInfoService extends IService<ShopInfo> {
      * 初始化用户基本数据
      * @param userId 用户ID
      */
-    void initUserInfoData(Long userId);
+    void initUserInfoData(Long userId,String username);
 }

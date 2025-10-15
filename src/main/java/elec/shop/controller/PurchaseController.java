@@ -197,11 +197,4 @@ public class PurchaseController {
         purchaseTaskService.assignTask(taskId, purchaserId);
         return Result.ok();
     }
-
-    @GetMapping("/test")
-    @ApiOperation("测试汇率")
-    public Result<Object> test(@RequestParam("userId") Long userId) {
-        shopInfoService.test(userId);
-        return Result.ok();
-    }
 }

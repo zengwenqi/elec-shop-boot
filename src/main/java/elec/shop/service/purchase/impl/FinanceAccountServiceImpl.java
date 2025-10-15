@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import elec.shop.pojo.purchase.FinanceAccount;
 import elec.shop.service.purchase.FinanceAccountService;
 import elec.shop.mapper.purchase.FinanceAccountMapper;
+import elec.shop.utils.AllContextUtils;
+import elec.shop.utils.MoneyLogHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,7 +36,7 @@ public class FinanceAccountServiceImpl extends ServiceImpl<FinanceAccountMapper,
         if (account == null) {
             return false;
         }
-        
+
         // 更新人民币余额
         account.setBanlance(account.getBanlance().add(amount));
         return this.updateById(account);
@@ -47,7 +49,12 @@ public class FinanceAccountServiceImpl extends ServiceImpl<FinanceAccountMapper,
         if (account == null || !checkCNYBalance(userId, amount)) {
             return false;
         }
-        
+
+        MoneyLogHelper.zidingyiLogRecharge(userId, AllContextUtils.getLoginSysUser().getUsername(), 4,
+                "货币转换",amount,account.getBanlance(),account.getBanlance().subtract(amount),
+                "货币转换", "人民币转换为其他货币",
+                "人民币转换为其他货币", "系统", "CNY");
+
         // 扣减人民币余额
         account.setBanlance(account.getBanlance().subtract(amount));
         return this.updateById(account);

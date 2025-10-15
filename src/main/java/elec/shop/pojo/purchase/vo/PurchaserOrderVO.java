@@ -100,6 +100,9 @@ public class PurchaserOrderVO {
     @ApiModelProperty("回填单号")
     private String remarkOrderNo;
 
+    @ApiModelProperty("商品订单号")
+    private String goodsOrderNo;
+
     @ApiModelProperty("订单备注")
     private String remark;
 

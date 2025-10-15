@@ -120,8 +120,36 @@ public class MoneyLogEvent {
                                                    BigDecimal amount, BigDecimal balanceBefore,
                                                    BigDecimal balanceAfter, String relatedOrderNo,
                                                    String operatorName, String ipAddress) {
-        return createRechargeEvent(userId, username, userType, amount, balanceBefore, 
+        return createRechargeEvent(userId, username, userType, amount, balanceBefore,
                                  balanceAfter, relatedOrderNo, operatorName, ipAddress, "CNY");
+    }
+
+    /**
+     * 充值事件（支持自定义货币）
+     */
+    public static MoneyLogEvent zidingyiEvent(Long userId, String username, Integer userType, String operationType,
+                                                    BigDecimal amount, BigDecimal balanceBefore,
+                                                    BigDecimal balanceAfter, String relatedOrderNo,String description,
+                                                    String operatorName, String ipAddress, String source,String currency) {
+        return MoneyLogEvent.builder()
+                .userId(userId)
+                .username(username)
+                .userType(userType)
+                .operationType(operationType)
+                .amount(amount)
+                .balanceBefore(balanceBefore)
+                .balanceAfter(balanceAfter)
+                .currency(currency)
+                .relatedOrderNo(relatedOrderNo)
+                .description(description)
+                .operatorName(operatorName)
+                .ipAddress(ipAddress)
+                .status(1)
+                .eventTime(LocalDateTime.now())
+                .businessTime(LocalDateTime.now())
+                .source(source)
+                .eventId(generateEventId(operationType, userId, relatedOrderNo))
+                .build();
     }
 
     /**
@@ -159,7 +187,7 @@ public class MoneyLogEvent {
                                                    BigDecimal amount, BigDecimal balanceBefore,
                                                    BigDecimal balanceAfter, String relatedOrderNo,
                                                    String operatorName, String ipAddress) {
-        return createPurchaseEvent(userId, username, userType, amount, balanceBefore, 
+        return createPurchaseEvent(userId, username, userType, amount, balanceBefore,
                                  balanceAfter, relatedOrderNo, operatorName, ipAddress, "CNY");
     }
 
@@ -198,7 +226,7 @@ public class MoneyLogEvent {
                                                  BigDecimal amount, BigDecimal balanceBefore,
                                                  BigDecimal balanceAfter, String relatedOrderNo,
                                                  String operatorName, String ipAddress) {
-        return createRefundEvent(userId, username, userType, amount, balanceBefore, 
+        return createRefundEvent(userId, username, userType, amount, balanceBefore,
                                balanceAfter, relatedOrderNo, operatorName, ipAddress, "CNY");
     }
 
@@ -237,7 +265,7 @@ public class MoneyLogEvent {
                                                      BigDecimal amount, BigDecimal balanceBefore,
                                                      BigDecimal balanceAfter, String relatedOrderNo,
                                                      String operatorName, String ipAddress) {
-        return createCommissionEvent(userId, username, userType, amount, balanceBefore, 
+        return createCommissionEvent(userId, username, userType, amount, balanceBefore,
                                    balanceAfter, relatedOrderNo, operatorName, ipAddress, "CNY");
     }
 
@@ -276,7 +304,7 @@ public class MoneyLogEvent {
                                                    BigDecimal amount, BigDecimal balanceBefore,
                                                    BigDecimal balanceAfter, String relatedOrderNo,
                                                    String operatorName, String ipAddress) {
-        return createWithdrawEvent(userId, username, userType, amount, balanceBefore, 
+        return createWithdrawEvent(userId, username, userType, amount, balanceBefore,
                                  balanceAfter, relatedOrderNo, operatorName, ipAddress, "CNY");
     }
 
@@ -315,7 +343,7 @@ public class MoneyLogEvent {
                                                    BigDecimal amount, BigDecimal balanceBefore,
                                                    BigDecimal balanceAfter, String relatedOrderNo,
                                                    String operatorName, String ipAddress, boolean isOut) {
-        return createTransferEvent(userId, username, userType, amount, balanceBefore, 
+        return createTransferEvent(userId, username, userType, amount, balanceBefore,
                                  balanceAfter, relatedOrderNo, operatorName, ipAddress, isOut, "CNY");
     }
 
@@ -351,7 +379,7 @@ public class MoneyLogEvent {
      * 自定义事件（完全自定义操作类型和货币）
      */
     public static MoneyLogEvent createCustomEvent(Long userId, String username, Integer userType,
-                                                 String operationType, BigDecimal amount, 
+                                                 String operationType, BigDecimal amount,
                                                  BigDecimal balanceBefore, BigDecimal balanceAfter,
                                                  String currency, String relatedOrderNo, String description,
                                                  String operatorName, String ipAddress) {

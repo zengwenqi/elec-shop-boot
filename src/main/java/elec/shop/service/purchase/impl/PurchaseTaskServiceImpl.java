@@ -19,10 +19,7 @@ import elec.shop.service.sys.SysUserService;
 import elec.shop.service.sys.SystemLogService;
 import elec.shop.strategy.factory.OrderStatusMessageHandlerFactory;
 import elec.shop.strategy.inter.OrderStatusMessageHandler;
-import elec.shop.utils.AllContextUtils;
-import elec.shop.utils.EmailUtil;
-import elec.shop.utils.MinioUtil;
-import elec.shop.utils.RangeSearchUtil;
+import elec.shop.utils.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -357,6 +354,12 @@ public class PurchaseTaskServiceImpl extends ServiceImpl<PurchaseTaskMapper, Pur
                             .eq(AccountBalance::getAccountId, financeAccount.getAccountId())
                             .eq(AccountBalance::getCurrency, currency));
                     accountBalance.setAccountId(financeAccount.getAccountId());
+
+                    MoneyLogHelper.zidingyiLogRecharge(byId.getUserId(), byId.getUsername(), 4,
+                            "采购订单退款",BigDecimal.valueOf(i),accountBalance.getBalance(),accountBalance.getBalance().add(BigDecimal.valueOf(i)),
+                            purchaseOrder.getOrderNo(), "鉴于采购订单约定价格低于当前已支付金额，特此申请退还超出约定价格的部分款项",
+                            AllContextUtils.getLoginSysUser().getUsername(), "系统", accountBalance.getCurrency());
+
                     accountBalance.setBalance(accountBalance.getBalance().add(BigDecimal.valueOf(i)));
                     accountBalanceMapper.updateById(accountBalance);
                 }
@@ -456,6 +459,11 @@ public class PurchaseTaskServiceImpl extends ServiceImpl<PurchaseTaskMapper, Pur
                 // 累加比例计算的佣金（复用已有变量，减少对象创建）
                 totalCommission = totalCommission.add(multiplyWithPercentage(realTotalAmount, commissionValue, 2));
             }
+
+            MoneyLogHelper.zidingyiLogRecharge(loginSysUser.getUserId(), loginSysUser.getUsername(), 4,
+                    "采购订单佣金",totalCommission,accountBalance.getBalance(),accountBalance.getBalance().add(totalCommission),
+                    purchaseOrder.getOrderNo(), "采购订单佣金返现",
+                    AllContextUtils.getLoginSysUser().getUsername(), "系统", accountBalance.getCurrency());
 
             // 更新余额（单次赋值，提高效率）
             accountBalance.setBalance(currentBalance.add(totalCommission));

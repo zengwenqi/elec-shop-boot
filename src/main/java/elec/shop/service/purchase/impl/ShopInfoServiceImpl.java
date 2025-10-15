@@ -21,6 +21,7 @@ import elec.shop.pojo.sys.SysUser;
 import elec.shop.mapper.purchase.ShopInfoMapper;
 import elec.shop.utils.AllContextUtils;
 import elec.shop.utils.MinioUtil;
+import elec.shop.utils.MoneyLogHelper;
 import elec.shop.utils.Result;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
@@ -129,12 +130,6 @@ public class ShopInfoServiceImpl extends ServiceImpl<ShopInfoMapper, ShopInfo>
             log.error("查询店铺信息异常", e);
             throw new RuntimeException("查询店铺信息失败");
         }
-    }
-
-    @Override
-    @Transactional
-    public void test(Long userId) {
-        initUserInfoData(userId);
     }
 
     @Override
@@ -306,7 +301,7 @@ public class ShopInfoServiceImpl extends ServiceImpl<ShopInfoMapper, ShopInfo>
      * 初始化用户信息数据
      */
     @Override
-    public void initUserInfoData(Long userId) {
+    public void initUserInfoData(Long userId,String username) {
         // 初始化店铺数据
         ShopInfo shopInfo = new ShopInfo();
         shopInfo.setUserId(userId);
@@ -338,6 +333,11 @@ public class ShopInfoServiceImpl extends ServiceImpl<ShopInfoMapper, ShopInfo>
         accountBalanceMapper.insert(eurBalance);
         accountBalanceMapper.insert(gbpBalance);
         accountBalanceMapper.insert(jpyBalance);
+
+        MoneyLogHelper.zidingyiLogRecharge(userId, username, 4,
+                "初始化",new BigDecimal(0),new BigDecimal(0),new BigDecimal(0),
+                "初始化用户账户余额", "初始化用户账户余额",
+                "初始化用户账户余额", "系统", "USD");
     }
 
     /**

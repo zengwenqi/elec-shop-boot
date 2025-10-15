@@ -5,9 +5,12 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import elec.shop.mapper.finance.MoneyLogMapper;
+import elec.shop.mapper.sys.SysUserMapper;
 import elec.shop.pojo.finance.MoneyLog;
 import elec.shop.pojo.finance.dto.MoneyLogQueryDTO;
+import elec.shop.pojo.sys.SysUser;
 import elec.shop.service.finance.MoneyLogService;
+import elec.shop.utils.AllContextUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,10 +27,24 @@ import java.util.Map;
 @Service
 public class MoneyLogServiceImpl extends ServiceImpl<MoneyLogMapper, MoneyLog> implements MoneyLogService {
 
+    private final SysUserMapper sysUserMapper;
+
+    public MoneyLogServiceImpl(SysUserMapper sysUserMapper) {
+        this.sysUserMapper = sysUserMapper;
+    }
+
     @Override
     public IPage<MoneyLog> getMoneyLogPage(MoneyLogQueryDTO queryDTO) {
+
+        SysUser loginSysUser = AllContextUtils.getLoginSysUser();
+        SysUser sysUser = sysUserMapper.selectById(loginSysUser.getUserId());
         Page<MoneyLog> page = new Page<>(queryDTO.getPage(), queryDTO.getSize());
+        if (sysUser.getUserType()==1) {
+            return baseMapper.selectMoneyLogPage(page, queryDTO);
+        }
+        queryDTO.setUserId(sysUser.getUserId());
         return baseMapper.selectMoneyLogPage(page, queryDTO);
+
     }
 
     @Override
@@ -68,18 +85,18 @@ public class MoneyLogServiceImpl extends ServiceImpl<MoneyLogMapper, MoneyLog> i
                     .setUpdatedAt(LocalDateTime.now());
 
             boolean result = save(moneyLog);
-            
+
             if (result) {
-                log.info("财务日志记录成功: userId={}, operationType={}, amount={}, currency={}", 
+                log.info("财务日志记录成功: userId={}, operationType={}, amount={}, currency={}",
                         userId, operationType, amount, currency);
             } else {
-                log.error("财务日志记录失败: userId={}, operationType={}, amount={}, currency={}", 
+                log.error("财务日志记录失败: userId={}, operationType={}, amount={}, currency={}",
                         userId, operationType, amount, currency);
             }
-            
+
             return result;
         } catch (Exception e) {
-            log.error("记录财务日志异常: userId={}, operationType={}, amount={}, currency={}", 
+            log.error("记录财务日志异常: userId={}, operationType={}, amount={}, currency={}",
                     userId, operationType, amount, currency, e);
             return false;
         }
@@ -112,7 +129,7 @@ public class MoneyLogServiceImpl extends ServiceImpl<MoneyLogMapper, MoneyLog> i
         // 设置导出时不分页，获取所有数据
         queryDTO.setPage(1);
         queryDTO.setSize(Integer.MAX_VALUE);
-        
+
         IPage<MoneyLog> page = getMoneyLogPage(queryDTO);
         return page.getRecords();
     }
@@ -120,66 +137,66 @@ public class MoneyLogServiceImpl extends ServiceImpl<MoneyLogMapper, MoneyLog> i
     /**
      * 记录充值日志
      */
-    public boolean recordRecharge(Long userId, String username, Integer userType, BigDecimal amount, 
-                                 String currency, String relatedOrderNo, String remark, 
+    public boolean recordRecharge(Long userId, String username, Integer userType, BigDecimal amount,
+                                 String currency, String relatedOrderNo, String remark,
                                  Long operatorId, String operatorName, String ipAddress) {
         return recordMoneyLog(userId, username, userType, MoneyLog.OperationType.RECHARGE.getCode(),
-                amount, currency, relatedOrderNo, null, "账户充值", remark, 
+                amount, currency, relatedOrderNo, null, "账户充值", remark,
                 operatorId, operatorName, ipAddress);
     }
 
     /**
      * 记录采购支出日志
      */
-    public boolean recordPurchase(Long userId, String username, Integer userType, BigDecimal amount, 
-                                 String currency, String relatedOrderNo, Long relatedId, String remark, 
+    public boolean recordPurchase(Long userId, String username, Integer userType, BigDecimal amount,
+                                 String currency, String relatedOrderNo, Long relatedId, String remark,
                                  String ipAddress) {
         return recordMoneyLog(userId, username, userType, MoneyLog.OperationType.PURCHASE.getCode(),
-                amount.negate(), currency, relatedOrderNo, relatedId, "采购支出", remark, 
+                amount.negate(), currency, relatedOrderNo, relatedId, "采购支出", remark,
                 null, null, ipAddress);
     }
 
     /**
      * 记录退款日志
      */
-    public boolean recordRefund(Long userId, String username, Integer userType, BigDecimal amount, 
-                               String currency, String relatedOrderNo, Long relatedId, String remark, 
+    public boolean recordRefund(Long userId, String username, Integer userType, BigDecimal amount,
+                               String currency, String relatedOrderNo, Long relatedId, String remark,
                                Long operatorId, String operatorName, String ipAddress) {
         return recordMoneyLog(userId, username, userType, MoneyLog.OperationType.REFUND.getCode(),
-                amount, currency, relatedOrderNo, relatedId, "订单退款", remark, 
+                amount, currency, relatedOrderNo, relatedId, "订单退款", remark,
                 operatorId, operatorName, ipAddress);
     }
 
     /**
      * 记录佣金日志
      */
-    public boolean recordCommission(Long userId, String username, Integer userType, BigDecimal amount, 
-                                   String currency, String relatedOrderNo, Long relatedId, String remark, 
+    public boolean recordCommission(Long userId, String username, Integer userType, BigDecimal amount,
+                                   String currency, String relatedOrderNo, Long relatedId, String remark,
                                    String ipAddress) {
         return recordMoneyLog(userId, username, userType, MoneyLog.OperationType.COMMISSION.getCode(),
-                amount, currency, relatedOrderNo, relatedId, "佣金收入", remark, 
+                amount, currency, relatedOrderNo, relatedId, "佣金收入", remark,
                 null, null, ipAddress);
     }
 
     /**
      * 记录提现日志
      */
-    public boolean recordWithdraw(Long userId, String username, Integer userType, BigDecimal amount, 
-                                 String currency, String relatedOrderNo, String remark, 
+    public boolean recordWithdraw(Long userId, String username, Integer userType, BigDecimal amount,
+                                 String currency, String relatedOrderNo, String remark,
                                  String ipAddress) {
         return recordMoneyLog(userId, username, userType, MoneyLog.OperationType.WITHDRAW.getCode(),
-                amount.negate(), currency, relatedOrderNo, null, "账户提现", remark, 
+                amount.negate(), currency, relatedOrderNo, null, "账户提现", remark,
                 null, null, ipAddress);
     }
 
     /**
      * 记录转账日志
      */
-    public boolean recordTransfer(Long userId, String username, Integer userType, BigDecimal amount, 
-                                 String currency, String relatedOrderNo, String remark, 
+    public boolean recordTransfer(Long userId, String username, Integer userType, BigDecimal amount,
+                                 String currency, String relatedOrderNo, String remark,
                                  Long operatorId, String operatorName, String ipAddress) {
         return recordMoneyLog(userId, username, userType, MoneyLog.OperationType.TRANSFER.getCode(),
-                amount, currency, relatedOrderNo, null, "账户转账", remark, 
+                amount, currency, relatedOrderNo, null, "账户转账", remark,
                 operatorId, operatorName, ipAddress);
     }
 }
