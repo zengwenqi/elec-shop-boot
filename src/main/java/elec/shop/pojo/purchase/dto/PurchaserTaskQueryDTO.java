@@ -13,6 +13,9 @@ public class PurchaserTaskQueryDTO {
     @ApiModelProperty("优先级")
     private Integer priority;
 
+    @ApiModelProperty("订单号")
+    private String orderNo;
+
     @ApiModelProperty("任务ID")
     private Long taskId;
 

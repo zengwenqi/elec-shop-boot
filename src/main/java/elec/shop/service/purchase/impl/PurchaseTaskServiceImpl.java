@@ -10,6 +10,7 @@ import elec.shop.pojo.balance.GlobalCommissionConfig;
 import elec.shop.pojo.purchase.*;
 import elec.shop.pojo.purchase.dto.PurchaserTaskQueryDTO;
 import elec.shop.pojo.purchase.dto.TaskStatusChangeDTO;
+import elec.shop.pojo.purchase.utils.TaskStatus;
 import elec.shop.pojo.purchase.vo.PurchaserOrderItemVO;
 import elec.shop.pojo.purchase.vo.PurchaserTaskVO;
 import elec.shop.pojo.sys.SysUser;
@@ -20,6 +21,7 @@ import elec.shop.service.sys.SystemLogService;
 import elec.shop.strategy.factory.OrderStatusMessageHandlerFactory;
 import elec.shop.strategy.inter.OrderStatusMessageHandler;
 import elec.shop.utils.*;
+import elec.shop.utils.WebSocketNotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -63,6 +65,7 @@ public class PurchaseTaskServiceImpl extends ServiceImpl<PurchaseTaskMapper, Pur
     private final FinanceAccountService financeAccountService;
     private final SystemLogService systemLogService;
     private final MinioUtil minioUtil;
+    private final WebSocketNotificationService webSocketNotificationService;
 
     @Override
     public Page<PurchaseTask> queryTasks(PurchaserTaskQueryDTO query) {
@@ -225,6 +228,9 @@ public class PurchaseTaskServiceImpl extends ServiceImpl<PurchaseTaskMapper, Pur
         if (query.getPriority() != null) {
             wrapper.eq(PurchaseTask::getPriority, query.getPriority());
         }
+        if (query.getOrderNo() != null) {
+            wrapper.like(PurchaseTask::getTitle, query.getOrderNo());
+        }
 
         // 自定义排序规则
 //        wrapper.last("ORDER BY CASE WHEN task_status = 4 THEN 1 ELSE 0 END, created_at DESC");
@@ -326,11 +332,11 @@ public class PurchaseTaskServiceImpl extends ServiceImpl<PurchaseTaskMapper, Pur
                 .eq(PurchaseOrder::getOrderNo, task.getTitle())
         );
         task.setTaskStatus(dto.getNewStatus());
+        SysUser byId = sysUserService.getById(purchaseOrder.getUserId());
         if (dto.getNewStatus()==0||dto.getNewStatus()==1) {
             purchaseOrder.setServiceCharge(dto.getServiceCharge());
             if (dto.getRealTotalAmount() != null && !dto.getRealTotalAmount().equals(purchaseOrder.getTotalAmount())) {
                 int i = dto.getRealTotalAmount().compareTo(purchaseOrder.getTotalAmount());
-                SysUser byId = sysUserService.getById(purchaseOrder.getUserId());
                 if (i>0){
                     purchaseOrder.setRealTotalAmount(dto.getRealTotalAmount());
                     purchaseOrder.setPaymentStatus(0);
@@ -388,6 +394,10 @@ public class PurchaseTaskServiceImpl extends ServiceImpl<PurchaseTaskMapper, Pur
         }
 
         boolean success = this.updateById(task);
+        if (dto.getNewStatus()!=1||dto.getNewStatus()!=3){
+            emailUtil.sendCustomEmail(byId.getEmail(), "任务状态变更通知", "订单号为"+purchaseOrder.getOrderNo()
+                    +"状态已变更为_"+ TaskStatus.STATUS_MAP.get(dto.getNewStatus()) +"_,请及时登录系统查看");
+        }
 
         // 8. 触发关联操作（如果有）
 //        if (success && dto.getNewStatus() == 6) { // 任务完成状态
@@ -511,6 +521,19 @@ public class PurchaseTaskServiceImpl extends ServiceImpl<PurchaseTaskMapper, Pur
         }
 
         purchaseOrderMapper.updateById(purchaseOrder);
+
+        // 状态更新成功后，发送WebSocket消息通知用户
+        if (success) {
+            try {
+                Long userId = purchaseOrder.getUserId();
+                webSocketNotificationService.sendTaskStatusChangeNotification(userId, dto.getTaskId(), dto.getNewStatus());
+                log.info("WebSocket消息发送成功，用户ID: {}, 任务ID: {}, 新状态: {}", userId, dto.getTaskId(), dto.getNewStatus());
+            } catch (Exception e) {
+                log.error("发送WebSocket消息失败", e);
+                // WebSocket消息发送失败不影响主流程
+            }
+        }
+
         return success;
     }
 
