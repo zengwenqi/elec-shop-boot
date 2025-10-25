@@ -7,6 +7,8 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.Date;
+
+import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 
 /**
@@ -35,7 +37,12 @@ public class FinanceTransaction implements Serializable {
     /**
      * 关联账户ID
      */
-    private Long relatedAccountId;
+    private String relatedAccountId;
+
+    /**
+     * 实际应付金额
+     */
+    private BigDecimal realPaymentMoney;
 
     /**
      * 交易类型：1-充值 2-提现 3-转账 4-支付 5-退款 6-结算
@@ -76,6 +83,11 @@ public class FinanceTransaction implements Serializable {
      * 支付单号
      */
     private String paymentNo;
+
+    /**
+     * 支付凭证
+     */
+    private String paymentImage;
 
     /**
      * 备注

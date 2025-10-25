@@ -4,7 +4,9 @@ import elec.shop.annotation.DataSource;
 import elec.shop.config.DataSourceType;
 import elec.shop.pojo.balance.dto.AccountBalanceDTO;
 import elec.shop.pojo.balance.dto.BuQiDTO;
+import elec.shop.pojo.balance.dto.RechargeRequestDTO;
 import elec.shop.pojo.purchase.FinanceAccount;
+import elec.shop.service.balance.FinanceTransactionService;
 import elec.shop.service.purchase.AccountBalanceService;
 import elec.shop.service.purchase.FinanceAccountService;
 import elec.shop.utils.AllContextUtils;
@@ -18,6 +20,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.Map;
 
 @Api(tags = "余额管理")
@@ -28,6 +31,7 @@ public class BalanceManagementController {
 
     private final AccountBalanceService accountBalanceService;
     private final FinanceAccountService financeAccountService;
+    private final FinanceTransactionService financeTransactionService;
 
     @GetMapping("/my")
     @ApiOperation("查询我的所有币种余额")
@@ -52,9 +56,30 @@ public class BalanceManagementController {
     }
 
     @PostMapping("/recharge")
-    @ApiOperation("充值")
+    @ApiOperation("充值申请")
     @DataSource(DataSourceType.MASTER)
-    public Result<Object> recharge(
+    public Result recharge(@RequestBody RechargeRequestDTO rechargeRequest) {
+        try {
+            // 获取当前登录用户
+            Long userId = AllContextUtils.getLoginSysUser().getUserId();
+
+            // 创建充值记录（待审核状态）
+            Long transactionId = financeTransactionService.createRechargeRecord(userId, rechargeRequest);
+
+            Map<String, Object> data = new HashMap<>();
+            data.put("transactionId", transactionId);
+
+            return Result.ok(data)
+                    .message("充值申请提交成功，请等待审核");
+        } catch (Exception e) {
+            return Result.fail().message("充值申请失败：" + e.getMessage());
+        }
+    }
+
+    @PostMapping("/recharge/legacy")
+    @ApiOperation("充值（旧版本，直接到账）")
+    @DataSource(DataSourceType.MASTER)
+    public Result<Object> rechargeLegacy(
             @ApiParam(value = "充值金额", required = true) @RequestParam BigDecimal amount,
             @ApiParam(value = "币种", required = true) @RequestParam String currency) {
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {

@@ -425,7 +425,7 @@ public class AccountBalanceServiceImpl extends ServiceImpl<AccountBalanceMapper,
         if (mainAccount!=null) {
 
             MoneyLogHelper.zidingyiLogRecharge(dto.getUserId(), sysUser1.getUsername(), 4,
-                    "管理员代充值",new BigDecimal(dto.getMoney()),mainAccount.getBanlance(),mainAccount.getBanlance().add(new BigDecimal(dto.getMoney())),
+                    "管理员代充值",RsaDecryptUtil.decryptAmount(dto.getMoney()),mainAccount.getBanlance(),mainAccount.getBanlance().add(RsaDecryptUtil.decryptAmount(dto.getMoney())),
                     "管理员代充值", "管理员处理充值反馈",
                     sysUser.getUsername(), "系统", "CNY");
 

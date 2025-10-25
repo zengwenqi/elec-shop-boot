@@ -4,10 +4,13 @@ import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import elec.shop.annotation.DataSource;
 import elec.shop.config.DataSourceType;
+import elec.shop.mapper.sys.SysUserMapper;
 import elec.shop.pojo.announcement.CrossBorderService;
 import elec.shop.pojo.announcement.dto.CrossBorderDTO;
 import elec.shop.pojo.announcement.vo.CrossBorderVO;
+import elec.shop.pojo.sys.SysUser;
 import elec.shop.service.announcement.CrossBorderServiceService;
+import elec.shop.utils.AllContextUtils;
 import elec.shop.utils.MinioUtil;
 import elec.shop.utils.Result;
 import io.swagger.annotations.Api;
@@ -16,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -27,16 +31,25 @@ public class BorderServiceController {
 
     private final CrossBorderServiceService crossBorderServiceService;
     private final MinioUtil minioUtil;
+    private final SysUserMapper sysUserMapper;
 
     @GetMapping("/list")
     @ApiOperation("查询所有跨境服务超市")
     @DataSource(DataSourceType.SLAVE)
     public Result<Object> list() {
-        // 1. 查询原始数据
-        List<CrossBorderService> list = crossBorderServiceService.list(
-                new LambdaQueryWrapper<CrossBorderService>()
-                        .eq(CrossBorderService::getStatus, 1)
-        );
+
+        SysUser sysUser = sysUserMapper.selectById(AllContextUtils.getLoginSysUser().getUserId());
+        List<CrossBorderService> list;
+        if (sysUser.getUserType() == 1){
+            // 1. 查询原始数据
+            list = crossBorderServiceService.list();
+        } else {
+            // 1. 查询原始数据
+            list = crossBorderServiceService.list(
+                    new LambdaQueryWrapper<CrossBorderService>()
+                            .eq(CrossBorderService::getStatus, 1)
+            );
+        }
 
         // 2. 转换为VO对象（修正复制逻辑）
         List<CrossBorderVO> crossBorderVOList = list.stream()

@@ -394,8 +394,8 @@ public class PurchaseTaskServiceImpl extends ServiceImpl<PurchaseTaskMapper, Pur
         }
 
         boolean success = this.updateById(task);
-        if (dto.getNewStatus()!=1||dto.getNewStatus()!=3){
-            emailUtil.sendCustomEmail(byId.getEmail(), "任务状态变更通知", "订单号为"+purchaseOrder.getOrderNo()
+        if (dto.getNewStatus()>=5){
+            emailUtil.sendCustomEmail(byId.getEmail(), "物流更新", "订单号为"+purchaseOrder.getOrderNo()
                     +"状态已变更为_"+ TaskStatus.STATUS_MAP.get(dto.getNewStatus()) +"_,请及时登录系统查看");
         }
 
